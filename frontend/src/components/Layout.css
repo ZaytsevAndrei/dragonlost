@@ -1,0 +1,23 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 40px 0;
+}
+
+.footer {
+  background-color: var(--bg-secondary);
+  padding: 20px 0;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.footer p {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

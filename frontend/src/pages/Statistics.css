@@ -1,0 +1,256 @@
+.statistics {
+  padding: 20px 0;
+}
+
+.stats-header {
+  margin-bottom: 30px;
+}
+
+.stats-header h1 {
+  font-size: 36px;
+  margin: 0 0 20px 0;
+}
+
+/* Фильтры */
+.stats-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.filter-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(206, 65, 43, 0.3);
+}
+
+.stats-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  padding: 12px 20px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 16px;
+  min-width: 300px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.stats-info {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.stats-table-container {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stats-table thead {
+  background-color: var(--bg-tertiary);
+}
+
+.stats-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.stats-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-table tbody tr {
+  transition: background-color 0.2s;
+}
+
+.stats-table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.player-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.kd-stat {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.resource-stat {
+  font-weight: 500;
+  color: #4caf50;
+}
+
+.loading,
+.error,
+.no-results {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.error {
+  color: var(--accent);
+}
+
+.btn-retry {
+  display: block;
+  margin: 20px auto;
+  padding: 12px 30px;
+  background-color: var(--accent);
+  color: white;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.btn-retry:hover {
+  background-color: var(--accent-hover);
+}
+
+/* Пагинация */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+  padding: 20px 0;
+}
+
+.pagination-btn {
+  padding: 8px 12px;
+  min-width: 40px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
+.pagination-dots {
+  padding: 8px 4px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .stats-header h1 {
+    font-size: 28px;
+  }
+
+  .stats-filters {
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    flex: 1 1 auto;
+    min-width: calc(50% - 4px);
+    justify-content: center;
+  }
+
+  .stats-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .stats-info {
+    text-align: center;
+  }
+
+  .stats-table {
+    font-size: 14px;
+  }
+
+  .stats-table th,
+  .stats-table td {
+    padding: 12px 8px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pagination-btn {
+    padding: 6px 10px;
+    min-width: 36px;
+    font-size: 13px;
+  }
+}

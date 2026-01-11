@@ -1,0 +1,92 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  deploy:
+    name: Deploy to Ubuntu Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚀 Начало деплоя
+        run: |
+          echo "🚀 Начинается деплой на production сервер..."
+          echo "📦 Ветка: ${{ github.ref }}"
+          echo "👤 Автор: ${{ github.actor }}"
+          echo "💬 Коммит: ${{ github.event.head_commit.message }}"
+      
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+      
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: 🔐 Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: 22
+          script: |
+            echo "=== 🚀 DragonLost Auto-Deploy ==="
+            echo ""
+            
+            # Переход в директорию проекта
+            echo "📂 Переход в директорию проекта..."
+            cd ${{ secrets.PROJECT_PATH }}
+            pwd
+            echo ""
+            
+            # Получение последних изменений
+            echo "📥 Получение изменений из Git..."
+            git pull origin main
+            echo ""
+            
+            # Установка зависимостей
+            echo "📦 Установка зависимостей..."
+            npm run install:all
+            echo ""
+            
+            # Сборка проекта
+            echo "🔨 Сборка проекта..."
+            npm run build
+            echo ""
+            
+            # Перезапуск PM2
+            echo "🔄 Перезапуск PM2..."
+            pm2 restart ecosystem.config.js --env production
+            pm2 save
+            echo ""
+            
+            # Проверка статуса
+            echo "✅ Проверка статуса приложений..."
+            pm2 status
+            echo ""
+            
+            echo "=== ✅ Деплой завершен успешно! ==="
+      
+      - name: ✅ Деплой завершен
+        if: success()
+        run: |
+          echo "✅ Деплой успешно завершен!"
+          echo "🌐 Проверьте сайт: https://dragonlost.ru"
+      
+      - name: ❌ Деплой провален
+        if: failure()
+        run: |
+          echo "❌ Деплой завершился с ошибкой!"
+          echo "🔍 Проверьте логи выше для деталей"
+          exit 1
+      
+      - name: 📊 Отправка уведомления (опционально)
+        if: always()
+        run: |
+          echo "📊 Статус деплоя: ${{ job.status }}"
+          echo "⏰ Время: $(date)"

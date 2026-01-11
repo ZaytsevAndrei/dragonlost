@@ -1,0 +1,141 @@
+import { useEffect, useState } from 'react';
+import { api } from '../services/api';
+import './Servers.css';
+
+interface Server {
+  id: number;
+  name: string;
+  ip: string;
+  port: number;
+  players: number;
+  maxPlayers: number;
+  map: string;
+  mapSize: number;
+  status: string;
+  lastWipe: string;
+}
+
+function Servers() {
+  const [servers, setServers] = useState<Server[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchServers();
+  }, []);
+
+  const fetchServers = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/servers');
+      setServers(response.data.servers);
+      setError(null);
+    } catch (err) {
+      setError('Не удалось загрузить информацию о серверах');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Скопировано в буфер обмена!');
+  };
+
+  if (loading) {
+    return (
+      <div className="servers">
+        <h1>Наши сервера</h1>
+        <div className="loading">Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="servers">
+        <h1>Наши сервера</h1>
+        <div className="error">{error}</div>
+        <button onClick={fetchServers} className="btn-retry">
+          Попробовать снова
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="servers">
+      <h1>Наши сервера</h1>
+
+      <div className="servers-grid">
+        {servers.map((server) => (
+          <div key={server.id} className="server-card">
+            <div className="server-header">
+              <h2>{server.name}</h2>
+              <span className={`status ${server.status}`}>
+                {server.status === 'online' ? '🟢 Онлайн' : '🔴 Оффлайн'}
+              </span>
+            </div>
+
+            <div className="server-info">
+              <div className="info-row">
+                <span className="label">IP адрес:</span>
+                <span className="value">
+                  {server.ip}:{server.port}
+                  <button
+                    onClick={() => copyToClipboard(`${server.ip}:${server.port}`)}
+                    className="btn-copy"
+                    title="Скопировать"
+                  >
+                    📋
+                  </button>
+                </span>
+              </div>
+
+              <div className="info-row">
+                <span className="label">Игроки:</span>
+                <span className="value">
+                  {server.players}/{server.maxPlayers}
+                </span>
+              </div>
+
+              <div className="info-row">
+                <span className="label">Карта:</span>
+                <span className="value">{server.map}</span>
+              </div>
+
+              <div className="info-row">
+                <span className="label">Размер карты:</span>
+                <span className="value">{server.mapSize}m</span>
+              </div>
+
+              <div className="info-row">
+                <span className="label">Последний вайп:</span>
+                <span className="value">{formatDate(server.lastWipe)}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => copyToClipboard(`client.connect ${server.ip}:${server.port}`)}
+              className="btn-connect"
+            >
+              Подключиться
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default Servers;
