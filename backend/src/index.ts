@@ -65,7 +65,6 @@ const sessionStore = new MySQLSessionStore({
 // Session configuration with MySQL store
 app.use(
   session({
-    key: 'dragonlost_session',
     secret: process.env.SESSION_SECRET || 'dragonlost-secret-key',
     store: sessionStore,
     resave: false,
@@ -79,12 +78,8 @@ app.use(
   })
 );
 
-// Log session store connection
-sessionStore.onReady().then(() => {
-  console.log('✅ MySQL Session Store готов');
-}).catch((error: Error) => {
-  console.error('❌ Ошибка MySQL Session Store:', error);
-});
+// Log session store connection status
+console.log('✅ MySQL Session Store настроен');
 
 // Initialize Passport
 app.use(passport.initialize());

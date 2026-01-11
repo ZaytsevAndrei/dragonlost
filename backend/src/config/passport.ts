@@ -35,7 +35,8 @@ export const configurePassport = () => {
         'SELECT * FROM users WHERE steamid = ?',
         [steamid]
       );
-      done(null, rows[0] || null);
+      const user = rows[0] ? (rows[0] as unknown as User) : null;
+      done(null, user);
     } catch (error) {
       done(error, null);
     }

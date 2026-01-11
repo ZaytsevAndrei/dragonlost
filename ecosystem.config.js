@@ -34,4 +34,3 @@ module.exports = {
     },
   ],
 };
-npm run preview --prefix ./frontend
