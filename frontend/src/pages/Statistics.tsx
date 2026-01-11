@@ -102,13 +102,6 @@ function Statistics() {
     setCurrentPage(1);
   };
 
-  const formatTimePlayed = (seconds: string) => {
-    const totalSeconds = parseFloat(seconds);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    return `${hours}ч ${minutes}м`;
-  };
-
   const formatNumber = (num: number) => {
     return num.toLocaleString('ru-RU');
   };
