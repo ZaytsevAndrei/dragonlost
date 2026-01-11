@@ -14,11 +14,14 @@
 }
 
 .server-card {
-  background-color: var(--bg-secondary);
+  background-color: rgba(26, 31, 46, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 30px;
   transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .server-card:hover {

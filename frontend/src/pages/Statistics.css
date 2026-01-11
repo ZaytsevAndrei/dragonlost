@@ -21,7 +21,9 @@
 
 .filter-btn {
   padding: 10px 20px;
-  background-color: var(--bg-secondary);
+  background-color: rgba(26, 31, 46, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
   border: 2px solid var(--border);
   border-radius: 8px;
@@ -58,7 +60,9 @@
 
 .search-input {
   padding: 12px 20px;
-  background-color: var(--bg-secondary);
+  background-color: rgba(26, 31, 46, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-primary);
@@ -77,10 +81,13 @@
 }
 
 .stats-table-container {
-  background-color: var(--bg-secondary);
+  background-color: rgba(26, 31, 46, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 12px;
   border: 1px solid var(--border);
   overflow-x: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .stats-table {
@@ -89,7 +96,9 @@
 }
 
 .stats-table thead {
-  background-color: var(--bg-tertiary);
+  background-color: rgba(37, 43, 59, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .stats-table th {
@@ -111,7 +120,7 @@
 }
 
 .stats-table tbody tr:hover {
-  background-color: var(--bg-tertiary);
+  background-color: rgba(37, 43, 59, 0.7);
 }
 
 .player-name {
@@ -170,7 +179,9 @@
 .pagination-btn {
   padding: 8px 12px;
   min-width: 40px;
-  background-color: var(--bg-secondary);
+  background-color: rgba(26, 31, 46, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 6px;

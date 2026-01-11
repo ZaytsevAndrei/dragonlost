@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      port: 3000,
+      port: 8080,
       host: true, // Слушать на всех сетевых интерфейсах
       proxy: {
         '/api': {

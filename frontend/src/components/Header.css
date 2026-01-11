@@ -1,10 +1,13 @@
 .header {
-  background-color: var(--bg-secondary);
+  background-color: rgba(26, 31, 46, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 2px solid var(--accent);
   padding: 15px 0;
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .header-content {

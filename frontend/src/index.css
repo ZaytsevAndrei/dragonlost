@@ -21,13 +21,17 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg-primary);
+  background: linear-gradient(rgba(15, 20, 25, 0.85), rgba(15, 20, 25, 0.85)), 
+              url('/dragon-lost-bg.jpg') no-repeat center center fixed;
+  background-size: cover;
   color: var(--text-primary);
   line-height: 1.6;
+  position: relative;
 }
 
 #root {
   min-height: 100vh;
+  position: relative;
 }
 
 a {
