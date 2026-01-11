@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 3000,
+      host: true, // Слушать на всех сетевых интерфейсах
+      allowedHosts: [
+        'localhost',
+        '127.0.0.1',
+        'dragonlost.ru',
+        'www.dragonlost.ru',
+      ],
       proxy: {
         '/api': {
           target: env.VITE_API_URL || 'http://localhost:5000',
