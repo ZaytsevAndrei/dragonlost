@@ -33,6 +33,7 @@ jobs:
             --exclude "node_modules" \
             --exclude "frontend/.env" \
             --exclude "backend/.env" \
+            --exclude ".env" \
             ./ \
             ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.PROJECT_PATH }}
 
