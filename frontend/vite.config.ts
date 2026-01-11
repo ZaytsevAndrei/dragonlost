@@ -22,6 +22,16 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    preview: {
+      port: 3000,
+      host: true, // Слушать на всех сетевых интерфейсах
+      proxy: {
+        '/api': {
+          target: env.VITE_API_URL || 'http://localhost:5000',
+          changeOrigin: true,
+        },
+      },
+    },
     build: {
       outDir: 'dist',
       sourcemap: mode === 'development',

@@ -20,8 +20,8 @@ module.exports = {
     },
     {
       name: 'dragonlost-frontend',
-      script: 'serve',
-      args: ['-s', './frontend/dist', '-p', '3000'],
+      script: 'npm',
+      args: 'run preview --prefix ./frontend',
       instances: 1,
       env: {
         NODE_ENV: 'production',
@@ -34,3 +34,4 @@ module.exports = {
     },
   ],
 };
+npm run preview --prefix ./frontend
