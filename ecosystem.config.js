@@ -21,7 +21,7 @@ module.exports = {
     {
       name: 'dragonlost-frontend',
       script: 'serve',
-      args: '-s ./frontend/dist -l 3000',
+      args: ['-s', './frontend/dist', '-p', '3000'],
       instances: 1,
       env: {
         NODE_ENV: 'production',

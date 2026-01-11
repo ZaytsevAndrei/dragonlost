@@ -55,3 +55,4 @@ pm2.log
 *.crt
 package-lock.json
 PlayerDatabase_202601112159.sql
+.env*
