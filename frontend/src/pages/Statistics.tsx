@@ -57,7 +57,7 @@ function Statistics() {
 
   // Фильтрация и сортировка
   let filteredPlayers = players.filter((player) =>
-    player.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (player.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Сортировка по выбранной категории
@@ -207,8 +207,8 @@ function Statistics() {
           </thead>
           <tbody>
             {currentPlayers.map((player) => (
-              <tr key={player.steamid}>
-                <td className="player-name">{player.name}</td>
+              <tr key={player.steamid || player.id}>
+                <td className="player-name">{player.name || 'Неизвестный игрок'}</td>
                 <td>{player.stats.kills}</td>
                 <td>{player.stats.deaths}</td>
                 <td className="kd-stat">{player.stats.kd.toFixed(2)}</td>
