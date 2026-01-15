@@ -46,9 +46,12 @@ export interface Server {
   players: number;
   maxPlayers: number;
   map: string;
-  mapSize: number;
+  mapSize?: number;
   status: 'online' | 'offline';
-  lastWipe: string;
+  lastWipe: string | null;
+  country?: string;
+  rank?: number;
+  uptime?: number;
 }
 
 // API Response types
