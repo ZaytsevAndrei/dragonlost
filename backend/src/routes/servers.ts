@@ -1,24 +1,47 @@
 import { Router } from 'express';
+import { rustServersApi } from '../services/rustServersApi';
 
 const router = Router();
 
-// Mock server data - replace with real server query logic
+// Get server data from rust-servers.net API
 router.get('/', async (req, res) => {
   try {
-    // TODO: Implement actual server query logic
-    // This could use Rust server query protocols or APIs
+    const serverData = await rustServersApi.getServerDetails();
+
+    if (!serverData) {
+      // Fallback to basic data if API fails
+      return res.json({
+        servers: [
+          {
+            id: 1,
+            name: 'DragonLost | Main Server',
+            ip: '185.189.255.19',
+            port: 35500,
+            players: 0,
+            maxPlayers: 100,
+            map: 'Unknown',
+            status: 'offline',
+            lastWipe: null,
+          },
+        ],
+      });
+    }
+
+    // Transform API response to our format
     const servers = [
       {
-        id: 1,
-        name: 'DragonLost | Main Server',
-        ip: '0.0.0.0',
-        port: 28015,
-        players: 0,
-        maxPlayers: 100,
-        map: 'Procedural Map',
-        mapSize: 3500,
-        status: 'online',
-        lastWipe: new Date().toISOString(),
+        id: parseInt(serverData.id, 10),
+        name: serverData.hostname || serverData.name || 'Unknown',
+        ip: serverData.address,
+        port: parseInt(serverData.port, 10),
+        players: parseInt(serverData.players, 10) || 0,
+        maxPlayers: parseInt(serverData.maxplayers, 10) || 100,
+        map: serverData.map || 'Unknown',
+        status: serverData.is_online === '1' ? 'online' : 'offline',
+        lastWipe: serverData.last_check || null,
+        country: serverData.location,
+        rank: parseInt(serverData.rank, 10) || undefined,
+        uptime: parseFloat(serverData.uptime) || undefined,
       },
     ];
 

@@ -10,9 +10,12 @@ interface Server {
   players: number;
   maxPlayers: number;
   map: string;
-  mapSize: number;
+  mapSize?: number;
   status: string;
-  lastWipe: string;
+  lastWipe: string | null;
+  country?: string;
+  rank?: number;
+  uptime?: number;
 }
 
 function Servers() {
@@ -38,8 +41,10 @@ function Servers() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Неизвестно';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Неизвестно';
     return date.toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
@@ -49,7 +54,6 @@ function Servers() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert('Скопировано в буфер обмена!');
   };
 
   if (loading) {
@@ -114,15 +118,31 @@ function Servers() {
                 <span className="value">{server.map}</span>
               </div>
 
-              <div className="info-row">
-                <span className="label">Размер карты:</span>
-                <span className="value">{server.mapSize}m</span>
-              </div>
+              {server.mapSize && (
+                <div className="info-row">
+                  <span className="label">Размер карты:</span>
+                  <span className="value">{server.mapSize}m</span>
+                </div>
+              )}
 
               <div className="info-row">
                 <span className="label">Последний вайп:</span>
                 <span className="value">{formatDate(server.lastWipe)}</span>
               </div>
+
+              {server.rank && (
+                <div className="info-row">
+                  <span className="label">Рейтинг:</span>
+                  <span className="value">#{server.rank}</span>
+                </div>
+              )}
+
+              {server.uptime !== undefined && (
+                <div className="info-row">
+                  <span className="label">Uptime:</span>
+                  <span className="value">{server.uptime.toFixed(1)}%</span>
+                </div>
+              )}
             </div>
 
             <button
