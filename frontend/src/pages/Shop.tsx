@@ -190,7 +190,7 @@ function Shop() {
                 <button
                   className="btn-purchase"
                   onClick={() => handlePurchase(item.id, item.name, item.price)}
-                  disabled={!user || purchasing === item.id || (balance && balance.balance < item.price)}
+                  disabled={!user || purchasing === item.id || (balance ? balance.balance < item.price : false)}
                 >
                   {purchasing === item.id ? 'Покупка...' : 'Купить'}
                 </button>

@@ -25,12 +25,6 @@ interface OnlineStatus {
   message: string;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: '⏳ Ожидает получения',
-  delivered: '✅ Получено',
-  expired: '❌ Истекло',
-};
-
 const CATEGORY_NAMES: Record<string, string> = {
   weapon: '🔫 Оружие',
   armor: '🛡️ Броня',
