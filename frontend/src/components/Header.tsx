@@ -1,14 +1,36 @@
 import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import './Header.css';
 
 function Header() {
   const { user, logout } = useAuthStore();
   const API_URL = import.meta.env.VITE_API_URL || '/api';
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogin = () => {
     window.location.href = `${API_URL}/auth/steam`;
   };
+
+  const handleLogout = async () => {
+    setDropdownOpen(false);
+    await logout();
+  };
+
+  // Закрытие dropdown при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="header">
@@ -22,6 +44,9 @@ function Header() {
             <Link to="/" className="nav-link">
               Главная
             </Link>
+            <Link to="/shop" className="nav-link">
+              Магазин
+            </Link>
             <Link to="/stats" className="nav-link">
               Статистика
             </Link>
@@ -32,12 +57,36 @@ function Header() {
 
           <div className="auth-section">
             {user ? (
-              <div className="user-info">
-                <img src={user.avatar} alt={user.username} className="user-avatar" />
-                <span className="user-name">{user.username}</span>
-                <button onClick={logout} className="btn-logout">
-                  Выход
-                </button>
+              <div className="user-dropdown" ref={dropdownRef}>
+                <div 
+                  className="user-info" 
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                  <img src={user.avatar} alt={user.username} className="user-avatar" />
+                  <span className="user-name">{user.username}</span>
+                  <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▼</span>
+                </div>
+                
+                {dropdownOpen && (
+                  <div className="dropdown-menu">
+                    <Link 
+                      to="/inventory" 
+                      className="dropdown-item"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <span className="dropdown-icon">🎒</span>
+                      Мой инвентарь
+                    </Link>
+                    <div className="dropdown-divider"></div>
+                    <button 
+                      onClick={handleLogout} 
+                      className="dropdown-item logout"
+                    >
+                      <span className="dropdown-icon">🚪</span>
+                      Выход
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <button onClick={handleLogin} className="btn-login">

@@ -22,6 +22,8 @@ import { configurePassport } from './config/passport';
 import authRoutes from './routes/auth';
 import statsRoutes from './routes/stats';
 import serversRoutes from './routes/servers';
+import shopRoutes from './routes/shop';
+import inventoryRoutes from './routes/inventory';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 
@@ -98,6 +100,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/servers', serversRoutes);
+app.use('/api/shop', shopRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Error handling
 app.use(errorHandler);
