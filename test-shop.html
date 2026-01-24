@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест магазина</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #27ae60; }
+        .error { background: #e74c3c; }
+        .info { background: #3498db; }
+        pre { background: #2c3e50; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест работы магазина DragonLost</h1>
+    
+    <div id="results"></div>
+    
+    <button onclick="testBackend()">Проверить Backend API</button>
+    <button onclick="testFrontend()">Проверить Frontend</button>
+    <button onclick="openShop()">Открыть магазин</button>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        async function testBackend() {
+            results.innerHTML = '<div class="status info">Проверка Backend API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/shop/items');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                results.innerHTML = `
+                    <div class="status success">✅ Backend API работает!</div>
+                    <p>Найдено предметов: ${data.items.length}</p>
+                    <pre>${JSON.stringify(data.items.slice(0, 2), null, 2)}</pre>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="status error">❌ Ошибка Backend API</div>
+                    <p>${error.message}</p>
+                    <p>Убедитесь, что Backend запущен на порту 5000</p>
+                `;
+            }
+        }
+        
+        async function testFrontend() {
+            results.innerHTML = '<div class="status info">Проверка Frontend...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:3000/');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                results.innerHTML = `
+                    <div class="status success">✅ Frontend доступен на http://localhost:3000/</div>
+                    <p>Статус: ${response.status} ${response.statusText}</p>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="status error">❌ Ошибка Frontend</div>
+                    <p>${error.message}</p>
+                    <p>Убедитесь, что Frontend запущен на порту 3000</p>
+                `;
+            }
+        }
+        
+        function openShop() {
+            window.open('http://localhost:3000/shop', '_blank');
+        }
+        
+        // Автоматическая проверка при загрузке
+        window.onload = async () => {
+            await testBackend();
+            setTimeout(testFrontend, 1000);
+        };
+    </script>
+</body>
+</html>

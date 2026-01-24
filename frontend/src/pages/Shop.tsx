@@ -51,7 +51,13 @@ function Shop() {
 
       if (user) {
         const balanceResponse = await api.get('/shop/balance');
-        setBalance(balanceResponse.data);
+        // Обеспечиваем, что все значения являются числами
+        const balanceData = balanceResponse.data;
+        setBalance({
+          balance: Number(balanceData.balance) || 0,
+          total_earned: Number(balanceData.total_earned) || 0,
+          total_spent: Number(balanceData.total_spent) || 0,
+        });
       }
 
       setError(null);
@@ -91,8 +97,8 @@ function Shop() {
         if (balance) {
           setBalance({
             ...balance,
-            balance: response.data.new_balance,
-            total_spent: balance.total_spent + price,
+            balance: Number(response.data.new_balance) || 0,
+            total_spent: (balance.total_spent || 0) + price,
           });
         }
       }
@@ -139,7 +145,7 @@ function Shop() {
         {user && balance && (
           <div className="balance-card">
             <div className="balance-label">Ваш баланс:</div>
-            <div className="balance-amount">💰 {balance.balance.toFixed(2)} монет</div>
+            <div className="balance-amount">💰 {(balance.balance || 0).toFixed(2)} монет</div>
           </div>
         )}
       </div>

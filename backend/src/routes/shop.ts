@@ -63,12 +63,17 @@ router.get('/balance', isAuthenticated, async (req, res) => {
     if (rows.length === 0) {
       // Создаем запись баланса, если её нет
       await webPool.query(
-        'INSERT INTO player_balance (user_id, balance) VALUES (?, 0)',
+        'INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
         [userId]
       );
       res.json({ balance: 0, total_earned: 0, total_spent: 0 });
     } else {
-      res.json(rows[0]);
+      const balance = rows[0];
+      res.json({
+        balance: Number(balance.balance) || 0,
+        total_earned: Number(balance.total_earned) || 0,
+        total_spent: Number(balance.total_spent) || 0,
+      });
     }
   } catch (error) {
     console.error('Error fetching balance:', error);
@@ -113,7 +118,7 @@ router.post('/purchase', isAuthenticated, async (req, res) => {
     if (balanceRows.length === 0) {
       // Создаем запись баланса
       await connection.query(
-        'INSERT INTO player_balance (user_id, balance) VALUES (?, 0)',
+        'INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
         [userId]
       );
       balanceRows = [{ balance: 0 } as BalanceRow];
