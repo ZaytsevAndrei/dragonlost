@@ -23,6 +23,10 @@ interface PlayerBalance {
   total_spent: number;
 }
 
+interface BalanceRow extends RowDataPacket {
+  balance: number;
+}
+
 // Получить все доступные предметы магазина
 router.get('/items', async (req, res) => {
   try {
@@ -101,7 +105,7 @@ router.post('/purchase', isAuthenticated, async (req, res) => {
     const totalPrice = item.price * quantity;
     
     // Получаем баланс игрока
-    let [balanceRows] = await connection.query<RowDataPacket[]>(
+    let [balanceRows] = await connection.query<BalanceRow[]>(
       'SELECT balance FROM player_balance WHERE user_id = ?',
       [userId]
     );
@@ -112,7 +116,7 @@ router.post('/purchase', isAuthenticated, async (req, res) => {
         'INSERT INTO player_balance (user_id, balance) VALUES (?, 0)',
         [userId]
       );
-      balanceRows = [{ balance: 0 }];
+      balanceRows = [{ balance: 0 } as BalanceRow];
     }
     
     const currentBalance = balanceRows[0].balance;
