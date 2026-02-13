@@ -45,6 +45,9 @@ pm2.log
 *.sln
 *.sw?
 
+# Uploaded shop images (хранилище картинок магазина)
+backend/uploads/
+
 # Temporary files
 *.tmp
 *.temp

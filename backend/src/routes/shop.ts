@@ -2,8 +2,13 @@ import { Router } from 'express';
 import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated } from '../middleware/auth';
+import { createPayment } from '../services/yookassa';
+import { randomUUID } from 'crypto';
 
 const router = Router();
+
+const MIN_DEPOSIT = 10;
+const MAX_DEPOSIT = 50000;
 
 interface ShopItem {
   id: number;
@@ -78,6 +83,114 @@ router.get('/balance', isAuthenticated, async (req, res) => {
   } catch (error) {
     console.error('Error fetching balance:', error);
     res.status(500).json({ error: 'Failed to fetch balance' });
+  }
+});
+
+// Создать заказ пополнения (редирект в платёжную систему)
+router.post('/deposit/create', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const amount = parseFloat(req.body.amount);
+    if (Number.isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
+      return res.status(400).json({
+        error: `Сумма должна быть от ${MIN_DEPOSIT} до ${MAX_DEPOSIT}`,
+      });
+    }
+
+    const baseUrl = (process.env.BASE_URL || process.env.CORS_ORIGIN || 'http://localhost:3000').replace(/\/$/, '');
+    const returnUrl = `${baseUrl}/shop?payment=success`;
+
+    const connection = await webPool.getConnection();
+    try {
+      const [insertResult] = await connection.query<ResultSetHeader>(
+        `INSERT INTO payment_orders (user_id, amount, currency, status) VALUES (?, ?, 'RUB', 'pending')`,
+        [userId, amount]
+      );
+      const orderId = insertResult.insertId;
+
+      const idempotenceKey = randomUUID();
+      const payment = await createPayment({
+        amount,
+        returnUrl,
+        description: `Пополнение баланса DragonLost #${orderId}`,
+        idempotenceKey,
+        metadata: { order_id: String(orderId) },
+      });
+
+      await connection.query(
+        'UPDATE payment_orders SET external_id = ?, payload = ? WHERE id = ?',
+        [payment.id, JSON.stringify(payment), orderId]
+      );
+      connection.release();
+
+      const redirectUrl = payment.confirmation?.confirmation_url || null;
+      if (!redirectUrl) {
+        return res.status(500).json({ error: 'Платёжная система не вернула ссылку на оплату' });
+      }
+      res.json({ redirect_url: redirectUrl, order_id: orderId });
+    } catch (err) {
+      connection.release();
+      throw err;
+    }
+  } catch (error: unknown) {
+    console.error('Error creating deposit:', error);
+    const message = error instanceof Error ? error.message : 'Failed to create deposit';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Активировать промокод
+router.post('/deposit/redeem', isAuthenticated, async (req, res) => {
+  const connection = await webPool.getConnection();
+  try {
+    const userId = req.user!.id;
+    const code = (req.body.code || '').toString().trim();
+    if (!code) {
+      return res.status(400).json({ error: 'Укажите код промокода' });
+    }
+
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query<RowDataPacket[]>(
+      'SELECT id, amount FROM voucher_codes WHERE code = ? AND used_by IS NULL FOR UPDATE',
+      [code]
+    );
+    if (rows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Промокод не найден или уже использован' });
+    }
+    const voucher = rows[0];
+    const amount = Number(voucher.amount);
+
+    await connection.query(
+      'UPDATE voucher_codes SET used_by = ?, used_at = NOW() WHERE id = ?',
+      [userId, voucher.id]
+    );
+
+    await connection.query(
+      `INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, ?, ?, 0)
+       ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
+      [userId, amount, amount, amount, amount]
+    );
+    await connection.query(
+      'INSERT INTO transactions (user_id, type, amount, description) VALUES (?, ?, ?, ?)',
+      [userId, 'earn', amount, `Промокод: ${code}`]
+    );
+    await connection.commit();
+
+    const [balanceRows] = await connection.query<BalanceRow[]>(
+      'SELECT balance FROM player_balance WHERE user_id = ?',
+      [userId]
+    );
+    const newBalance = balanceRows.length > 0 ? Number(balanceRows[0].balance) : amount;
+
+    res.json({ success: true, amount, new_balance: newBalance });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error redeeming voucher:', error);
+    res.status(500).json({ error: 'Ошибка при активации промокода' });
+  } finally {
+    connection.release();
   }
 });
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import './Inventory.css';
@@ -192,7 +192,7 @@ function Inventory() {
                 {item.image_url && (
                   <div className="item-image">
                     <img 
-                      src={item.image_url} 
+                      src={getImageUrl(item.image_url)} 
                       alt={item.item_name}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
@@ -235,7 +235,7 @@ function Inventory() {
                 {item.image_url && (
                   <div className="item-image">
                     <img 
-                      src={item.image_url} 
+                      src={getImageUrl(item.image_url)} 
                       alt={item.item_name}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';

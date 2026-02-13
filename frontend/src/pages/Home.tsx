@@ -1,15 +1,9 @@
+import { Link } from 'react-router-dom';
 import './Home.css';
 
 function Home() {
   return (
     <div className="home">
-      <section className="hero">
-        <h1>Добро пожаловать на DragonLost</h1>
-        <p className="hero-subtitle">
-          Rust сервер с уникальной статистикой игроков
-        </p>
-      </section>
-
       <section className="features">
         <div className="feature-card">
           <div className="feature-icon">📊</div>
@@ -35,7 +29,7 @@ function Home() {
       <section className="cta">
         <h2>Готовы начать играть?</h2>
         <p>Присоединяйтесь к нашему серверу прямо сейчас!</p>
-        <button className="btn-cta">Подключиться к серверу</button>
+        <Link to="/servers" className="btn-cta">Подключиться к серверу</Link>
       </section>
     </div>
   );

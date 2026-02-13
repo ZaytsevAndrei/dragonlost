@@ -1,7 +1,13 @@
 // IMPORTANT: Load environment variables FIRST before any other imports
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+const uploadsShopDir = path.join(__dirname, '..', 'uploads', 'shop');
+if (!fs.existsSync(uploadsShopDir)) {
+  fs.mkdirSync(uploadsShopDir, { recursive: true });
+}
 
 // Verify critical environment variables are loaded
 if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
@@ -24,6 +30,7 @@ import statsRoutes from './routes/stats';
 import serversRoutes from './routes/servers';
 import shopRoutes from './routes/shop';
 import inventoryRoutes from './routes/inventory';
+import webhooksRoutes from './routes/webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 
@@ -40,6 +47,9 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
+
+// Static files: картинки магазина (fallback на внешние URL в БД)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Body parsing middleware
 app.use(express.json());
@@ -102,6 +112,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/servers', serversRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/webhooks', webhooksRoutes);
 
 // Error handling
 app.use(errorHandler);
