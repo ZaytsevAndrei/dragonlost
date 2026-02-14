@@ -91,7 +91,6 @@ function Shop() {
       setError(null);
     } catch (err) {
       setError('Не удалось загрузить данные магазина');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -178,7 +177,6 @@ function Shop() {
     } catch (err: any) {
       const errorMsg = err.response?.data?.error || 'Ошибка при покупке';
       alert(errorMsg);
-      console.error(err);
     } finally {
       setPurchasing(null);
     }

@@ -90,7 +90,7 @@ router.post('/yookassa', async (req: Request, res: Response) => {
       connection.release();
     }
   } catch (err) {
-    console.error('YooKassa webhook error:', err);
+    console.error('YooKassa webhook error:', err instanceof Error ? err.message : 'Unknown error');
     res.status(200).send();
   }
 });

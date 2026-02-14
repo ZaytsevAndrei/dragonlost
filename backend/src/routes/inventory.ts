@@ -46,7 +46,7 @@ router.get('/', isAuthenticated, async (req, res) => {
     
     res.json({ inventory: rows });
   } catch (error) {
-    console.error('Error fetching inventory:', error);
+    console.error('Error fetching inventory:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
 });
@@ -83,7 +83,7 @@ router.get('/check-online', isAuthenticated, async (req, res) => {
       message: isOnline ? 'Player is online' : 'Player is offline'
     });
   } catch (error) {
-    console.error('Error checking online status:', error);
+    console.error('Error checking online status:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to check online status' });
   }
 });
@@ -166,7 +166,7 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
     });
   } catch (error) {
     await connection.rollback();
-    console.error('Error using item:', error);
+    console.error('Error using item:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to use item' });
   } finally {
     connection.release();
@@ -186,7 +186,7 @@ router.get('/transactions', isAuthenticated, async (req, res) => {
     
     res.json({ transactions: rows });
   } catch (error) {
-    console.error('Error fetching transactions:', error);
+    console.error('Error fetching transactions:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch transactions' });
   }
 });

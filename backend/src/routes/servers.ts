@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
 
     res.json({ servers });
   } catch (error) {
-    console.error('Error fetching servers:', error);
+    console.error('Error fetching servers:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch servers' });
   }
 });

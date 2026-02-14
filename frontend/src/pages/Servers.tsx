@@ -35,7 +35,6 @@ function Servers() {
       setError(null);
     } catch (err) {
       setError('Не удалось загрузить информацию о серверах');
-      console.error(err);
     } finally {
       setLoading(false);
     }

@@ -24,10 +24,6 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      console.log('Unauthorized access');
-    }
     return Promise.reject(error);
   }
 );

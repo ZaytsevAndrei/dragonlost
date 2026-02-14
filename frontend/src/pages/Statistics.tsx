@@ -49,7 +49,6 @@ function Statistics() {
       setError(null);
     } catch (err) {
       setError('Не удалось загрузить статистику');
-      console.error(err);
     } finally {
       setLoading(false);
     }

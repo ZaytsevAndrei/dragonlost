@@ -80,7 +80,7 @@ router.get('/', async (req, res) => {
 
     res.json({ players });
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    console.error('Error fetching stats:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
@@ -137,7 +137,7 @@ router.get('/:steamid', async (req, res) => {
 
     res.json({ player });
   } catch (error) {
-    console.error('Error fetching player stats:', error);
+    console.error('Error fetching player stats:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch player statistics' });
   }
 });

@@ -49,7 +49,7 @@ export class RustServersApiService {
       const data = await response.json() as RustServerDetailResponse;
       return data;
     } catch (error) {
-      console.error('Error fetching server details from rust-servers.net:', error);
+      console.error('Error fetching server details from rust-servers.net:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   }
@@ -72,7 +72,7 @@ export class RustServersApiService {
       const result = await response.text();
       return parseInt(result, 10) || 0;
     } catch (error) {
-      console.error('Error checking vote:', error);
+      console.error('Error checking vote:', error instanceof Error ? error.message : 'Unknown error');
       return 0;
     }
   }
@@ -95,7 +95,7 @@ export class RustServersApiService {
       const result = await response.text();
       return result === '1';
     } catch (error) {
-      console.error('Error claiming vote:', error);
+      console.error('Error claiming vote:', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   }

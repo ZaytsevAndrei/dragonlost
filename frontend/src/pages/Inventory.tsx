@@ -60,7 +60,6 @@ function Inventory() {
       setError(null);
     } catch (err) {
       setError('Не удалось загрузить инвентарь');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -71,7 +70,7 @@ function Inventory() {
       const response = await api.get('/inventory/check-online');
       setOnlineStatus(response.data);
     } catch (err) {
-      console.error('Error checking online status:', err);
+      // Ошибка проверки статуса — молча игнорируем
     }
   };
 
@@ -97,7 +96,6 @@ function Inventory() {
     } catch (err: any) {
       const errorMsg = err.response?.data?.error || 'Ошибка при использовании предмета';
       alert(`❌ ${errorMsg}`);
-      console.error(err);
       // Обновляем статус онлайна
       checkOnlineStatus();
     } finally {

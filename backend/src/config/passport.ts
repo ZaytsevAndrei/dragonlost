@@ -59,13 +59,9 @@ export const configurePassport = () => {
 
           // Validate steamid
           if (!steamid) {
-            console.error('❌ Steam ID не найден в ответе Steam!');
-            console.log('Identifier:', identifier);
-            console.log('Profile:', JSON.stringify(profile, null, 2));
+            console.error('Steam auth failed: Steam ID not found in response');
             return done(new Error('Steam ID не найден'), null);
           }
-
-          console.log('✅ Steam авторизация:', { steamid, username });
 
           // Check if user exists
           const [rows] = await webPool.query<RowDataPacket[]>(

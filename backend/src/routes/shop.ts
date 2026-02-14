@@ -50,7 +50,7 @@ router.get('/items', async (req, res) => {
     const [rows] = await webPool.query<RowDataPacket[]>(query, params);
     res.json({ items: rows });
   } catch (error) {
-    console.error('Error fetching shop items:', error);
+    console.error('Error fetching shop items:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch shop items' });
   }
 });
@@ -81,7 +81,7 @@ router.get('/balance', isAuthenticated, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error fetching balance:', error);
+    console.error('Error fetching balance:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch balance' });
   }
 });
@@ -117,9 +117,15 @@ router.post('/deposit/create', isAuthenticated, async (req, res) => {
         metadata: { order_id: String(orderId) },
       });
 
+      // Сохраняем только необходимые поля из ответа YooKassa
+      const safePayload = {
+        id: payment.id,
+        status: payment.status,
+        amount: payment.amount,
+      };
       await connection.query(
         'UPDATE payment_orders SET external_id = ?, payload = ? WHERE id = ?',
-        [payment.id, JSON.stringify(payment), orderId]
+        [payment.id, JSON.stringify(safePayload), orderId]
       );
       connection.release();
 
@@ -133,7 +139,7 @@ router.post('/deposit/create', isAuthenticated, async (req, res) => {
       throw err;
     }
   } catch (error: unknown) {
-    console.error('Error creating deposit:', error);
+    console.error('Error creating deposit:', error instanceof Error ? error.message : 'Unknown error');
     const message = error instanceof Error ? error.message : 'Failed to create deposit';
     res.status(500).json({ error: message });
   }
@@ -174,7 +180,7 @@ router.post('/deposit/redeem', isAuthenticated, async (req, res) => {
     );
     await connection.query(
       'INSERT INTO transactions (user_id, type, amount, description) VALUES (?, ?, ?, ?)',
-      [userId, 'earn', amount, `Промокод: ${code}`]
+      [userId, 'earn', amount, 'Активация промокода']
     );
     await connection.commit();
 
@@ -187,7 +193,7 @@ router.post('/deposit/redeem', isAuthenticated, async (req, res) => {
     res.json({ success: true, amount, new_balance: newBalance });
   } catch (error) {
     await connection.rollback();
-    console.error('Error redeeming voucher:', error);
+    console.error('Error redeeming voucher:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Ошибка при активации промокода' });
   } finally {
     connection.release();
@@ -276,7 +282,7 @@ router.post('/purchase', isAuthenticated, async (req, res) => {
     });
   } catch (error) {
     await connection.rollback();
-    console.error('Error purchasing item:', error);
+    console.error('Error purchasing item:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to purchase item' });
   } finally {
     connection.release();
@@ -291,7 +297,7 @@ router.get('/categories', async (req, res) => {
     );
     res.json({ categories: rows.map(r => r.category) });
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    console.error('Error fetching categories:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });

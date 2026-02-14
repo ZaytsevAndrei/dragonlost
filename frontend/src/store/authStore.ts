@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await api.post('/auth/logout');
       set({ user: null });
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Logout failed');
     }
   },
 }));
