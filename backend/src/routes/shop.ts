@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated } from '../middleware/auth';
+import { sensitiveRateLimiter, paymentRateLimiter } from '../middleware/rateLimiter';
 import { createPayment } from '../services/yookassa';
 import { randomUUID } from 'crypto';
 
@@ -87,7 +88,7 @@ router.get('/balance', isAuthenticated, async (req, res) => {
 });
 
 // Создать заказ пополнения (редирект в платёжную систему)
-router.post('/deposit/create', isAuthenticated, async (req, res) => {
+router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, res) => {
   try {
     const userId = req.user!.id;
     const amount = parseFloat(req.body.amount);
@@ -146,7 +147,7 @@ router.post('/deposit/create', isAuthenticated, async (req, res) => {
 });
 
 // Активировать промокод
-router.post('/deposit/redeem', isAuthenticated, async (req, res) => {
+router.post('/deposit/redeem', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
   try {
     const userId = req.user!.id;
@@ -201,7 +202,7 @@ router.post('/deposit/redeem', isAuthenticated, async (req, res) => {
 });
 
 // Купить предмет
-router.post('/purchase', isAuthenticated, async (req, res) => {
+router.post('/purchase', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
   
   try {

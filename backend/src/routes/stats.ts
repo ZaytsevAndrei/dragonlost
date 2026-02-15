@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { rustPool } from '../config/database';
 import { RowDataPacket } from 'mysql2';
 import { isAuthenticated } from '../middleware/auth';
+import { sensitiveRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -96,7 +97,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get player statistics by Steam ID (requires authentication)
-router.get('/:steamid', isAuthenticated, async (req, res) => {
+router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   try {
     const { steamid } = req.params;
 
