@@ -16,6 +16,12 @@ if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
   process.exit(1);
 }
 
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'your_session_secret_here_min_32_characters') {
+  console.error('❌ ОШИБКА: SESSION_SECRET не задан или используется значение по умолчанию!');
+  console.error('Сгенерируйте секрет: openssl rand -base64 32');
+  process.exit(1);
+}
+
 // Now import everything else
 import express from 'express';
 import cors from 'cors';
@@ -77,7 +83,7 @@ const sessionStore = new MySQLSessionStore({
 // Session configuration with MySQL store
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'dragonlost-secret-key',
+    secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
