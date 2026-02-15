@@ -9,7 +9,7 @@ export interface User {
 // Player statistics types
 export interface PlayerStats {
   id: number;
-  steamid: string;
+  steamid?: string;
   name: string;
   stats: {
     kills: number;

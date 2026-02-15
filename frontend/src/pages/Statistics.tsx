@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import './Statistics.css';
 
 interface PlayerStats {
   id: number;
-  steamid: string;
   name: string;
   stats: {
     kills: number;
@@ -26,7 +25,16 @@ interface PlayerStats {
   timePlayed: string;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 type SortCategory = 'all' | 'kills' | 'kd' | 'wood' | 'stones' | 'metal' | 'sulfur';
+
+const PLAYERS_PER_PAGE = 20;
 
 function Statistics() {
   const [players, setPlayers] = useState<PlayerStats[]>([]);
@@ -34,33 +42,36 @@ function Statistics() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [sortCategory, setSortCategory] = useState<SortCategory>('all');
-  const playersPerPage = 10;
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async (page: number, search: string) => {
     try {
       setLoading(true);
-      const response = await api.get('/stats');
+      const params: Record<string, string | number> = {
+        page,
+        limit: PLAYERS_PER_PAGE,
+      };
+      if (search) params.search = search;
+
+      const response = await api.get('/stats', { params });
       setPlayers(response.data.players);
+      setPagination(response.data.pagination);
       setError(null);
     } catch (err) {
       setError('Не удалось загрузить статистику');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Фильтрация и сортировка
-  let filteredPlayers = players.filter((player) =>
-    (player.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    fetchStats(currentPage, searchTerm);
+  }, [currentPage, fetchStats]);
 
-  // Сортировка по выбранной категории
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
+  // Клиентская сортировка текущей страницы
+  const sortedPlayers = [...players].sort((a, b) => {
     switch (sortCategory) {
       case 'kills':
         return b.stats.kills - a.stats.kills;
@@ -75,20 +86,19 @@ function Statistics() {
       case 'sulfur':
         return b.resources.sulfurOre - a.resources.sulfurOre;
       default:
-        return 0; // Исходный порядок
+        return 0;
     }
   });
 
-  // Пагинация
-  const totalPages = Math.ceil(sortedPlayers.length / playersPerPage);
-  const indexOfLastPlayer = currentPage * playersPerPage;
-  const indexOfFirstPlayer = indexOfLastPlayer - playersPerPage;
-  const currentPlayers = sortedPlayers.slice(indexOfFirstPlayer, indexOfLastPlayer);
+  const totalPages = pagination?.totalPages || 1;
 
-  // Сброс на первую страницу при изменении поиска
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchStats(1, value);
+    }, 400);
   };
 
   const paginate = (pageNumber: number) => {
@@ -98,7 +108,6 @@ function Statistics() {
 
   const handleCategoryChange = (category: SortCategory) => {
     setSortCategory(category);
-    setCurrentPage(1);
   };
 
   const formatNumber = (num: number) => {
@@ -119,7 +128,7 @@ function Statistics() {
       <div className="statistics">
         <h1>Статистика игроков</h1>
         <div className="error">{error}</div>
-        <button onClick={fetchStats} className="btn-retry">
+        <button onClick={() => fetchStats(currentPage, searchTerm)} className="btn-retry">
           Попробовать снова
         </button>
       </div>
@@ -185,7 +194,7 @@ function Statistics() {
             className="search-input"
           />
           <div className="stats-info">
-            Показано {indexOfFirstPlayer + 1}-{Math.min(indexOfLastPlayer, sortedPlayers.length)} из {sortedPlayers.length}
+            {pagination && `Показано ${(pagination.page - 1) * pagination.limit + 1}-${Math.min(pagination.page * pagination.limit, pagination.total)} из ${pagination.total}`}
           </div>
         </div>
       </div>
@@ -205,8 +214,8 @@ function Statistics() {
             </tr>
           </thead>
           <tbody>
-            {currentPlayers.map((player) => (
-              <tr key={player.steamid || player.id}>
+            {sortedPlayers.map((player) => (
+              <tr key={player.id}>
                 <td className="player-name">{player.name || 'Неизвестный игрок'}</td>
                 <td>{player.stats.kills}</td>
                 <td>{player.stats.deaths}</td>
@@ -221,7 +230,7 @@ function Statistics() {
         </table>
       </div>
 
-      {sortedPlayers.length === 0 && (
+      {!loading && sortedPlayers.length === 0 && (
         <div className="no-results">Игроки не найдены</div>
       )}
 

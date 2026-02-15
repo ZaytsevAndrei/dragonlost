@@ -1,92 +1,102 @@
 import { Router } from 'express';
 import { rustPool } from '../config/database';
 import { RowDataPacket } from 'mysql2';
+import { isAuthenticated } from '../middleware/auth';
 
 const router = Router();
 
-interface PlayerStats {
-  id: number;
-  steamid: string;
-  name: string;
-  stats: {
-    kills: number;
-    deaths: number;
-    kd: number;
-    suicides: number;
-    headshots: number;
-    shots: number;
-    experiments: number;
-    recoveries: number;
-    woundedTimes: number;
-    craftedItems: number;
-    repairedItems: number;
-    secondsPlayed: number;
-    joins: number;
-  };
-  resources: {
-    wood: number;
-    stones: number;
-    metalOre: number;
-    sulfurOre: number;
-  };
-  lastSeen: number;
-  timePlayed: string;
-  firstConnection: number;
+const MAX_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 20;
+
+function maskSteamId(steamid: string): string {
+  if (!steamid || steamid.length < 8) return '***';
+  return steamid.slice(0, 4) + '****' + steamid.slice(-4);
 }
 
-// Get all players statistics
+function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
+  const statisticsDB = JSON.parse(row.StatisticsDB || '{}');
+  const kills = statisticsDB.Kills || 0;
+  const deaths = statisticsDB.Deaths || 0;
+  const gathered = statisticsDB.Gathered || {};
+
+  return {
+    id: row.id,
+    steamid: showFullSteamId ? row.steamid : maskSteamId(row.steamid),
+    name: row.name,
+    stats: {
+      kills,
+      deaths,
+      kd: deaths > 0 ? parseFloat((kills / deaths).toFixed(2)) : kills,
+      suicides: statisticsDB.Suicides || 0,
+      headshots: statisticsDB.Headshots || 0,
+      shots: statisticsDB.Shots || 0,
+      experiments: statisticsDB.Experiments || 0,
+      recoveries: statisticsDB.Recoveries || 0,
+      woundedTimes: statisticsDB.WoundedTimes || 0,
+      craftedItems: statisticsDB.CraftedItems || 0,
+      repairedItems: statisticsDB.RepairedItems || 0,
+      secondsPlayed: statisticsDB.SecondsPlayed || 0,
+      joins: statisticsDB.Joins || 0,
+    },
+    resources: {
+      wood: gathered.wood || 0,
+      stones: gathered.stones || 0,
+      metalOre: gathered['metal.ore'] || 0,
+      sulfurOre: gathered['sulfur.ore'] || 0,
+    },
+    lastSeen: parseFloat(row['Last Seen'] || 0),
+    timePlayed: row['Time Played'] || '0',
+    firstConnection: parseFloat(row['First Connection'] || 0),
+  };
+}
+
+// Get all players statistics (with server-side pagination)
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await rustPool.query<RowDataPacket[]>(
-      'SELECT * FROM PlayerDatabase ORDER BY `Last Seen` DESC'
-    );
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(req.query.limit as string) || DEFAULT_PAGE_SIZE));
+    const search = (req.query.search as string) || '';
+    const offset = (page - 1) * limit;
 
-    const players = rows.map((row) => {
-      const statisticsDB = JSON.parse(row.StatisticsDB || '{}');
-      const kills = statisticsDB.Kills || 0;
-      const deaths = statisticsDB.Deaths || 0;
-      const gathered = statisticsDB.Gathered || {};
-      
-      return {
-        id: row.id,
-        steamid: row.steamid,
-        name: row.name,
-        stats: {
-          kills,
-          deaths,
-          kd: deaths > 0 ? parseFloat((kills / deaths).toFixed(2)) : kills,
-          suicides: statisticsDB.Suicides || 0,
-          headshots: statisticsDB.Headshots || 0,
-          shots: statisticsDB.Shots || 0,
-          experiments: statisticsDB.Experiments || 0,
-          recoveries: statisticsDB.Recoveries || 0,
-          woundedTimes: statisticsDB.WoundedTimes || 0,
-          craftedItems: statisticsDB.CraftedItems || 0,
-          repairedItems: statisticsDB.RepairedItems || 0,
-          secondsPlayed: statisticsDB.SecondsPlayed || 0,
-          joins: statisticsDB.Joins || 0,
-        },
-        resources: {
-          wood: gathered.wood || 0,
-          stones: gathered.stones || 0,
-          metalOre: gathered['metal.ore'] || 0,
-          sulfurOre: gathered['sulfur.ore'] || 0,
-        },
-        lastSeen: parseFloat(row['Last Seen'] || 0),
-        timePlayed: row['Time Played'] || '0',
-        firstConnection: parseFloat(row['First Connection'] || 0),
-      };
+    const isAuth = req.isAuthenticated();
+
+    let countQuery = 'SELECT COUNT(*) as total FROM PlayerDatabase';
+    let dataQuery = 'SELECT * FROM PlayerDatabase';
+    const params: (string | number)[] = [];
+
+    if (search) {
+      const whereClause = ' WHERE name LIKE ?';
+      countQuery += whereClause;
+      dataQuery += whereClause;
+      params.push(`%${search}%`);
+    }
+
+    dataQuery += ' ORDER BY `Last Seen` DESC LIMIT ? OFFSET ?';
+
+    const [countRows] = await rustPool.query<RowDataPacket[]>(countQuery, params);
+    const total = countRows[0].total as number;
+
+    const [rows] = await rustPool.query<RowDataPacket[]>(dataQuery, [...params, limit, offset]);
+
+    const players = rows.map((row) => parsePlayerRow(row, isAuth));
+
+    res.json({
+      players,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
-
-    res.json({ players });
   } catch (error) {
     console.error('Error fetching stats:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
 
-// Get player statistics by Steam ID
-router.get('/:steamid', async (req, res) => {
+// Get player statistics by Steam ID (requires authentication)
+router.get('/:steamid', isAuthenticated, async (req, res) => {
   try {
     const { steamid } = req.params;
 
@@ -99,41 +109,7 @@ router.get('/:steamid', async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    const row = rows[0];
-    const statisticsDB = JSON.parse(row.StatisticsDB || '{}');
-    const kills = statisticsDB.Kills || 0;
-    const deaths = statisticsDB.Deaths || 0;
-    const gathered = statisticsDB.Gathered || {};
-
-    const player: PlayerStats = {
-      id: row.id,
-      steamid: row.steamid,
-      name: row.name,
-      stats: {
-        kills,
-        deaths,
-        kd: deaths > 0 ? parseFloat((kills / deaths).toFixed(2)) : kills,
-        suicides: statisticsDB.Suicides || 0,
-        headshots: statisticsDB.Headshots || 0,
-        shots: statisticsDB.Shots || 0,
-        experiments: statisticsDB.Experiments || 0,
-        recoveries: statisticsDB.Recoveries || 0,
-        woundedTimes: statisticsDB.WoundedTimes || 0,
-        craftedItems: statisticsDB.CraftedItems || 0,
-        repairedItems: statisticsDB.RepairedItems || 0,
-        secondsPlayed: statisticsDB.SecondsPlayed || 0,
-        joins: statisticsDB.Joins || 0,
-      },
-      resources: {
-        wood: gathered.wood || 0,
-        stones: gathered.stones || 0,
-        metalOre: gathered['metal.ore'] || 0,
-        sulfurOre: gathered['sulfur.ore'] || 0,
-      },
-      lastSeen: parseFloat(row['Last Seen'] || 0),
-      timePlayed: row['Time Played'] || '0',
-      firstConnection: parseFloat(row['First Connection'] || 0),
-    };
+    const player = parsePlayerRow(rows[0], true);
 
     res.json({ player });
   } catch (error) {
