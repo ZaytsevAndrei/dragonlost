@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Header from './Header';
 import './Layout.css';
 
@@ -15,7 +16,24 @@ function Layout({ children }: LayoutProps) {
       </main>
       <footer className="footer">
         <div className="container">
-          <p>&copy; 2026 DragonLost. Все права защищены.</p>
+          <div className="footer-content">
+            <div className="footer-legal">
+              <Link to="/agreement">Пользовательское соглашение</Link>
+              <Link to="/privacy">Политика конфиденциальности</Link>
+              <Link to="/personal-information">Обработка персональных данных</Link>
+            </div>
+            <div className="footer__rules">
+              <p>
+                Размещенная на настоящем сайте информация носит исключительно
+                информационный характер и ни при каких условиях не является публичной
+                офертой, определяемой положениями ч. 2 ст. 437 Гражданского кодекса
+                Российской Федерации.
+              </p>
+              <p>ИНН 212304639468</p>
+              <p>Самозанятый (плательщик налога на профессиональный доход)</p>
+            </div>
+            <p className="footer-copy">&copy; 2026 DragonLost. Все права защищены.</p>
+          </div>
         </div>
       </footer>
     </div>

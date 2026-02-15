@@ -6,6 +6,9 @@ import Shop from './pages/Shop';
 import Statistics from './pages/Statistics';
 import Servers from './pages/Servers';
 import Inventory from './pages/Inventory';
+import Agreement from './pages/Agreement';
+import Privacy from './pages/Privacy';
+import PersonalInformation from './pages/PersonalInformation';
 import { useAuthStore } from './store/authStore';
 
 function App() {
@@ -24,6 +27,9 @@ function App() {
           <Route path="/stats" element={<Statistics />} />
           <Route path="/servers" element={<Servers />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/agreement" element={<Agreement />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/personal-information" element={<PersonalInformation />} />
         </Routes>
       </Layout>
     </Router>
