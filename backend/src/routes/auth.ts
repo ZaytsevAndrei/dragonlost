@@ -20,7 +20,8 @@ router.get(
 // Get current user
 router.get('/me', (req, res) => {
   if (req.isAuthenticated()) {
-    res.json({ user: req.user });
+    const { id, steamid, username, avatar } = req.user as any;
+    res.json({ user: { id, steamid, username, avatar } });
   } else {
     res.json({ user: null });
   }
