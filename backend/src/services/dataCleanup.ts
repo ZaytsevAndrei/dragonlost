@@ -56,7 +56,7 @@ async function cleanOldPaymentOrders(): Promise<number> {
 async function cleanStaleDailyRewards(): Promise<number> {
   const [result] = await webPool.query(
     `DELETE dr FROM daily_rewards dr
-     INNER JOIN users u ON dr.user_id = u.id
+     INNER JOIN users u ON dr.steamid = u.steamid
      WHERE u.last_login < DATE_SUB(NOW(), INTERVAL ? YEAR)
        AND (dr.last_claimed_at IS NULL OR dr.last_claimed_at < DATE_SUB(NOW(), INTERVAL ? YEAR))`,
     [DATA_RETENTION_YEARS, DATA_RETENTION_YEARS]

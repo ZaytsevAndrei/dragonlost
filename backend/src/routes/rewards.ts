@@ -66,13 +66,13 @@ interface BalanceRow extends RowDataPacket {
  */
 router.get('/daily', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
 
     const [rows] = await webPool.query<DailyRewardRow[]>(
       `SELECT last_claimed_at, current_streak, longest_streak, total_claims,
               TIMESTAMPDIFF(SECOND, last_claimed_at, NOW()) AS seconds_since_claim
-       FROM daily_rewards WHERE user_id = ?`,
-      [userId]
+       FROM daily_rewards WHERE steamid = ?`,
+      [steamid]
     );
 
     if (rows.length === 0) {
@@ -136,6 +136,7 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
   const connection = await webPool.getConnection();
   try {
     const userId = req.user!.id;
+    const steamid = req.user!.steamid;
 
     await connection.beginTransaction();
 
@@ -143,8 +144,8 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
     const [rows] = await connection.query<DailyRewardRow[]>(
       `SELECT last_claimed_at, current_streak, longest_streak, total_claims,
               TIMESTAMPDIFF(SECOND, last_claimed_at, NOW()) AS seconds_since_claim
-       FROM daily_rewards WHERE user_id = ? FOR UPDATE`,
-      [userId]
+       FROM daily_rewards WHERE steamid = ? FOR UPDATE`,
+      [steamid]
     );
 
     let currentStreak: number;
@@ -158,9 +159,9 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
       totalClaims = 1;
 
       await connection.query<ResultSetHeader>(
-        `INSERT INTO daily_rewards (user_id, last_claimed_at, current_streak, longest_streak, total_claims)
+        `INSERT INTO daily_rewards (steamid, last_claimed_at, current_streak, longest_streak, total_claims)
          VALUES (?, NOW(), ?, ?, ?)`,
-        [userId, currentStreak, longestStreak, totalClaims]
+        [steamid, currentStreak, longestStreak, totalClaims]
       );
     } else {
       const row = rows[0];
@@ -190,14 +191,14 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
              current_streak = ?,
              longest_streak = ?,
              total_claims = ?
-         WHERE user_id = ?`,
-        [currentStreak, longestStreak, totalClaims, userId]
+         WHERE steamid = ?`,
+        [currentStreak, longestStreak, totalClaims, steamid]
       );
     }
 
     const rewardAmount = getRewardAmount(currentStreak);
 
-    // Начисляем монеты в баланс
+    // Начисляем монеты в баланс (player_balance привязан к user_id)
     await connection.query(
       `INSERT INTO player_balance (user_id, balance, total_earned, total_spent)
        VALUES (?, ?, ?, 0)
@@ -205,7 +206,7 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
       [userId, rewardAmount, rewardAmount, rewardAmount, rewardAmount]
     );
 
-    // Аудит-лог в таблицу транзакций
+    // Аудит-лог в таблицу транзакций (transactions привязан к user_id)
     await connection.query(
       `INSERT INTO transactions (user_id, type, amount, description)
        VALUES (?, 'earn', ?, ?)`,
