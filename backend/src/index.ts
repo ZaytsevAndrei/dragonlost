@@ -60,6 +60,7 @@ import statsRoutes from './routes/stats';
 import serversRoutes from './routes/servers';
 import shopRoutes from './routes/shop';
 import inventoryRoutes from './routes/inventory';
+import rewardsRoutes from './routes/rewards';
 import webhooksRoutes from './routes/webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
@@ -158,6 +159,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/servers', serversRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/rewards', rewardsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
 
 // Error handling

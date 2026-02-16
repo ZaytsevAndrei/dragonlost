@@ -77,6 +77,14 @@ function Header() {
                       <span className="dropdown-icon">🎒</span>
                       Мой инвентарь
                     </Link>
+                    <Link 
+                      to="/rewards" 
+                      className="dropdown-item"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <span className="dropdown-icon">🎁</span>
+                      Ежедневная награда
+                    </Link>
                     <div className="dropdown-divider"></div>
                     <button 
                       onClick={handleLogout} 

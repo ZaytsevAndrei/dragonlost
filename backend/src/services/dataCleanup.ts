@@ -50,6 +50,21 @@ async function cleanOldPaymentOrders(): Promise<number> {
 }
 
 /**
+ * Удаляет записи daily_rewards для пользователей, неактивных более DATA_RETENTION_YEARS лет.
+ * Ретенция ПДн: не храним данные дольше необходимого (152-ФЗ).
+ */
+async function cleanStaleDailyRewards(): Promise<number> {
+  const [result] = await webPool.query(
+    `DELETE dr FROM daily_rewards dr
+     INNER JOIN users u ON dr.user_id = u.id
+     WHERE u.last_login < DATE_SUB(NOW(), INTERVAL ? YEAR)
+       AND (dr.last_claimed_at IS NULL OR dr.last_claimed_at < DATE_SUB(NOW(), INTERVAL ? YEAR))`,
+    [DATA_RETENTION_YEARS, DATA_RETENTION_YEARS]
+  );
+  return (result as { affectedRows: number }).affectedRows;
+}
+
+/**
  * Запускает полный цикл очистки устаревших данных.
  */
 async function runCleanup(): Promise<void> {
@@ -58,9 +73,10 @@ async function runCleanup(): Promise<void> {
     const sessions = await cleanExpiredSessions();
     const transactions = await cleanOldTransactions();
     const orders = await cleanOldPaymentOrders();
+    const dailyRewards = await cleanStaleDailyRewards();
 
     console.log(
-      `🧹 [Cleanup] Завершено: сессий=${sessions}, транзакций=${transactions}, ордеров=${orders}`
+      `🧹 [Cleanup] Завершено: сессий=${sessions}, транзакций=${transactions}, ордеров=${orders}, daily_rewards=${dailyRewards}`
     );
   } catch (error) {
     console.error(

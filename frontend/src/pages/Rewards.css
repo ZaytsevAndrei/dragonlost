@@ -1,0 +1,422 @@
+.rewards {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.rewards-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.rewards-header h1 {
+  color: #e74c3c;
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.rewards-subtitle {
+  color: #95a5a6;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* ===== Результат получения ===== */
+.claim-result {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  color: white;
+  animation: slideIn 0.4s ease;
+  box-shadow: 0 4px 20px rgba(39, 174, 96, 0.3);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.claim-result-icon {
+  font-size: 3rem;
+}
+
+.claim-result-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.claim-result-amount {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.claim-result-balance {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  margin-top: 0.25rem;
+}
+
+.reward-error {
+  padding: 1rem 1.5rem;
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 8px;
+  color: #e74c3c;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* ===== Основная карточка ===== */
+.reward-main-card {
+  background: #2c3e50;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  border: 2px solid #34495e;
+}
+
+.reward-streak-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.streak-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  border-radius: 50%;
+  width: 130px;
+  height: 130px;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(231, 76, 60, 0.35);
+}
+
+.streak-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+}
+
+.streak-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.streak-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ecf0f1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.reward-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.next-reward-label {
+  color: #95a5a6;
+  font-size: 1rem;
+}
+
+.next-reward-amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #f1c40f;
+  text-shadow: 0 2px 10px rgba(241, 196, 15, 0.3);
+}
+
+.btn-claim {
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.35);
+  margin-top: 0.5rem;
+}
+
+.btn-claim:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.5);
+}
+
+.btn-claim:disabled {
+  background: #7f8c8d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.countdown-timer {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #3498db;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2px;
+}
+
+.next-reward-preview {
+  color: #7f8c8d;
+  font-size: 0.95rem;
+}
+
+/* ===== Шкала наград ===== */
+.reward-schedule {
+  margin-bottom: 2.5rem;
+}
+
+.reward-schedule h2 {
+  color: #ecf0f1;
+  font-size: 1.6rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #34495e;
+}
+
+.schedule-section-title {
+  color: #95a5a6;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 1rem;
+}
+
+.schedule-day {
+  background: #2c3e50;
+  border: 2px solid #34495e;
+  border-radius: 12px;
+  padding: 1.25rem 0.75rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.schedule-day.completed {
+  border-color: #27ae60;
+  background: rgba(39, 174, 96, 0.1);
+}
+
+.schedule-day.current {
+  border-color: #f39c12;
+  background: rgba(243, 156, 18, 0.1);
+  box-shadow: 0 0 15px rgba(243, 156, 18, 0.2);
+  transform: scale(1.05);
+}
+
+.day-number,
+.day-chance {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.day-chance {
+  color: #3498db;
+  font-size: 0.9rem;
+}
+
+.random-day {
+  border-style: dashed;
+}
+
+.random-day.current {
+  border-color: #9b59b6;
+  background: rgba(155, 89, 182, 0.1);
+  box-shadow: 0 0 15px rgba(155, 89, 182, 0.2);
+}
+
+.next-reward-amount.random {
+  color: #9b59b6;
+  font-size: 2.5rem;
+  text-shadow: 0 2px 10px rgba(155, 89, 182, 0.3);
+}
+
+.day-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.day-amount {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f1c40f;
+}
+
+.day-currency {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+}
+
+/* ===== Правила ===== */
+.reward-rules {
+  background: #2c3e50;
+  border-radius: 12px;
+  padding: 2rem;
+  border: 2px solid #34495e;
+}
+
+.reward-rules h3 {
+  color: #ecf0f1;
+  font-size: 1.3rem;
+  margin: 0 0 1rem 0;
+}
+
+.reward-rules ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.reward-rules li {
+  color: #95a5a6;
+  font-size: 0.95rem;
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.reward-rules li::before {
+  content: '•';
+  color: #e74c3c;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+  font-size: 1.2rem;
+}
+
+/* ===== Loading / Error ===== */
+.loading,
+.error {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+}
+
+.loading {
+  color: #3498db;
+}
+
+.error {
+  color: #e74c3c;
+}
+
+.btn-retry {
+  margin: 1rem auto;
+  display: block;
+  padding: 0.75rem 1.5rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-retry:hover {
+  background: #2980b9;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .rewards {
+    padding: 1rem;
+  }
+
+  .rewards-header h1 {
+    font-size: 2rem;
+  }
+
+  .reward-main-card {
+    flex-direction: column;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .streak-badge {
+    width: 100px;
+    height: 100px;
+  }
+
+  .streak-number {
+    font-size: 2.2rem;
+  }
+
+  .countdown-timer {
+    font-size: 2.2rem;
+  }
+
+  .next-reward-amount {
+    font-size: 2rem;
+  }
+
+  .schedule-grid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .claim-result {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+}
