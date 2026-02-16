@@ -107,6 +107,7 @@ declare module 'express-session' {
     passport?: {
       user?: string;
     };
+    csrfToken?: string;
   }
 }
 

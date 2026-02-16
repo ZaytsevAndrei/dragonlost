@@ -20,10 +20,63 @@ export const api = axios.create({
   },
 });
 
-// Response interceptor for error handling
+// --- CSRF-токен (Synchronizer Token Pattern) ---
+let csrfToken: string | null = null;
+let csrfFetchPromise: Promise<void> | null = null;
+
+/** Загружает CSRF-токен с сервера (один раз, с дедупликацией параллельных вызовов) */
+async function fetchCsrfToken(): Promise<void> {
+  if (csrfToken) return;
+  if (csrfFetchPromise) return csrfFetchPromise;
+
+  csrfFetchPromise = api
+    .get('/csrf-token')
+    .then((res) => {
+      csrfToken = res.data.csrfToken;
+    })
+    .catch(() => {
+      csrfToken = null;
+    })
+    .finally(() => {
+      csrfFetchPromise = null;
+    });
+
+  return csrfFetchPromise;
+}
+
+const MUTATING_METHODS = ['post', 'put', 'delete', 'patch'];
+
+// Request interceptor — добавляет CSRF-токен к мутирующим запросам
+api.interceptors.request.use(async (config) => {
+  if (MUTATING_METHODS.includes(config.method || '')) {
+    if (!csrfToken) {
+      await fetchCsrfToken();
+    }
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+  return config;
+});
+
+// Response interceptor — при 403 с невалидным CSRF сбрасываем токен и повторяем запрос
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const original = error.config;
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.error?.includes('CSRF') &&
+      !original._csrfRetry
+    ) {
+      original._csrfRetry = true;
+      csrfToken = null;
+      await fetchCsrfToken();
+      if (csrfToken) {
+        original.headers['X-CSRF-Token'] = csrfToken;
+      }
+      return api(original);
+    }
     return Promise.reject(error);
   }
 );

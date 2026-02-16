@@ -45,6 +45,7 @@ import inventoryRoutes from './routes/inventory';
 import webhooksRoutes from './routes/webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
+import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
 import { EncryptedSessionStore } from './config/encryptedSessionStore';
 
 const app = express();
@@ -117,6 +118,15 @@ configurePassport();
 
 // Rate limiting
 app.use('/api/', rateLimiter);
+
+// CSRF token endpoint — клиент запрашивает токен перед мутирующими запросами
+app.get('/api/csrf-token', (req, res) => {
+  const token = ensureCsrfToken(req);
+  res.json({ csrfToken: token });
+});
+
+// CSRF protection — проверяем токен для POST/PUT/DELETE/PATCH (кроме вебхуков)
+app.use('/api/', csrfProtection);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
