@@ -128,16 +128,14 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         'UPDATE payment_orders SET external_id = ?, payload = ? WHERE id = ?',
         [payment.id, JSON.stringify(safePayload), orderId]
       );
-      connection.release();
 
       const redirectUrl = payment.confirmation?.confirmation_url || null;
       if (!redirectUrl) {
         return res.status(500).json({ error: 'Платёжная система не вернула ссылку на оплату' });
       }
       res.json({ redirect_url: redirectUrl, order_id: orderId });
-    } catch (err) {
+    } finally {
       connection.release();
-      throw err;
     }
   } catch (error: unknown) {
     console.error('Error creating deposit:', error instanceof Error ? error.message : 'Unknown error');

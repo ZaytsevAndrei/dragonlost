@@ -65,6 +65,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
 import { EncryptedSessionStore } from './config/encryptedSessionStore';
+import { scheduleDataCleanup } from './services/dataCleanup';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -121,7 +122,7 @@ app.use(
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
+      sameSite: 'lax',
     },
   })
 );
@@ -166,4 +167,7 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Запуск cron-задачи очистки устаревших данных (сессии, транзакции, ордера)
+  scheduleDataCleanup();
 });
