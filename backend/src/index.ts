@@ -28,6 +28,24 @@ if (!process.env.SESSION_ENCRYPTION_KEY || process.env.SESSION_ENCRYPTION_KEY ==
   process.exit(1);
 }
 
+if (!process.env.STEAM_API_KEY) {
+  console.error('❌ ОШИБКА: STEAM_API_KEY не задан!');
+  console.error('Получите ключ: https://steamcommunity.com/dev/apikey');
+  process.exit(1);
+}
+
+if (!process.env.CORS_ORIGIN) {
+  console.error('❌ ОШИБКА: CORS_ORIGIN не задан!');
+  console.error('Укажите допустимый origin, например: https://yourdomain.com');
+  process.exit(1);
+}
+
+if (!process.env.STEAM_RETURN_URL || !process.env.STEAM_REALM) {
+  console.error('❌ ОШИБКА: STEAM_RETURN_URL или STEAM_REALM не заданы!');
+  console.error('Укажите URL-ы для Steam OpenID аутентификации');
+  process.exit(1);
+}
+
 // Now import everything else
 import express from 'express';
 import cors from 'cors';
@@ -60,7 +78,7 @@ app.use(compression());
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN,
   credentials: true,
 };
 app.use(cors(corsOptions));

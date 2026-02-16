@@ -45,9 +45,9 @@ export const configurePassport = () => {
   passport.use(
     new SteamStrategy(
       {
-        returnURL: process.env.STEAM_RETURN_URL || 'http://localhost:5000/api/auth/steam/return',
-        realm: process.env.STEAM_REALM || 'http://localhost:5000',
-        apiKey: process.env.STEAM_API_KEY || '',
+        returnURL: process.env.STEAM_RETURN_URL!,
+        realm: process.env.STEAM_REALM!,
+        apiKey: process.env.STEAM_API_KEY!,
       },
       async (identifier: string, profile: any, done: any) => {
         try {
