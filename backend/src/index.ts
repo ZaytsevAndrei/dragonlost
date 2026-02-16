@@ -22,6 +22,12 @@ if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'your_session_
   process.exit(1);
 }
 
+if (!process.env.SESSION_ENCRYPTION_KEY || process.env.SESSION_ENCRYPTION_KEY === 'your_encryption_key_here_min_32_characters') {
+  console.error('❌ ОШИБКА: SESSION_ENCRYPTION_KEY не задан или используется значение по умолчанию!');
+  console.error('Сгенерируйте ключ: openssl rand -base64 32');
+  process.exit(1);
+}
+
 // Now import everything else
 import express from 'express';
 import cors from 'cors';
@@ -39,6 +45,7 @@ import inventoryRoutes from './routes/inventory';
 import webhooksRoutes from './routes/webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
+import { EncryptedSessionStore } from './config/encryptedSessionStore';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,15 +71,15 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MySQL Session Store configuration
+// MySQL Session Store configuration (данные шифруются AES-256-GCM)
 const MySQLSessionStore = MySQLStore(session);
-const sessionStore = new MySQLSessionStore({
+const mysqlStore = new MySQLSessionStore({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '3306'),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'dragonlost_web',
-  createDatabaseTable: true, // Automatically create sessions table
+  createDatabaseTable: true,
   schema: {
     tableName: 'sessions',
     columnNames: {
@@ -82,6 +89,7 @@ const sessionStore = new MySQLSessionStore({
     },
   },
 });
+const sessionStore = new EncryptedSessionStore(mysqlStore, process.env.SESSION_ENCRYPTION_KEY!);
 
 // Session configuration with MySQL store
 app.use(
