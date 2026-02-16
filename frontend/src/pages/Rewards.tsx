@@ -231,7 +231,7 @@ function Rewards() {
         <h2>Шкала наград</h2>
 
         <h3 className="schedule-section-title">Первая неделя</h3>
-        <div className="schedule-grid">
+        <div className="schedule-grid schedule-grid-week">
           {firstWeek.map((amount, index) => {
             const day = index + 1;
             const isCurrent = status ? day === (status.current_streak + 1) && status.available && !isRandom : false;
@@ -278,7 +278,7 @@ function Rewards() {
           <li>Забирайте награду один раз в 24 часа</li>
           <li>Первые 7 дней — награда растёт каждый день</li>
           <li>С 8-го дня — случайная награда от {Math.min(...randomPool.map(e => e.amount))} до {Math.max(...randomPool.map(e => e.amount))} монет</li>
-          <li>Пропуск более 48 часов сбрасывает серию на начало</li>
+          <li>Пропуск более 24 часов сбрасывает серию на начало</li>
           <li>Монеты начисляются на ваш баланс мгновенно</li>
         </ul>
       </div>

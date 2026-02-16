@@ -22,7 +22,7 @@ const REWARD_RANDOM_POOL = [
 ];
 
 const CLAIM_COOLDOWN_HOURS = 24;
-const STREAK_RESET_HOURS = 48;
+const STREAK_RESET_HOURS = 24;
 
 /**
  * Для дней 1-7 возвращает фиксированную награду.
@@ -178,7 +178,7 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
         });
       }
 
-      // Серия: если прошло < 48ч — продолжаем, иначе сбрасываем
+      // Серия: если прошло < 24ч — продолжаем, иначе сбрасываем
       const streakBroken =
         secondsSinceClaim !== null && secondsSinceClaim >= STREAK_RESET_HOURS * 3600;
       currentStreak = streakBroken ? 1 : row.current_streak + 1;
