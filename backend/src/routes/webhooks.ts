@@ -3,8 +3,78 @@ import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { getPayment } from '../services/yookassa';
 import rateLimit from 'express-rate-limit';
+import net from 'net';
 
 const router = Router();
+
+// Разрешённые IP-адреса ЮKassa (https://yookassa.ru/developers/using-api/webhooks)
+const YOOKASSA_ALLOWED_CIDRS_V4 = [
+  '185.71.76.0/27',
+  '185.71.77.0/27',
+  '77.75.153.0/25',
+  '77.75.156.11/32',
+  '77.75.156.35/32',
+  '77.75.154.128/25',
+];
+
+const YOOKASSA_ALLOWED_CIDRS_V6 = [
+  '2a02:5180::/32',
+];
+
+function ipv4ToNumber(ip: string): number {
+  const parts = ip.split('.').map(Number);
+  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+}
+
+function isIpv4InCidr(ip: string, cidr: string): boolean {
+  const [range, bitsStr] = cidr.split('/');
+  const bits = parseInt(bitsStr);
+  const mask = bits === 32 ? 0xFFFFFFFF : (~0 << (32 - bits)) >>> 0;
+  return (ipv4ToNumber(ip) & mask) === (ipv4ToNumber(range) & mask);
+}
+
+function expandIpv6(ip: string): string {
+  let parts: string[];
+  if (ip.includes('::')) {
+    const [left, right] = ip.split('::');
+    const leftParts = left ? left.split(':') : [];
+    const rightParts = right ? right.split(':') : [];
+    const missing = 8 - leftParts.length - rightParts.length;
+    parts = [...leftParts, ...Array(missing).fill('0'), ...rightParts];
+  } else {
+    parts = ip.split(':');
+  }
+  return parts.map(p => p.padStart(4, '0')).join(':');
+}
+
+function isIpv6InCidr(ip: string, cidr: string): boolean {
+  const [range, bitsStr] = cidr.split('/');
+  const bits = parseInt(bitsStr);
+  const expandedIp = expandIpv6(ip);
+  const expandedRange = expandIpv6(range);
+  const ipBin = expandedIp.split(':').map(h => parseInt(h, 16).toString(2).padStart(16, '0')).join('');
+  const rangeBin = expandedRange.split(':').map(h => parseInt(h, 16).toString(2).padStart(16, '0')).join('');
+  return ipBin.substring(0, bits) === rangeBin.substring(0, bits);
+}
+
+function isYooKassaIp(requestIp: string): boolean {
+  let ip = requestIp;
+
+  // IPv4-mapped IPv6 (::ffff:1.2.3.4)
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.substring(7);
+  }
+
+  if (net.isIPv4(ip)) {
+    return YOOKASSA_ALLOWED_CIDRS_V4.some(cidr => isIpv4InCidr(ip, cidr));
+  }
+
+  if (net.isIPv6(ip)) {
+    return YOOKASSA_ALLOWED_CIDRS_V6.some(cidr => isIpv6InCidr(ip, cidr));
+  }
+
+  return false;
+}
 
 interface YooKassaWebhookBody {
   type?: string;
@@ -28,6 +98,13 @@ router.use(webhookLimiter);
 
 router.post('/yookassa', async (req: Request, res: Response) => {
   try {
+    // Проверка IP-адреса отправителя
+    const clientIp = req.ip || req.socket.remoteAddress || '';
+    if (!isYooKassaIp(clientIp)) {
+      console.warn(`YooKassa webhook: отклонён запрос с IP ${clientIp}`);
+      return res.status(403).send();
+    }
+
     const body = req.body as YooKassaWebhookBody;
     if (body?.type !== 'notification' || body?.event !== 'payment.succeeded' || !body?.object?.id) {
       return res.status(200).send();
