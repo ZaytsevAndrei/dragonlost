@@ -4,8 +4,10 @@ import crypto from 'crypto';
 const CSRF_HEADER = 'x-csrf-token';
 const CSRF_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
 
-/** Пути, освобождённые от CSRF-проверки (server-to-server вебхуки) */
-const CSRF_EXEMPT_PREFIXES = ['/api/webhooks/'];
+/** Пути, освобождённые от CSRF-проверки (server-to-server вебхуки).
+ *  Примечание: middleware монтируется через app.use('/api/', ...),
+ *  поэтому Express обрезает '/api/' из req.path — здесь используем путь без префикса. */
+const CSRF_EXEMPT_PREFIXES = ['/webhooks/'];
 
 function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');

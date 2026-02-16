@@ -106,10 +106,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+/** Steam ID64 — 17 цифр */
+const STEAMID64_REGEX = /^\d{17}$/;
+
 // Get player statistics by Steam ID (requires authentication)
 router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   try {
     const { steamid } = req.params;
+
+    if (!STEAMID64_REGEX.test(steamid)) {
+      return res.status(400).json({ error: 'Invalid Steam ID format' });
+    }
 
     const [rows] = await rustPool.query<RowDataPacket[]>(
       'SELECT * FROM PlayerDatabase WHERE steamid = ?',

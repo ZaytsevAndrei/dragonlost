@@ -95,17 +95,23 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
   
   try {
     const userId = req.user!.id;
-    const inventoryId = req.params.id;
+    const inventoryId = parseInt(req.params.id);
     const steamid = req.user!.steamid;
+
+    if (!Number.isFinite(inventoryId) || inventoryId < 1) {
+      return res.status(400).json({ error: 'Invalid inventory item ID' });
+    }
     
     await connection.beginTransaction();
     
-    // Получаем предмет из инвентаря
+    // Получаем предмет из инвентаря (FOR UPDATE блокирует строку,
+    // предотвращая двойную выдачу при параллельных запросах)
     const [items] = await connection.query<RowDataPacket[]>(
       `SELECT pi.*, si.name, si.rust_item_code, si.quantity as item_quantity
        FROM player_inventory pi
        JOIN shop_items si ON pi.shop_item_id = si.id
-       WHERE pi.id = ? AND pi.user_id = ? AND pi.status = 'pending'`,
+       WHERE pi.id = ? AND pi.user_id = ? AND pi.status = 'pending'
+       FOR UPDATE`,
       [inventoryId, userId]
     );
     
@@ -147,11 +153,17 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
     // TODO: Здесь должна быть интеграция с RCON для выдачи предмета в игре
     // Пример: await executeRCONCommand(`inventory.giveto ${steamid} ${item.rust_item_code} ${item.quantity}`);
     
-    // Помечаем предмет как доставленный
-    await connection.query(
-      'UPDATE player_inventory SET status = ?, delivered_at = NOW() WHERE id = ?',
-      ['delivered', inventoryId]
+    // Помечаем предмет как доставленный (проверяем status = 'pending' повторно
+    // для защиты от race condition)
+    const [updateResult] = await connection.query<ResultSetHeader>(
+      "UPDATE player_inventory SET status = 'delivered', delivered_at = NOW() WHERE id = ? AND status = 'pending'",
+      [inventoryId]
     );
+
+    if (updateResult.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(409).json({ error: 'Item already delivered or status changed' });
+    }
     
     await connection.commit();
     

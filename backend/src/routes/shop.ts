@@ -231,9 +231,10 @@ router.post('/purchase', sensitiveRateLimiter, isAuthenticated, async (req, res)
     const item = items[0] as ShopItem;
     const totalPrice = item.price * quantity;
     
-    // Получаем баланс игрока
+    // Получаем баланс игрока (FOR UPDATE блокирует строку до конца транзакции,
+    // предотвращая race condition при параллельных покупках)
     let [balanceRows] = await connection.query<BalanceRow[]>(
-      'SELECT balance FROM player_balance WHERE user_id = ?',
+      'SELECT balance FROM player_balance WHERE user_id = ? FOR UPDATE',
       [userId]
     );
     

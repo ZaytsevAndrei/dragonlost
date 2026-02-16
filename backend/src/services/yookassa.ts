@@ -74,12 +74,20 @@ export async function createPayment(params: CreatePaymentParams): Promise<Create
   return res.json() as Promise<CreatePaymentResponse>;
 }
 
+/** Проверяет, что строка похожа на UUID (формат идентификаторов YooKassa) */
+function isValidPaymentId(id: string): boolean {
+  return /^[0-9a-f-]{36,50}$/i.test(id);
+}
+
 /**
  * Get payment by ID. Used to verify webhook notification (object status and amount).
  */
 export async function getPayment(paymentId: string): Promise<YooKassaPayment | null> {
+  if (!isValidPaymentId(paymentId)) {
+    throw new Error(`Invalid payment ID format: ${paymentId.substring(0, 20)}`);
+  }
   const auth = getAuthHeader();
-  const res = await fetch(`${YOOKASSA_API}/payments/${paymentId}`, {
+  const res = await fetch(`${YOOKASSA_API}/payments/${encodeURIComponent(paymentId)}`, {
     method: 'GET',
     headers: { 'Authorization': auth },
   });
