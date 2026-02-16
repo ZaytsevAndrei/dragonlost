@@ -10,6 +10,7 @@ const router = Router();
 
 const MIN_DEPOSIT = 10;
 const MAX_DEPOSIT = 50000;
+const MAX_PURCHASE_QUANTITY = 100;
 
 interface ShopItem {
   id: number;
@@ -139,8 +140,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
     }
   } catch (error: unknown) {
     console.error('Error creating deposit:', error instanceof Error ? error.message : 'Unknown error');
-    const message = error instanceof Error ? error.message : 'Failed to create deposit';
-    res.status(500).json({ error: message });
+    res.status(500).json({ error: 'Ошибка при создании платежа. Попробуйте позже.' });
   }
 });
 
@@ -205,10 +205,14 @@ router.post('/purchase', sensitiveRateLimiter, isAuthenticated, async (req, res)
   
   try {
     const userId = req.user!.id;
-    const { item_id, quantity = 1 } = req.body;
+    const item_id = parseInt(req.body.item_id);
+    const quantity = parseInt(req.body.quantity) || 1;
     
-    if (!item_id || quantity < 1) {
-      return res.status(400).json({ error: 'Invalid item_id or quantity' });
+    if (!Number.isFinite(item_id) || item_id < 1) {
+      return res.status(400).json({ error: 'Invalid item_id' });
+    }
+    if (quantity < 1 || quantity > MAX_PURCHASE_QUANTITY) {
+      return res.status(400).json({ error: `Quantity must be between 1 and ${MAX_PURCHASE_QUANTITY}` });
     }
     
     await connection.beginTransaction();

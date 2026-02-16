@@ -32,7 +32,7 @@ export const configurePassport = () => {
   passport.deserializeUser(async (steamid: string, done) => {
     try {
       const [rows] = await webPool.query<RowDataPacket[]>(
-        'SELECT * FROM users WHERE steamid = ?',
+        'SELECT id, steamid, username, avatar, created_at FROM users WHERE steamid = ?',
         [steamid]
       );
       const user = rows[0] ? (rows[0] as unknown as User) : null;
@@ -65,7 +65,7 @@ export const configurePassport = () => {
 
           // Check if user exists
           const [rows] = await webPool.query<RowDataPacket[]>(
-            'SELECT * FROM users WHERE steamid = ?',
+            'SELECT id, steamid, username, avatar, created_at FROM users WHERE steamid = ?',
             [steamid]
           );
 

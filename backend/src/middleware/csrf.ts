@@ -35,7 +35,16 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   const sessionToken = req.session.csrfToken;
   const headerToken = req.headers[CSRF_HEADER] as string | undefined;
 
-  if (!sessionToken || !headerToken || sessionToken !== headerToken) {
+  if (!sessionToken || !headerToken || sessionToken.length !== headerToken.length) {
+    res.status(403).json({ error: 'Invalid or missing CSRF token' });
+    return;
+  }
+
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(sessionToken, 'utf8'),
+    Buffer.from(headerToken, 'utf8'),
+  );
+  if (!isValid) {
     res.status(403).json({ error: 'Invalid or missing CSRF token' });
     return;
   }

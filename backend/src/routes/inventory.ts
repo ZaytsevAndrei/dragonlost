@@ -177,10 +177,10 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
 router.get('/transactions', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user!.id;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     
     const [rows] = await webPool.query<RowDataPacket[]>(
-      'SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
+      'SELECT id, type, amount, description, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
       [userId, limit]
     );
     

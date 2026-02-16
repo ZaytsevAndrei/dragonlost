@@ -9,6 +9,11 @@ const router = Router();
 const MAX_PAGE_SIZE = 50;
 const DEFAULT_PAGE_SIZE = 20;
 
+/** Экранирует спецсимволы LIKE (%, _) в пользовательском вводе */
+function escapeLike(value: string): string {
+  return value.replace(/[%_\\]/g, (ch) => `\\${ch}`);
+}
+
 function maskSteamId(steamid: string): string {
   if (!steamid || steamid.length < 8) return '***';
   return steamid.slice(0, 4) + '****' + steamid.slice(-4);
@@ -71,10 +76,10 @@ router.get('/', async (req, res) => {
     const params: (string | number)[] = [];
 
     if (search) {
-      const whereClause = ' WHERE name LIKE ?';
+      const whereClause = ' WHERE name LIKE ? ESCAPE \'\\\\\'';
       countQuery += whereClause;
       dataQuery += whereClause;
-      params.push(`%${search}%`);
+      params.push(`%${escapeLike(search)}%`);
     }
 
     dataQuery += ' ORDER BY `Last Seen` DESC LIMIT ? OFFSET ?';
