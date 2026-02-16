@@ -15,7 +15,12 @@ function maskSteamId(steamid: string): string {
 }
 
 function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
-  const statisticsDB = JSON.parse(row.StatisticsDB || '{}');
+  let statisticsDB: Record<string, any> = {};
+  try {
+    statisticsDB = JSON.parse(row.StatisticsDB || '{}');
+  } catch {
+    // невалидный JSON — используем пустой объект
+  }
   const kills = statisticsDB.Kills || 0;
   const deaths = statisticsDB.Deaths || 0;
   const gathered = statisticsDB.Gathered || {};
