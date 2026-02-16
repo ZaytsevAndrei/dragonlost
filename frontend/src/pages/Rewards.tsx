@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
+import { saveLastPage } from '../utils/safeLocalStorage';
 import './Rewards.css';
 
 interface RandomPoolEntry {
@@ -30,7 +31,7 @@ interface ClaimResult {
 }
 
 function Rewards() {
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
   const [status, setStatus] = useState<DailyRewardStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,12 +42,14 @@ function Rewards() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       navigate('/');
       return;
     }
+    saveLastPage('/rewards');
     fetchStatus();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Таймер обратного отсчёта
   useEffect(() => {
@@ -114,7 +117,14 @@ function Rewards() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (!user) return null;
+  if (authLoading || !user) {
+    return (
+      <div className="rewards">
+        <h1>Ежедневная награда</h1>
+        <div className="loading">Загрузка...</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
+import { saveLastPage } from '../utils/safeLocalStorage';
 import './Inventory.css';
 
 interface InventoryItem {
@@ -35,7 +36,7 @@ const CATEGORY_NAMES: Record<string, string> = {
 };
 
 function Inventory() {
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [onlineStatus, setOnlineStatus] = useState<OnlineStatus | null>(null);
@@ -44,13 +45,15 @@ function Inventory() {
   const [usingItem, setUsingItem] = useState<number | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       navigate('/');
       return;
     }
+    saveLastPage('/inventory');
     fetchInventory();
     checkOnlineStatus();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const fetchInventory = async () => {
     try {
@@ -124,8 +127,13 @@ function Inventory() {
   const pendingItems = inventory.filter(item => item.status === 'pending');
   const deliveredItems = inventory.filter(item => item.status === 'delivered');
 
-  if (!user) {
-    return null;
+  if (authLoading || !user) {
+    return (
+      <div className="inventory">
+        <h1>Мой инвентарь</h1>
+        <div className="loading">Загрузка...</div>
+      </div>
+    );
   }
 
   if (loading) {

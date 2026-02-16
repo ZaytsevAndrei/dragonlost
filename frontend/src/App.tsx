@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Layout from './components/Layout';
 import Home from './pages/Home';
@@ -11,6 +11,32 @@ import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
 import PersonalInformation from './pages/PersonalInformation';
 import { useAuthStore } from './store/authStore';
+import { getLastPage, clearLastPage } from './utils/safeLocalStorage';
+
+function HomeWithRedirect() {
+  const { user, loading } = useAuthStore();
+  const savedPage = getLastPage();
+
+  if (!loading && user && savedPage) {
+    clearLastPage();
+    return <Navigate to={savedPage} replace />;
+  }
+
+  return <Home />;
+}
+
+function PageTracker({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname === '/') return;
+    if (location.pathname !== '/inventory' && location.pathname !== '/rewards') {
+      clearLastPage();
+    }
+  }, [location.pathname]);
+
+  return <>{children}</>;
+}
 
 function App() {
   const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -21,19 +47,21 @@ function App() {
 
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/stats" element={<Statistics />} />
-          <Route path="/servers" element={<Servers />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/rewards" element={<Rewards />} />
-          <Route path="/agreement" element={<Agreement />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/personal-information" element={<PersonalInformation />} />
-        </Routes>
-      </Layout>
+      <PageTracker>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<HomeWithRedirect />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/stats" element={<Statistics />} />
+            <Route path="/servers" element={<Servers />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/agreement" element={<Agreement />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/personal-information" element={<PersonalInformation />} />
+          </Routes>
+        </Layout>
+      </PageTracker>
     </Router>
   );
 }
