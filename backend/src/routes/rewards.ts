@@ -135,7 +135,6 @@ router.get('/daily', isAuthenticated, async (req, res) => {
 router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
   try {
-    const userId = req.user!.id;
     const steamid = req.user!.steamid;
 
     await connection.beginTransaction();
@@ -198,27 +197,27 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
 
     const rewardAmount = getRewardAmount(currentStreak);
 
-    // Начисляем монеты в баланс (player_balance привязан к user_id)
+    // Начисляем монеты в баланс
     await connection.query(
-      `INSERT INTO player_balance (user_id, balance, total_earned, total_spent)
+      `INSERT INTO player_balance (steamid, balance, total_earned, total_spent)
        VALUES (?, ?, ?, 0)
        ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
-      [userId, rewardAmount, rewardAmount, rewardAmount, rewardAmount]
+      [steamid, rewardAmount, rewardAmount, rewardAmount, rewardAmount]
     );
 
-    // Аудит-лог в таблицу транзакций (transactions привязан к user_id)
+    // Аудит-лог в таблицу транзакций
     await connection.query(
-      `INSERT INTO transactions (user_id, type, amount, description)
+      `INSERT INTO transactions (steamid, type, amount, description)
        VALUES (?, 'earn', ?, ?)`,
-      [userId, rewardAmount, `Ежедневная награда (день ${currentStreak})`]
+      [steamid, rewardAmount, `Ежедневная награда (день ${currentStreak})`]
     );
 
     await connection.commit();
 
     // Получаем обновлённый баланс
     const [balanceRows] = await connection.query<BalanceRow[]>(
-      'SELECT balance FROM player_balance WHERE user_id = ?',
-      [userId]
+      'SELECT balance FROM player_balance WHERE steamid = ?',
+      [steamid]
     );
     const newBalance = balanceRows.length > 0 ? Number(balanceRows[0].balance) : rewardAmount;
 

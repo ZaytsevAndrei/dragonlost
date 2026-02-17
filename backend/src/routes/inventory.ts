@@ -23,7 +23,7 @@ interface InventoryItem {
 // Получить инвентарь игрока
 router.get('/', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
     
     const [rows] = await webPool.query<RowDataPacket[]>(
       `SELECT 
@@ -40,9 +40,9 @@ router.get('/', isAuthenticated, async (req, res) => {
         si.image_url
       FROM player_inventory pi
       JOIN shop_items si ON pi.shop_item_id = si.id
-      WHERE pi.user_id = ?
+      WHERE pi.steamid = ?
       ORDER BY pi.purchased_at DESC`,
-      [userId]
+      [steamid]
     );
     
     res.json({ inventory: rows });
@@ -89,9 +89,8 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
   
   try {
-    const userId = req.user!.id;
-    const inventoryId = parseInt(req.params.id);
     const steamid = req.user!.steamid;
+    const inventoryId = parseInt(req.params.id);
 
     if (!Number.isFinite(inventoryId) || inventoryId < 1) {
       return res.status(400).json({ error: 'Invalid inventory item ID' });
@@ -105,9 +104,9 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
       `SELECT pi.*, si.name, si.rust_item_code, si.quantity as item_quantity
        FROM player_inventory pi
        JOIN shop_items si ON pi.shop_item_id = si.id
-       WHERE pi.id = ? AND pi.user_id = ? AND pi.status = 'pending'
+       WHERE pi.id = ? AND pi.steamid = ? AND pi.status = 'pending'
        FOR UPDATE`,
-      [inventoryId, userId]
+      [inventoryId, steamid]
     );
     
     if (items.length === 0) {
@@ -190,12 +189,12 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
 // Получить историю транзакций
 router.get('/transactions', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     
     const [rows] = await webPool.query<RowDataPacket[]>(
-      'SELECT id, type, amount, description, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
-      [userId, limit]
+      'SELECT id, type, amount, description, created_at FROM transactions WHERE steamid = ? ORDER BY created_at DESC LIMIT ?',
+      [steamid, limit]
     );
     
     res.json({ transactions: rows });

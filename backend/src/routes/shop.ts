@@ -60,18 +60,18 @@ router.get('/items', async (req, res) => {
 // Получить баланс игрока
 router.get('/balance', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
     
     const [rows] = await webPool.query<RowDataPacket[]>(
-      'SELECT balance, total_earned, total_spent FROM player_balance WHERE user_id = ?',
-      [userId]
+      'SELECT balance, total_earned, total_spent FROM player_balance WHERE steamid = ?',
+      [steamid]
     );
     
     if (rows.length === 0) {
       // Создаем запись баланса, если её нет
       await webPool.query(
-        'INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
-        [userId]
+        'INSERT INTO player_balance (steamid, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
+        [steamid]
       );
       res.json({ balance: 0, total_earned: 0, total_spent: 0 });
     } else {
@@ -91,7 +91,7 @@ router.get('/balance', isAuthenticated, async (req, res) => {
 // Создать заказ пополнения (редирект в платёжную систему)
 router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
     const amount = parseFloat(req.body.amount);
     if (Number.isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
       return res.status(400).json({
@@ -105,8 +105,8 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
     const connection = await webPool.getConnection();
     try {
       const [insertResult] = await connection.query<ResultSetHeader>(
-        `INSERT INTO payment_orders (user_id, amount, currency, status) VALUES (?, ?, 'RUB', 'pending')`,
-        [userId, amount]
+        `INSERT INTO payment_orders (steamid, amount, currency, status) VALUES (?, ?, 'RUB', 'pending')`,
+        [steamid, amount]
       );
       const orderId = insertResult.insertId;
 
@@ -148,7 +148,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
 router.post('/deposit/redeem', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
     const code = (req.body.code || '').toString().trim();
     if (!code) {
       return res.status(400).json({ error: 'Укажите код промокода' });
@@ -169,23 +169,23 @@ router.post('/deposit/redeem', sensitiveRateLimiter, isAuthenticated, async (req
 
     await connection.query(
       'UPDATE voucher_codes SET used_by = ?, used_at = NOW() WHERE id = ?',
-      [userId, voucher.id]
+      [req.user!.id, voucher.id]
     );
 
     await connection.query(
-      `INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, ?, ?, 0)
+      `INSERT INTO player_balance (steamid, balance, total_earned, total_spent) VALUES (?, ?, ?, 0)
        ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
-      [userId, amount, amount, amount, amount]
+      [steamid, amount, amount, amount, amount]
     );
     await connection.query(
-      'INSERT INTO transactions (user_id, type, amount, description) VALUES (?, ?, ?, ?)',
-      [userId, 'earn', amount, 'Активация промокода']
+      'INSERT INTO transactions (steamid, type, amount, description) VALUES (?, ?, ?, ?)',
+      [steamid, 'earn', amount, 'Активация промокода']
     );
     await connection.commit();
 
     const [balanceRows] = await connection.query<BalanceRow[]>(
-      'SELECT balance FROM player_balance WHERE user_id = ?',
-      [userId]
+      'SELECT balance FROM player_balance WHERE steamid = ?',
+      [steamid]
     );
     const newBalance = balanceRows.length > 0 ? Number(balanceRows[0].balance) : amount;
 
@@ -204,7 +204,7 @@ router.post('/purchase', sensitiveRateLimiter, isAuthenticated, async (req, res)
   const connection = await webPool.getConnection();
   
   try {
-    const userId = req.user!.id;
+    const steamid = req.user!.steamid;
     const item_id = parseInt(req.body.item_id);
     const quantity = parseInt(req.body.quantity) || 1;
     
@@ -234,15 +234,15 @@ router.post('/purchase', sensitiveRateLimiter, isAuthenticated, async (req, res)
     // Получаем баланс игрока (FOR UPDATE блокирует строку до конца транзакции,
     // предотвращая race condition при параллельных покупках)
     let [balanceRows] = await connection.query<BalanceRow[]>(
-      'SELECT balance FROM player_balance WHERE user_id = ? FOR UPDATE',
-      [userId]
+      'SELECT balance FROM player_balance WHERE steamid = ? FOR UPDATE',
+      [steamid]
     );
     
     if (balanceRows.length === 0) {
       // Создаем запись баланса
       await connection.query(
-        'INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
-        [userId]
+        'INSERT INTO player_balance (steamid, balance, total_earned, total_spent) VALUES (?, 0, 0, 0)',
+        [steamid]
       );
       balanceRows = [{ balance: 0 } as BalanceRow];
     }
@@ -260,20 +260,20 @@ router.post('/purchase', sensitiveRateLimiter, isAuthenticated, async (req, res)
     
     // Вычитаем стоимость из баланса
     await connection.query(
-      'UPDATE player_balance SET balance = balance - ?, total_spent = total_spent + ? WHERE user_id = ?',
-      [totalPrice, totalPrice, userId]
+      'UPDATE player_balance SET balance = balance - ?, total_spent = total_spent + ? WHERE steamid = ?',
+      [totalPrice, totalPrice, steamid]
     );
     
     // Добавляем предмет в инвентарь
     const [result] = await connection.query<ResultSetHeader>(
-      'INSERT INTO player_inventory (user_id, shop_item_id, quantity, status) VALUES (?, ?, ?, ?)',
-      [userId, item_id, quantity * item.quantity, 'pending']
+      'INSERT INTO player_inventory (steamid, shop_item_id, quantity, status) VALUES (?, ?, ?, ?)',
+      [steamid, item_id, quantity * item.quantity, 'pending']
     );
     
     // Записываем транзакцию
     await connection.query(
-      'INSERT INTO transactions (user_id, type, amount, description, reference_id) VALUES (?, ?, ?, ?, ?)',
-      [userId, 'purchase', -totalPrice, `Purchased ${item.name} x${quantity}`, result.insertId]
+      'INSERT INTO transactions (steamid, type, amount, description, reference_id) VALUES (?, ?, ?, ?, ?)',
+      [steamid, 'purchase', -totalPrice, `Purchased ${item.name} x${quantity}`, result.insertId]
     );
     
     await connection.commit();

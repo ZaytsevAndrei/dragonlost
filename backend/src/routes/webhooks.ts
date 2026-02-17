@@ -115,7 +115,7 @@ router.post('/yookassa', async (req: Request, res: Response) => {
 
     try {
       const [orders] = await connection.query<RowDataPacket[]>(
-        'SELECT id, user_id, amount, status FROM payment_orders WHERE external_id = ?',
+        'SELECT id, steamid, amount, status FROM payment_orders WHERE external_id = ?',
         [externalId]
       );
 
@@ -151,14 +151,14 @@ router.post('/yookassa', async (req: Request, res: Response) => {
       }
 
       await connection.query(
-        `INSERT INTO player_balance (user_id, balance, total_earned, total_spent) VALUES (?, ?, ?, 0)
+        `INSERT INTO player_balance (steamid, balance, total_earned, total_spent) VALUES (?, ?, ?, 0)
          ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
-        [order.user_id, orderAmount, orderAmount, orderAmount, orderAmount]
+        [order.steamid, orderAmount, orderAmount, orderAmount, orderAmount]
       );
 
       await connection.query(
-        'INSERT INTO transactions (user_id, type, amount, description, reference_id) VALUES (?, ?, ?, ?, ?)',
-        [order.user_id, 'earn', orderAmount, `Пополнение баланса #${order.id}`, order.id]
+        'INSERT INTO transactions (steamid, type, amount, description, reference_id) VALUES (?, ?, ?, ?, ?)',
+        [order.steamid, 'earn', orderAmount, `Пополнение баланса #${order.id}`, order.id]
       );
 
       await connection.commit();
