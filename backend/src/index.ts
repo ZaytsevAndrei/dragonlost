@@ -67,6 +67,7 @@ import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
 import { EncryptedSessionStore } from './config/encryptedSessionStore';
 import { scheduleDataCleanup } from './services/dataCleanup';
+import { rconService } from './services/rconService';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -172,4 +173,14 @@ app.listen(PORT, () => {
 
   // Запуск cron-задачи очистки устаревших данных (сессии, транзакции, ордера)
   scheduleDataCleanup();
+
+  // Подключение к Rust RCON (для выдачи предметов из инвентаря)
+  if (rconService.isConfigured()) {
+    rconService.connect().catch((err) => {
+      console.warn('⚠️ RCON: не удалось подключиться при старте:', err instanceof Error ? err.message : err);
+      console.warn('   Выдача предметов будет пытаться подключиться при каждом запросе');
+    });
+  } else {
+    console.warn('⚠️ RCON_PASSWORD не задан — выдача предметов из инвентаря отключена');
+  }
 });

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { webPool, rustPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated } from '../middleware/auth';
+import { rconService } from '../services/rconService';
 
 const router = Router();
 
@@ -88,8 +89,7 @@ router.get('/check-online', isAuthenticated, async (req, res) => {
   }
 });
 
-// Использовать предмет (пометить как доставленный)
-// В реальной реализации здесь должна быть интеграция с RCON для выдачи предмета в игре
+// Выдать предмет игроку через RCON и пометить как доставленный
 router.post('/use/:id', isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
   
@@ -150,9 +150,25 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
       });
     }
     
-    // TODO: Здесь должна быть интеграция с RCON для выдачи предмета в игре
-    // Пример: await executeRCONCommand(`inventory.giveto ${steamid} ${item.rust_item_code} ${item.quantity}`);
-    
+    // Проверяем, настроен ли RCON
+    if (!rconService.isConfigured()) {
+      await connection.rollback();
+      return res.status(503).json({
+        error: 'Выдача предметов временно недоступна (RCON не настроен)',
+      });
+    }
+
+    // Выдаём предмет через RCON (inventory.giveto <steamid> <shortname> <amount>)
+    try {
+      await rconService.giveItem(steamid, item.rust_item_code, item.quantity);
+    } catch (rconError) {
+      await connection.rollback();
+      console.error('RCON delivery failed:', rconError instanceof Error ? rconError.message : rconError);
+      return res.status(502).json({
+        error: 'Не удалось выдать предмет на сервере. Попробуйте позже.',
+      });
+    }
+
     // Помечаем предмет как доставленный (проверяем status = 'pending' повторно
     // для защиты от race condition)
     const [updateResult] = await connection.query<ResultSetHeader>(
@@ -162,19 +178,19 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
 
     if (updateResult.affectedRows === 0) {
       await connection.rollback();
-      return res.status(409).json({ error: 'Item already delivered or status changed' });
+      return res.status(409).json({ error: 'Предмет уже был получен' });
     }
-    
+
     await connection.commit();
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      message: `${item.name} has been delivered to your in-game character`,
+      message: `${item.name} выдан вашему персонажу в игре`,
       item: {
         name: item.name,
         quantity: item.quantity,
-        rust_code: item.rust_item_code
-      }
+        rust_code: item.rust_item_code,
+      },
     });
   } catch (error) {
     await connection.rollback();
