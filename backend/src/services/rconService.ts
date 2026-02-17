@@ -131,6 +131,25 @@ class RustRconService {
   }
 
   /**
+   * Проверяет, находится ли игрок на сервере прямо сейчас.
+   * Отправляет команду `playerlist` и ищет steamId в ответе.
+   *
+   * Ответ `playerlist` — JSON-массив объектов:
+   * [{ "SteamID": "765...", "DisplayName": "...", ... }, ...]
+   */
+  async isPlayerOnline(steamId: string): Promise<boolean> {
+    const response = await this.sendCommand('playerlist');
+
+    try {
+      const players: Array<{ SteamID: string }> = JSON.parse(response);
+      return players.some((p) => p.SteamID === steamId);
+    } catch {
+      // Некоторые серверы возвращают текстовый формат — ищем steamId как подстроку
+      return response.includes(steamId);
+    }
+  }
+
+  /**
    * Выдаёт предмет игроку на сервере Rust.
    *
    * @param steamId — Steam ID игрока

@@ -21,8 +21,6 @@ interface InventoryItem {
 
 interface OnlineStatus {
   online: boolean;
-  last_seen?: number;
-  time_diff?: number;
   message: string;
 }
 
@@ -117,13 +115,6 @@ function Inventory() {
     });
   };
 
-  const formatTimeDiff = (seconds: number) => {
-    if (seconds < 60) return `${Math.floor(seconds)} сек назад`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} мин назад`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ч назад`;
-    return `${Math.floor(seconds / 86400)} дн назад`;
-  };
-
   const pendingItems = inventory.filter(item => item.status === 'pending');
   const deliveredItems = inventory.filter(item => item.status === 'delivered');
 
@@ -175,11 +166,6 @@ function Inventory() {
             <div className="status-label">
               {onlineStatus.online ? 'Вы онлайн на сервере' : 'Вы оффлайн'}
             </div>
-            {!onlineStatus.online && onlineStatus.time_diff && (
-              <div className="status-detail">
-                Последняя активность: {formatTimeDiff(onlineStatus.time_diff)}
-              </div>
-            )}
             {!onlineStatus.online && (
               <div className="status-warning">
                 ⚠️ Войдите на сервер, чтобы получать предметы

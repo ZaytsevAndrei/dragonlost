@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { webPool, rustPool } from '../config/database';
+import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated } from '../middleware/auth';
 import { rconService } from '../services/rconService';
@@ -52,40 +52,28 @@ router.get('/', isAuthenticated, async (req, res) => {
   }
 });
 
-// Проверить, находится ли игрок на сервере
+// Проверить, находится ли игрок на сервере (через RCON playerlist)
 router.get('/check-online', isAuthenticated, async (req, res) => {
   try {
     const steamid = req.user!.steamid;
-    
-    // Проверяем последнюю активность в базе Rust
-    const [rows] = await rustPool.query<RowDataPacket[]>(
-      'SELECT `Last Seen`, `Time Played` FROM PlayerDatabase WHERE steamid = ?',
-      [steamid]
-    );
-    
-    if (rows.length === 0) {
-      return res.json({ 
-        online: false, 
-        message: 'Player not found in database' 
+
+    // Если RCON не настроен — фолбэк на проверку по базе
+    if (!rconService.isConfigured()) {
+      return res.json({
+        online: false,
+        message: 'RCON не настроен, невозможно проверить статус',
       });
     }
-    
-    const lastSeen = parseFloat(rows[0]['Last Seen']);
-    const currentTime = Date.now() / 1000;
-    const timeDiff = currentTime - lastSeen;
-    
-    // Считаем игрока онлайн, если он был активен менее 5 минут назад
-    const isOnline = timeDiff < 300;
-    
-    res.json({ 
+
+    const isOnline = await rconService.isPlayerOnline(steamid);
+
+    res.json({
       online: isOnline,
-      last_seen: lastSeen,
-      time_diff: timeDiff,
-      message: isOnline ? 'Player is online' : 'Player is offline'
+      message: isOnline ? 'Вы онлайн на сервере' : 'Вы оффлайн',
     });
   } catch (error) {
     console.error('Error checking online status:', error instanceof Error ? error.message : 'Unknown error');
-    res.status(500).json({ error: 'Failed to check online status' });
+    res.status(500).json({ error: 'Не удалось проверить статус' });
   }
 });
 
@@ -123,38 +111,29 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
     }
     
     const item = items[0];
-    
-    // Проверяем, онлайн ли игрок
-    const [playerStatus] = await rustPool.query<RowDataPacket[]>(
-      'SELECT `Last Seen` FROM PlayerDatabase WHERE steamid = ?',
-      [steamid]
-    );
-    
-    if (playerStatus.length === 0) {
-      await connection.rollback();
-      return res.status(400).json({ 
-        error: 'Player not found in game database' 
-      });
-    }
-    
-    const lastSeen = parseFloat(playerStatus[0]['Last Seen']);
-    const currentTime = Date.now() / 1000;
-    const timeDiff = currentTime - lastSeen;
-    
-    if (timeDiff >= 300) {
-      await connection.rollback();
-      return res.status(400).json({ 
-        error: 'You must be online on the server to receive items',
-        last_seen: lastSeen,
-        time_diff: timeDiff
-      });
-    }
-    
+
     // Проверяем, настроен ли RCON
     if (!rconService.isConfigured()) {
       await connection.rollback();
       return res.status(503).json({
         error: 'Выдача предметов временно недоступна (RCON не настроен)',
+      });
+    }
+
+    // Проверяем, онлайн ли игрок (через RCON playerlist — в реальном времени)
+    try {
+      const isOnline = await rconService.isPlayerOnline(steamid);
+      if (!isOnline) {
+        await connection.rollback();
+        return res.status(400).json({
+          error: 'Вы должны быть онлайн на сервере, чтобы получить предмет',
+        });
+      }
+    } catch (onlineCheckError) {
+      await connection.rollback();
+      console.error('RCON online check failed:', onlineCheckError instanceof Error ? onlineCheckError.message : onlineCheckError);
+      return res.status(502).json({
+        error: 'Не удалось проверить онлайн-статус. Попробуйте позже.',
       });
     }
 
