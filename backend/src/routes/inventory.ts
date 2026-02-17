@@ -57,7 +57,7 @@ router.get('/check-online', isAuthenticated, async (req, res) => {
   try {
     const steamid = req.user!.steamid;
 
-    // Если RCON не настроен — фолбэк на проверку по базе
+    // Если RCON не настроен — сообщаем об этом
     if (!rconService.isConfigured()) {
       return res.json({
         online: false,
@@ -65,12 +65,19 @@ router.get('/check-online', isAuthenticated, async (req, res) => {
       });
     }
 
-    const isOnline = await rconService.isPlayerOnline(steamid);
-
-    res.json({
-      online: isOnline,
-      message: isOnline ? 'Вы онлайн на сервере' : 'Вы оффлайн',
-    });
+    try {
+      const isOnline = await rconService.isPlayerOnline(steamid);
+      res.json({
+        online: isOnline,
+        message: isOnline ? 'Вы онлайн на сервере' : 'Вы оффлайн',
+      });
+    } catch (rconError) {
+      console.error('RCON online check failed:', rconError instanceof Error ? rconError.message : rconError);
+      res.json({
+        online: false,
+        message: 'Не удалось связаться с игровым сервером',
+      });
+    }
   } catch (error) {
     console.error('Error checking online status:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Не удалось проверить статус' });
