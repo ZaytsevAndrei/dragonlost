@@ -158,7 +158,12 @@ class RustRconService {
    * @returns ответ сервера
    */
   async giveItem(steamId: string, itemShortName: string, amount: number): Promise<string> {
-    const command = `inventory.giveto ${steamId} ${itemShortName} ${amount}`;
+    // silentgive — кастомный Oxide-плагин (SilentGive.cs), выдаёт без чат-оповещения.
+    // Фолбэк: inventory.giveto (стандартная, но показывает сообщение в чат).
+    const useSilent = process.env.RCON_SILENT_GIVE !== 'false';
+    const command = useSilent
+      ? `silentgive ${steamId} ${itemShortName} ${amount}`
+      : `inventory.giveto ${steamId} ${itemShortName} ${amount}`;
     console.log(`RCON → ${command}`);
 
     const response = await this.sendCommand(command);
