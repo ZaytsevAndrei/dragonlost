@@ -74,12 +74,6 @@ namespace Oxide.Plugins
 
         private void ValidateConfig()
         {
-            if (string.IsNullOrWhiteSpace(_config.RewardUrl))
-            {
-                PrintWarning("URL сайта пуст, установлено значение по умолчанию");
-                _config.RewardUrl = "dragonlost.ru/rewards";
-            }
-
             _config.ConnectDelay = Math.Max(1f, _config.ConnectDelay);
             _config.ChatReminderInterval = Math.Max(1f, _config.ChatReminderInterval);
             _config.GuiBannerDuration = Math.Max(1f, _config.GuiBannerDuration);
@@ -95,22 +89,16 @@ namespace Oxide.Plugins
         {
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["ChatReminder"] = "Не забудь забрать свою <color=#FFD700>ежедневную награду</color> на сайте!\nЗаходи: <color=#00BFFF>{0}</color>",
-                ["ConnectWelcome"] = "Добро пожаловать!\nЗабери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{0}</color>",
-                ["GuiTitle"] = "ЕЖЕДНЕВНАЯ НАГРАДА",
-                ["GuiText"] = "Забери бонусные монеты на сайте!",
-                ["GuiUrl"] = "{0}",
-                ["GuiButton"] = "ПЕРЕЙТИ НА САЙТ",
+                ["Reminder"] = "Не забудь забрать свою <color=#FFD700>ежедневную награду</color> на сайте!\nЗаходи: <color=#00BFFF>{0}</color>",
+                ["Welcome"] = "Добро пожаловать!\nЗабери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{0}</color>",
+                ["BannerText"] = "Забери бонусные монеты на сайте!",
             }, this, "ru");
 
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["ChatReminder"] = "Don't forget to claim your <color=#FFD700>daily reward</color>!\nVisit: <color=#00BFFF>{0}</color>",
-                ["ConnectWelcome"] = "Claim your <color=#FFD700>daily reward</color> at: <color=#00BFFF>{0}</color>",
-                ["GuiTitle"] = "DAILY REWARD",
-                ["GuiText"] = "Claim your bonus coins on the website!",
-                ["GuiUrl"] = "{0}",
-                ["GuiButton"] = "VISIT WEBSITE",
+                ["Reminder"] = "Don't forget to claim your <color=#FFD700>daily reward</color>!\nVisit: <color=#00BFFF>{0}</color>",
+                ["Welcome"] = "Welcome!\nClaim your <color=#FFD700>daily reward</color> at: <color=#00BFFF>{0}</color>",
+                ["BannerText"] = "Claim your bonus coins on the website!",
             }, this);
         }
 
@@ -207,9 +195,9 @@ namespace Oxide.Plugins
         {
             string msg;
             if (isWelcome)
-                msg = Lang("ConnectWelcome", player.UserIDString, _config.RewardUrl);
+                msg = Lang("Welcome", player.UserIDString, _config.RewardUrl);
             else
-                msg = Lang("ChatReminder", player.UserIDString, _config.RewardUrl);
+                msg = Lang("Reminder", player.UserIDString, _config.RewardUrl);
 
             SendChat(player, msg);
         }
@@ -234,67 +222,21 @@ namespace Oxide.Plugins
             elements.Add(new CuiPanel
             {
                 Image = { Color = "0.1 0.1 0.1 0.92", Material = "assets/content/ui/uibackgroundblur.mat" },
-                RectTransform = { AnchorMin = "0.35 0.88", AnchorMax = "0.65 0.95" },
+                RectTransform = { AnchorMin = "0.35 0.9", AnchorMax = "0.65 0.94" },
                 CursorEnabled = false,
             }, "Overlay", GuiPanelName);
 
-            // Акцентная полоска сверху
-            elements.Add(new CuiPanel
-            {
-                Image = { Color = "1.0 0.4 0.0 1.0" },
-                RectTransform = { AnchorMin = "0 0.9", AnchorMax = "1 1" },
-            }, GuiPanelName);
-
-            // Заголовок
+            // Текст напоминания
             elements.Add(new CuiLabel
             {
                 Text = {
-                    Text = Lang("GuiTitle", player.UserIDString),
-                    FontSize = 13,
+                    Text = Lang("BannerText", player.UserIDString) + "  <color=#00BFFF>" + _config.RewardUrl + "</color>",
+                    FontSize = 12,
                     Font = "robotocondensed-bold.ttf",
-                    Align = TextAnchor.MiddleLeft,
-                    Color = "1.0 0.84 0.0 1.0",
-                },
-                RectTransform = { AnchorMin = "0.04 0.5", AnchorMax = "0.55 0.9" },
-            }, GuiPanelName);
-
-            // Описание
-            elements.Add(new CuiLabel
-            {
-                Text = {
-                    Text = Lang("GuiText", player.UserIDString),
-                    FontSize = 10,
-                    Font = "robotocondensed-regular.ttf",
-                    Align = TextAnchor.MiddleLeft,
-                    Color = "0.85 0.85 0.85 1",
-                },
-                RectTransform = { AnchorMin = "0.04 0.05", AnchorMax = "0.55 0.5" },
-            }, GuiPanelName);
-
-            // URL
-            elements.Add(new CuiLabel
-            {
-                Text = {
-                    Text = Lang("GuiUrl", player.UserIDString, _config.RewardUrl),
-                    FontSize = 11,
-                    Font = "robotocondensed-bold.ttf",
-                    Align = TextAnchor.MiddleCenter,
-                    Color = "0.0 0.75 1.0 1.0",
-                },
-                RectTransform = { AnchorMin = "0.55 0.05", AnchorMax = "0.92 0.9" },
-            }, GuiPanelName);
-
-            // Кнопка закрытия
-            elements.Add(new CuiButton
-            {
-                Button = { Color = "0.8 0.2 0.2 0.7", Close = GuiPanelName },
-                RectTransform = { AnchorMin = "0.93 0.6", AnchorMax = "1.0 0.9" },
-                Text = {
-                    Text = "✕",
-                    FontSize = 10,
                     Align = TextAnchor.MiddleCenter,
                     Color = "1 1 1 1",
                 },
+                RectTransform = { AnchorMin = "0.03 0.05", AnchorMax = "0.97 0.95" },
             }, GuiPanelName);
 
             CuiHelper.AddUi(player, elements);
