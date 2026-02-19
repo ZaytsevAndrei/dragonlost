@@ -97,7 +97,7 @@ function pluralDays(n: number): string {
 
 function Home() {
   const { user } = useAuthStore();
-  const [server, setServer] = useState<Server | null>(null);
+  const [servers, setServers] = useState<Server[]>([]);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [rewardStatus, setRewardStatus] = useState<DailyRewardStatus | null>(null);
@@ -108,8 +108,8 @@ function Home() {
 
   useEffect(() => {
     api.get('/servers').then(res => {
-      const servers = res.data.servers;
-      if (servers?.length) setServer(servers[0]);
+      const list = res.data.servers;
+      if (list?.length) setServers(list);
     }).catch(() => {});
 
     api.get('/stats', { params: { page: 1, limit: 5 } }).then(res => {
@@ -164,96 +164,26 @@ function Home() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const formatWipeDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Неизвестно';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return 'Неизвестно';
-    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const onlinePct = server ? Math.round((server.players / server.maxPlayers) * 100) : 0;
-
   return (
     <div className="home">
       {/* ===== HERO ===== */}
       <section className="hero">
         <div className="hero-bg-glow" />
         <div className="hero-content">
-          <h1 className="hero-title">
-            Dragon<span className="hero-accent">Lost</span>
-          </h1>
-          <p className="hero-subtitle">Rust сервер с магазином, статистикой и наградами</p>
-          {server && server.status === 'online' && (
-            <div className="hero-online">
+          <p className="hero-subtitle">Rust сервер со статистикой и наградами</p>
+          {servers.filter(s => s.status === 'online').map(s => (
+            <div key={s.id} className="hero-online">
               <span className="online-dot" />
-              <span>{server.players} / {server.maxPlayers} онлайн</span>
+              <span className="hero-server-name">{s.name}</span>
+              <span className="hero-online-divider" />
+              <span>{s.players} / {s.maxPlayers} онлайн</span>
             </div>
-          )}
+          ))}
           <div className="hero-actions">
             <Link to="/servers" className="btn-hero-primary">Начать играть</Link>
-            <Link to="/shop" className="btn-hero-secondary">Магазин</Link>
           </div>
         </div>
       </section>
-
-      {/* ===== SERVER STATUS ===== */}
-      {server && (
-        <AnimatedSection className="server-widget-section">
-          <div className="server-widget">
-            <div className="sw-header">
-              <div className="sw-title-row">
-                <svg className="sw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><circle cx="6" cy="6" r="1" fill="currentColor" /><circle cx="6" cy="18" r="1" fill="currentColor" /></svg>
-                <h2>Статус сервера</h2>
-              </div>
-              <span className={`sw-status sw-status-${server.status}`}>
-                {server.status === 'online' ? 'Онлайн' : 'Оффлайн'}
-              </span>
-            </div>
-
-            <div className="sw-grid">
-              <div className="sw-stat">
-                <span className="sw-stat-label">Игроки</span>
-                <span className="sw-stat-value">{server.players} / {server.maxPlayers}</span>
-                <div className="sw-progress-bar">
-                  <div className="sw-progress-fill" style={{ width: `${onlinePct}%` }} />
-                </div>
-              </div>
-              <div className="sw-stat">
-                <span className="sw-stat-label">Карта</span>
-                <span className="sw-stat-value">{server.map}</span>
-              </div>
-              {server.mapSize && (
-                <div className="sw-stat">
-                  <span className="sw-stat-label">Размер</span>
-                  <span className="sw-stat-value">{server.mapSize}m</span>
-                </div>
-              )}
-              <div className="sw-stat">
-                <span className="sw-stat-label">Последний вайп</span>
-                <span className="sw-stat-value">{formatWipeDate(server.lastWipe)}</span>
-              </div>
-              {server.uptime !== undefined && (
-                <div className="sw-stat">
-                  <span className="sw-stat-label">Uptime</span>
-                  <span className="sw-stat-value">{server.uptime.toFixed(1)}%</span>
-                </div>
-              )}
-            </div>
-
-            <button
-              className="sw-connect-btn"
-              onClick={() => copyToClipboard(`client.connect ${server.ip}:${server.port}`)}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-              Скопировать client.connect
-            </button>
-          </div>
-        </AnimatedSection>
-      )}
 
       {/* ===== FEATURE CARDS ===== */}
       <AnimatedSection>
