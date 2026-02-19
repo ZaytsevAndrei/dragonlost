@@ -30,6 +30,20 @@ interface ClaimResult {
   new_balance: number;
 }
 
+function getStreakHue(streak: number): number {
+  const step = Math.min(Math.max(streak, 0), 7);
+  return Math.round(4 + (step / 7) * 141);
+}
+
+function pluralDays(n: number): string {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs >= 11 && abs <= 19) return 'дней';
+  if (last === 1) return 'день';
+  if (last >= 2 && last <= 4) return 'дня';
+  return 'дней';
+}
+
 function Rewards() {
   const { user, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
@@ -181,9 +195,12 @@ function Rewards() {
       {/* Основная карточка */}
       <div className="reward-main-card">
         <div className="reward-streak-info">
-          <div className="streak-badge">
+          <div
+            className="streak-badge"
+            style={{ '--streak-hue': getStreakHue(status?.current_streak || 0) } as React.CSSProperties}
+          >
             <span className="streak-number">{status?.current_streak || 0}</span>
-            <span className="streak-label">дней подряд</span>
+            <span className="streak-label">{pluralDays(status?.current_streak || 0)} подряд</span>
           </div>
           <div className="streak-stats">
             <div className="stat-item">
@@ -275,10 +292,10 @@ function Rewards() {
       <div className="reward-rules">
         <h3>Как это работает</h3>
         <ul>
-          <li>Забирайте награду один раз в 24 часа</li>
+          <li>Награда обновляется каждый день в 00:00 по московскому времени</li>
           <li>Первые 7 дней — награда растёт каждый день</li>
           <li>С 8-го дня — случайная награда от {Math.min(...randomPool.map(e => e.amount))} до {Math.max(...randomPool.map(e => e.amount))} монет</li>
-          <li>Пропуск более 24 часов сбрасывает серию на начало</li>
+          <li>Пропуск дня сбрасывает серию на начало</li>
           <li>Монеты начисляются на ваш баланс мгновенно</li>
         </ul>
       </div>

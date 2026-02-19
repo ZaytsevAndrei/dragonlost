@@ -21,9 +21,6 @@ const REWARD_RANDOM_POOL = [
   { amount: 50, chance: 10 },
 ];
 
-const CLAIM_COOLDOWN_HOURS = 24;
-const STREAK_RESET_HOURS = 24;
-
 /**
  * Для дней 1-7 возвращает фиксированную награду.
  * С 8-го дня — случайную по весам из REWARD_RANDOM_POOL.
@@ -52,7 +49,8 @@ interface DailyRewardRow extends RowDataPacket {
   current_streak: number;
   longest_streak: number;
   total_claims: number;
-  seconds_since_claim: number | null;
+  days_diff: number | null;
+  seconds_until_reset: number;
 }
 
 interface BalanceRow extends RowDataPacket {
@@ -60,18 +58,37 @@ interface BalanceRow extends RowDataPacket {
 }
 
 /**
+ * Отсчёт дня — по московскому времени (UTC+3, без DST).
+ * Вся арифметика дат ведётся через UTC_TIMESTAMP(), чтобы не зависеть
+ * от настройки time_zone на сервере MySQL.
+ *
+ * SQL-выражения:
+ *   moscow_today   = DATE(UTC_TIMESTAMP() + INTERVAL 3 HOUR)
+ *   claim_msk_date = DATE(last_claimed_at + INTERVAL 3 HOUR)
+ *   days_diff      = DATEDIFF(moscow_today, claim_msk_date)
+ *   seconds_until_reset = секунд до следующей полуночи МСК
+ */
+const DAILY_REWARD_SELECT = `
+  SELECT last_claimed_at, current_streak, longest_streak, total_claims,
+         DATEDIFF(
+           DATE(UTC_TIMESTAMP() + INTERVAL 3 HOUR),
+           DATE(last_claimed_at + INTERVAL 3 HOUR)
+         ) AS days_diff,
+         TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(),
+           DATE(UTC_TIMESTAMP() + INTERVAL 3 HOUR) + INTERVAL 1 DAY - INTERVAL 3 HOUR
+         ) AS seconds_until_reset
+  FROM daily_rewards WHERE steamid = ?`;
+
+/**
  * GET /api/rewards/daily — статус ежедневной награды.
- * Возвращает: доступна ли, текущая серия, время до следующей, шкалу наград.
- * Все вычисления времени — на стороне MySQL (серверное время).
+ * Отсчёт дня начинается в 00:00 по московскому времени.
  */
 router.get('/daily', isAuthenticated, async (req, res) => {
   try {
     const steamid = req.user!.steamid;
 
     const [rows] = await webPool.query<DailyRewardRow[]>(
-      `SELECT last_claimed_at, current_streak, longest_streak, total_claims,
-              TIMESTAMPDIFF(SECOND, last_claimed_at, NOW()) AS seconds_since_claim
-       FROM daily_rewards WHERE steamid = ?`,
+      DAILY_REWARD_SELECT,
       [steamid]
     );
 
@@ -90,19 +107,20 @@ router.get('/daily', isAuthenticated, async (req, res) => {
     }
 
     const row = rows[0];
-    const secondsSinceClaim = row.seconds_since_claim ?? null;
-    const cooldownSeconds = CLAIM_COOLDOWN_HOURS * 3600;
-    const available = secondsSinceClaim === null || secondsSinceClaim >= cooldownSeconds;
-    const secondsUntilAvailable = available
-      ? 0
-      : cooldownSeconds - secondsSinceClaim!;
+    const daysDiff = row.days_diff;
 
-    const wouldResetStreak =
-      secondsSinceClaim !== null && secondsSinceClaim >= STREAK_RESET_HOURS * 3600;
+    const available = daysDiff === null || daysDiff >= 1;
+
+    const wouldResetStreak = daysDiff === null || daysDiff >= 2;
     const effectiveStreak = wouldResetStreak ? 0 : row.current_streak;
+
     const nextDay = effectiveStreak + 1;
     const isRandom = nextDay > REWARD_FIRST_WEEK.length;
     const nextReward = isRandom ? null : REWARD_FIRST_WEEK[nextDay - 1];
+
+    const secondsUntilAvailable = available
+      ? 0
+      : Math.max(0, Math.ceil(row.seconds_until_reset));
 
     res.json({
       available,
@@ -111,7 +129,7 @@ router.get('/daily', isAuthenticated, async (req, res) => {
       total_claims: row.total_claims,
       next_reward: nextReward,
       is_random: isRandom,
-      seconds_until_available: Math.max(0, Math.ceil(secondsUntilAvailable)),
+      seconds_until_available: secondsUntilAvailable,
       reward_first_week: REWARD_FIRST_WEEK,
       reward_random_pool: REWARD_RANDOM_POOL,
     });
@@ -129,7 +147,7 @@ router.get('/daily', isAuthenticated, async (req, res) => {
  * - sensitiveRateLimiter: 30 req / 15 min (защита от скриптов)
  * - CSRF: глобальный middleware (X-CSRF-Token)
  * - FOR UPDATE: блокировка строки в транзакции (anti-double-claim)
- * - Серверное время: NOW() на стороне MySQL
+ * - Серверное время: UTC_TIMESTAMP() на стороне MySQL
  * - Нет пользовательского ввода: нечего инъектировать
  */
 router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
@@ -139,11 +157,8 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
 
     await connection.beginTransaction();
 
-    // Получаем или создаём запись (FOR UPDATE блокирует строку до COMMIT)
     const [rows] = await connection.query<DailyRewardRow[]>(
-      `SELECT last_claimed_at, current_streak, longest_streak, total_claims,
-              TIMESTAMPDIFF(SECOND, last_claimed_at, NOW()) AS seconds_since_claim
-       FROM daily_rewards WHERE steamid = ? FOR UPDATE`,
+      `${DAILY_REWARD_SELECT} FOR UPDATE`,
       [steamid]
     );
 
@@ -152,41 +167,35 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
     let totalClaims: number;
 
     if (rows.length === 0) {
-      // Первый вход — создаём запись
       currentStreak = 1;
       longestStreak = 1;
       totalClaims = 1;
 
       await connection.query<ResultSetHeader>(
         `INSERT INTO daily_rewards (steamid, last_claimed_at, current_streak, longest_streak, total_claims)
-         VALUES (?, NOW(), ?, ?, ?)`,
+         VALUES (?, UTC_TIMESTAMP(), ?, ?, ?)`,
         [steamid, currentStreak, longestStreak, totalClaims]
       );
     } else {
       const row = rows[0];
-      const secondsSinceClaim = row.seconds_since_claim;
-      const cooldownSeconds = CLAIM_COOLDOWN_HOURS * 3600;
+      const daysDiff = row.days_diff;
 
-      // Проверяем кулдаун (серверное время)
-      if (secondsSinceClaim !== null && secondsSinceClaim < cooldownSeconds) {
+      if (daysDiff !== null && daysDiff === 0) {
         await connection.rollback();
-        const remaining = cooldownSeconds - secondsSinceClaim;
         return res.status(429).json({
-          error: 'Награда ещё недоступна',
-          seconds_until_available: Math.ceil(remaining),
+          error: 'Награда уже получена сегодня',
+          seconds_until_available: Math.max(0, Math.ceil(row.seconds_until_reset)),
         });
       }
 
-      // Серия: если прошло < 24ч — продолжаем, иначе сбрасываем
-      const streakBroken =
-        secondsSinceClaim !== null && secondsSinceClaim >= STREAK_RESET_HOURS * 3600;
-      currentStreak = streakBroken ? 1 : row.current_streak + 1;
+      const streakContinues = daysDiff === 1;
+      currentStreak = streakContinues ? row.current_streak + 1 : 1;
       longestStreak = Math.max(row.longest_streak, currentStreak);
       totalClaims = row.total_claims + 1;
 
       await connection.query(
         `UPDATE daily_rewards
-         SET last_claimed_at = NOW(),
+         SET last_claimed_at = UTC_TIMESTAMP(),
              current_streak = ?,
              longest_streak = ?,
              total_claims = ?
@@ -197,7 +206,6 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
 
     const rewardAmount = getRewardAmount(currentStreak);
 
-    // Начисляем монеты в баланс
     await connection.query(
       `INSERT INTO player_balance (steamid, balance, total_earned, total_spent)
        VALUES (?, ?, ?, 0)
@@ -205,7 +213,6 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
       [steamid, rewardAmount, rewardAmount, rewardAmount, rewardAmount]
     );
 
-    // Аудит-лог в таблицу транзакций
     await connection.query(
       `INSERT INTO transactions (steamid, type, amount, description)
        VALUES (?, 'earn', ?, ?)`,
@@ -214,7 +221,6 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
 
     await connection.commit();
 
-    // Получаем обновлённый баланс
     const [balanceRows] = await connection.query<BalanceRow[]>(
       'SELECT balance FROM player_balance WHERE steamid = ?',
       [steamid]

@@ -86,6 +86,15 @@ function AnimatedSection({ children, className = '' }: { children: React.ReactNo
   );
 }
 
+function pluralDays(n: number): string {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs >= 11 && abs <= 19) return 'дней';
+  if (last === 1) return 'день';
+  if (last >= 2 && last <= 4) return 'дня';
+  return 'дней';
+}
+
 function Home() {
   const { user } = useAuthStore();
   const [server, setServer] = useState<Server | null>(null);
@@ -368,7 +377,7 @@ function Home() {
               <div>
                 <h3>Ежедневная награда</h3>
                 <p className="home-reward-streak">
-                  Серия: <strong>{rewardStatus.current_streak}</strong> дней
+                  Серия: <strong>{rewardStatus.current_streak}</strong> {pluralDays(rewardStatus.current_streak)}
                 </p>
               </div>
             </div>
