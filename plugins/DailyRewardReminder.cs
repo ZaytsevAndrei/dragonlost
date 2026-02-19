@@ -28,7 +28,7 @@ namespace Oxide.Plugins
             public float ConnectDelay { get; set; } = 15f;
 
             [JsonProperty("Включить периодические напоминания в чат")]
-            public bool EnableChatReminder { get; set; } = true;
+            public bool EnableChatReminder { get; set; } = false;
 
             [JsonProperty("Интервал напоминания в чат (мин)")]
             public float ChatReminderInterval { get; set; } = 60f;
