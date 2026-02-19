@@ -13,13 +13,22 @@ import PersonalInformation from './pages/PersonalInformation';
 import { useAuthStore } from './store/authStore';
 import { getLastPage, clearLastPage } from './utils/safeLocalStorage';
 
+let isInitialAppLoad = true;
+
 function HomeWithRedirect() {
   const { user, loading } = useAuthStore();
-  const savedPage = getLastPage();
 
-  if (!loading && user && savedPage) {
-    clearLastPage();
-    return <Navigate to={savedPage} replace />;
+  if (isInitialAppLoad && !loading && user) {
+    const savedPage = getLastPage();
+    if (savedPage) {
+      isInitialAppLoad = false;
+      clearLastPage();
+      return <Navigate to={savedPage} replace />;
+    }
+  }
+
+  if (!loading) {
+    isInitialAppLoad = false;
   }
 
   return <Home />;
