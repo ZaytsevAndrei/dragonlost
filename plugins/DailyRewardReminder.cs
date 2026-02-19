@@ -96,7 +96,7 @@ namespace Oxide.Plugins
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 ["ChatReminder"] = "Не забудь забрать свою <color=#FFD700>ежедневную награду</color> на сайте!\nЗаходи: <color=#00BFFF>{0}</color>",
-                ["ConnectWelcome"] = "Забери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{0}</color>",
+                ["ConnectWelcome"] = "Добро пожаловать!\nЗабери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{0}</color>",
                 ["GuiTitle"] = "ЕЖЕДНЕВНАЯ НАГРАДА",
                 ["GuiText"] = "Забери бонусные монеты на сайте!",
                 ["GuiUrl"] = "{0}",
