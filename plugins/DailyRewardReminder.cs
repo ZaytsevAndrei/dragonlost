@@ -60,6 +60,8 @@ namespace Oxide.Plugins
                 _config = Config.ReadObject<PluginConfig>();
                 if (_config == null)
                     throw new Exception();
+
+                ValidateConfig();
             }
             catch
             {
@@ -70,6 +72,21 @@ namespace Oxide.Plugins
 
         protected override void SaveConfig() => Config.WriteObject(_config);
 
+        private void ValidateConfig()
+        {
+            if (string.IsNullOrWhiteSpace(_config.RewardUrl))
+            {
+                PrintWarning("URL сайта пуст, установлено значение по умолчанию");
+                _config.RewardUrl = "dragonlost.ru/rewards";
+            }
+
+            _config.ConnectDelay = Math.Max(1f, _config.ConnectDelay);
+            _config.ChatReminderInterval = Math.Max(1f, _config.ChatReminderInterval);
+            _config.GuiBannerDuration = Math.Max(1f, _config.GuiBannerDuration);
+
+            SaveConfig();
+        }
+
         #endregion
 
         #region Localization
@@ -79,28 +96,35 @@ namespace Oxide.Plugins
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 ["ChatReminder"] = "Не забудь забрать свою <color=#FFD700>ежедневную награду</color> на сайте!\nЗаходи: <color=#00BFFF>{0}</color>",
-                ["ConnectWelcome"] = "Добро пожаловать, <color=#FFD700>{0}</color>!\nЗабери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{1}</color>",
+                ["ConnectWelcome"] = "Забери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{0}</color>",
                 ["GuiTitle"] = "ЕЖЕДНЕВНАЯ НАГРАДА",
                 ["GuiText"] = "Забери бонусные монеты на сайте!",
                 ["GuiUrl"] = "{0}",
                 ["GuiButton"] = "ПЕРЕЙТИ НА САЙТ",
-                ["CmdInfo"] = "Забери свою <color=#FFD700>ежедневную награду</color>!\nЗаходи на <color=#00BFFF>{0}</color>\nНаграда растёт каждый день: 5 → 10 → 15 → 20 → 30 → 40 → 50 монет!\nС 8-го дня — случайная награда до 50 монет!",
             }, this, "ru");
 
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 ["ChatReminder"] = "Don't forget to claim your <color=#FFD700>daily reward</color>!\nVisit: <color=#00BFFF>{0}</color>",
-                ["ConnectWelcome"] = "Welcome, <color=#FFD700>{0}</color>!\nClaim your <color=#FFD700>daily reward</color> at: <color=#00BFFF>{1}</color>",
+                ["ConnectWelcome"] = "Claim your <color=#FFD700>daily reward</color> at: <color=#00BFFF>{0}</color>",
                 ["GuiTitle"] = "DAILY REWARD",
                 ["GuiText"] = "Claim your bonus coins on the website!",
                 ["GuiUrl"] = "{0}",
                 ["GuiButton"] = "VISIT WEBSITE",
-                ["CmdInfo"] = "Claim your <color=#FFD700>daily reward</color>!\nVisit <color=#00BFFF>{0}</color>\nRewards grow each day: 5 → 10 → 15 → 20 → 30 → 40 → 50 coins!\nFrom day 8 — random reward up to 50 coins!",
             }, this);
         }
 
-        private string Lang(string key, string userId = null, params object[] args) =>
-            string.Format(lang.GetMessage(key, this, userId), args);
+        private string Lang(string key, string userId = null, params object[] args)
+        {
+            try
+            {
+                return string.Format(lang.GetMessage(key, this, userId), args);
+            }
+            catch (FormatException)
+            {
+                return lang.GetMessage(key, this, userId);
+            }
+        }
 
         #endregion
 
@@ -163,26 +187,6 @@ namespace Oxide.Plugins
 
         #endregion
 
-        #region Chat Command
-
-        [ChatCommand("reward")]
-        private void CmdReward(BasePlayer player, string command, string[] args)
-        {
-            var msg = Lang("CmdInfo", player.UserIDString, _config.RewardUrl);
-            SendChat(player, msg);
-
-            if (_config.EnableGuiBanner)
-                ShowGuiBanner(player);
-        }
-
-        [ChatCommand("daily")]
-        private void CmdDaily(BasePlayer player, string command, string[] args)
-        {
-            CmdReward(player, command, args);
-        }
-
-        #endregion
-
         #region Core Logic
 
         private void SendChatReminderToAll()
@@ -203,7 +207,7 @@ namespace Oxide.Plugins
         {
             string msg;
             if (isWelcome)
-                msg = Lang("ConnectWelcome", player.UserIDString, player.displayName, _config.RewardUrl);
+                msg = Lang("ConnectWelcome", player.UserIDString, _config.RewardUrl);
             else
                 msg = Lang("ChatReminder", player.UserIDString, _config.RewardUrl);
 
@@ -226,11 +230,11 @@ namespace Oxide.Plugins
 
             var elements = new CuiElementContainer();
 
-            // Основная панель (верх экрана, по центру)
+            // Основная панель (верх экрана, по центру — компактная)
             elements.Add(new CuiPanel
             {
                 Image = { Color = "0.1 0.1 0.1 0.92", Material = "assets/content/ui/uibackgroundblur.mat" },
-                RectTransform = { AnchorMin = "0.3 0.82", AnchorMax = "0.7 0.96" },
+                RectTransform = { AnchorMin = "0.35 0.88", AnchorMax = "0.65 0.95" },
                 CursorEnabled = false,
             }, "Overlay", GuiPanelName);
 
@@ -238,19 +242,7 @@ namespace Oxide.Plugins
             elements.Add(new CuiPanel
             {
                 Image = { Color = "1.0 0.4 0.0 1.0" },
-                RectTransform = { AnchorMin = "0 0.92", AnchorMax = "1 1" },
-            }, GuiPanelName);
-
-            // Иконка подарка
-            elements.Add(new CuiLabel
-            {
-                Text = {
-                    Text = "🎁",
-                    FontSize = 22,
-                    Align = TextAnchor.MiddleCenter,
-                    Color = "1 1 1 1",
-                },
-                RectTransform = { AnchorMin = "0.02 0.1", AnchorMax = "0.12 0.9" },
+                RectTransform = { AnchorMin = "0 0.9", AnchorMax = "1 1" },
             }, GuiPanelName);
 
             // Заголовок
@@ -258,12 +250,12 @@ namespace Oxide.Plugins
             {
                 Text = {
                     Text = Lang("GuiTitle", player.UserIDString),
-                    FontSize = 16,
+                    FontSize = 13,
                     Font = "robotocondensed-bold.ttf",
                     Align = TextAnchor.MiddleLeft,
                     Color = "1.0 0.84 0.0 1.0",
                 },
-                RectTransform = { AnchorMin = "0.13 0.5", AnchorMax = "0.65 0.9" },
+                RectTransform = { AnchorMin = "0.04 0.5", AnchorMax = "0.55 0.9" },
             }, GuiPanelName);
 
             // Описание
@@ -271,12 +263,12 @@ namespace Oxide.Plugins
             {
                 Text = {
                     Text = Lang("GuiText", player.UserIDString),
-                    FontSize = 12,
+                    FontSize = 10,
                     Font = "robotocondensed-regular.ttf",
                     Align = TextAnchor.MiddleLeft,
                     Color = "0.85 0.85 0.85 1",
                 },
-                RectTransform = { AnchorMin = "0.13 0.1", AnchorMax = "0.65 0.5" },
+                RectTransform = { AnchorMin = "0.04 0.05", AnchorMax = "0.55 0.5" },
             }, GuiPanelName);
 
             // URL
@@ -284,22 +276,22 @@ namespace Oxide.Plugins
             {
                 Text = {
                     Text = Lang("GuiUrl", player.UserIDString, _config.RewardUrl),
-                    FontSize = 13,
+                    FontSize = 11,
                     Font = "robotocondensed-bold.ttf",
                     Align = TextAnchor.MiddleCenter,
                     Color = "0.0 0.75 1.0 1.0",
                 },
-                RectTransform = { AnchorMin = "0.65 0.1", AnchorMax = "0.98 0.9" },
+                RectTransform = { AnchorMin = "0.55 0.05", AnchorMax = "0.92 0.9" },
             }, GuiPanelName);
 
             // Кнопка закрытия
             elements.Add(new CuiButton
             {
                 Button = { Color = "0.8 0.2 0.2 0.7", Close = GuiPanelName },
-                RectTransform = { AnchorMin = "0.94 0.65", AnchorMax = "1.0 0.92" },
+                RectTransform = { AnchorMin = "0.93 0.6", AnchorMax = "1.0 0.9" },
                 Text = {
                     Text = "✕",
-                    FontSize = 12,
+                    FontSize = 10,
                     Align = TextAnchor.MiddleCenter,
                     Color = "1 1 1 1",
                 },
