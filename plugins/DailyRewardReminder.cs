@@ -37,7 +37,7 @@ namespace Oxide.Plugins
             public bool EnableGuiBanner { get; set; } = true;
 
             [JsonProperty("Время показа GUI-баннера (сек)")]
-            public float GuiBannerDuration { get; set; } = 12f;
+            public float GuiBannerDuration { get; set; } = 3f;
 
             [JsonProperty("Префикс чат-сообщений")]
             public string ChatPrefix { get; set; } = "<color=#FF6600>[DragonLost]</color>";
