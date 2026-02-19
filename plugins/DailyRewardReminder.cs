@@ -91,14 +91,14 @@ namespace Oxide.Plugins
             {
                 ["Reminder"] = "Не забудь забрать свою <color=#FFD700>ежедневную награду</color> на сайте!\nЗаходи: <color=#00BFFF>{0}</color>",
                 ["Welcome"] = "Добро пожаловать!\nЗабери свою <color=#FFD700>ежедневную награду</color> на сайте: <color=#00BFFF>{0}</color>",
-                ["BannerText"] = "Забери бонусные монеты на сайте!",
+                ["BannerText"] = "Забери бонусные рубли на сайте!",
             }, this, "ru");
 
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 ["Reminder"] = "Don't forget to claim your <color=#FFD700>daily reward</color>!\nVisit: <color=#00BFFF>{0}</color>",
                 ["Welcome"] = "Welcome!\nClaim your <color=#FFD700>daily reward</color> at: <color=#00BFFF>{0}</color>",
-                ["BannerText"] = "Claim your bonus coins on the website!",
+                ["BannerText"] = "Claim your bonus rubles on the website!",
             }, this);
         }
 

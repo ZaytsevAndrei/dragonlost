@@ -217,7 +217,7 @@ function Home() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v10H4V12" /><path d="M2 7h20v5H2z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
             </div>
             <h3>Ежедневные награды</h3>
-            <p>Заходите каждый день и получайте бонусные монеты за серии</p>
+            <p>Заходите каждый день и получайте бонусные рубли за серии</p>
           </Link>
         </div>
       </AnimatedSection>
@@ -288,7 +288,7 @@ function Home() {
                 )}
                 <div className="showcase-info">
                   <span className="showcase-name">{item.name}</span>
-                  <span className="showcase-price">{item.price} монет</span>
+                  <span className="showcase-price">{item.price} рублей</span>
                 </div>
               </Link>
             ))}
@@ -315,11 +315,11 @@ function Home() {
             <div className="home-reward-right">
               {claimAmount !== null ? (
                 <div className="home-reward-claimed">
-                  <span className="claimed-amount">+{claimAmount} монет</span>
+                  <span className="claimed-amount">+{claimAmount} рублей</span>
                 </div>
               ) : rewardStatus.available ? (
                 <button className="btn-home-claim" onClick={handleClaim} disabled={claiming}>
-                  {claiming ? 'Получение...' : rewardStatus.is_random ? 'Испытать удачу' : `Забрать ${rewardStatus.next_reward} монет`}
+                  {claiming ? 'Получение...' : rewardStatus.is_random ? 'Испытать удачу' : `Забрать ${rewardStatus.next_reward} рублей`}
                 </button>
               ) : (
                 <div className="home-reward-timer">

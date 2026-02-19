@@ -170,7 +170,7 @@ function Rewards() {
       <div className="rewards-header">
         <h1>🎁 Ежедневная награда</h1>
         <p className="rewards-subtitle">
-          Заходите каждый день и получайте бонусные монеты! Чем длиннее серия — тем больше награда.
+          Заходите каждый день и получайте бонусные рубли! Чем длиннее серия — тем больше награда.
         </p>
       </div>
 
@@ -180,9 +180,9 @@ function Rewards() {
           <div className="claim-result-icon">🎉</div>
           <div className="claim-result-text">
             <div className="claim-result-title">Награда получена!</div>
-            <div className="claim-result-amount">+{claimResult.reward} монет</div>
+            <div className="claim-result-amount">+{claimResult.reward} рублей</div>
             <div className="claim-result-balance">
-              Ваш баланс: {claimResult.new_balance.toFixed(2)} монет
+              Ваш баланс: {claimResult.new_balance.toFixed(2)} рублей
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@ function Rewards() {
               {isRandom ? (
                 <div className="next-reward-amount random">🎲 ???</div>
               ) : (
-                <div className="next-reward-amount">{status.next_reward} монет</div>
+                <div className="next-reward-amount">{status.next_reward} рублей</div>
               )}
               <button
                 className="btn-claim"
@@ -236,7 +236,7 @@ function Rewards() {
               <div className="next-reward-label">Следующая награда через:</div>
               <div className="countdown-timer">{formatCountdown(countdown)}</div>
               <div className="next-reward-preview">
-                {isRandom ? 'Награда: случайная' : `Награда: ${status?.next_reward} монет`}
+                {isRandom ? 'Награда: случайная' : `Награда: ${status?.next_reward} рублей`}
               </div>
             </>
           )}
@@ -264,7 +264,7 @@ function Rewards() {
                   {isCompleted ? '✅' : isCurrent ? '🎁' : '🔒'}
                 </div>
                 <div className="day-amount">{amount}</div>
-                <div className="day-currency">монет</div>
+                <div className="day-currency">рублей</div>
               </div>
             );
           })}
@@ -282,7 +282,7 @@ function Rewards() {
               <div className="day-chance">{entry.chance}%</div>
               <div className="day-icon">🎲</div>
               <div className="day-amount">{entry.amount}</div>
-              <div className="day-currency">монет</div>
+              <div className="day-currency">рублей</div>
             </div>
           ))}
         </div>
@@ -294,9 +294,9 @@ function Rewards() {
         <ul>
           <li>Награда обновляется каждый день в 00:00 по московскому времени</li>
           <li>Первые 7 дней — награда растёт каждый день</li>
-          <li>С 8-го дня — случайная награда от {Math.min(...randomPool.map(e => e.amount))} до {Math.max(...randomPool.map(e => e.amount))} монет</li>
+          <li>С 8-го дня — случайная награда от {Math.min(...randomPool.map(e => e.amount))} до {Math.max(...randomPool.map(e => e.amount))} рублей</li>
           <li>Пропуск дня сбрасывает серию на начало</li>
-          <li>Монеты начисляются на ваш баланс мгновенно</li>
+          <li>Рубли начисляются на ваш баланс мгновенно</li>
         </ul>
       </div>
     </div>

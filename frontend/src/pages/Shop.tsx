@@ -131,7 +131,7 @@ function Shop() {
       if (res.data?.success && balance) {
         setBalance({ ...balance, balance: Number(res.data.new_balance) || 0 });
         setVoucherCode('');
-        alert(`Промокод активирован! Зачислено ${res.data.amount} монет.`);
+        alert(`Промокод активирован! Зачислено ${res.data.amount} рублей.`);
       }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка при активации промокода';
@@ -152,7 +152,7 @@ function Shop() {
       return;
     }
 
-    if (!confirm(`Вы уверены, что хотите купить "${itemName}" за ${price} монет?`)) {
+    if (!confirm(`Вы уверены, что хотите купить "${itemName}" за ${price} рублей?`)) {
       return;
     }
 
@@ -216,7 +216,7 @@ function Shop() {
         {user && balance && (
           <div className="balance-card">
             <div className="balance-label">Ваш баланс:</div>
-            <div className="balance-amount">💰 {(balance.balance || 0).toFixed(2)} монет</div>
+            <div className="balance-amount">💰 {(balance.balance || 0).toFixed(2)} рублей</div>
           </div>
         )}
       </div>
@@ -326,7 +326,7 @@ function Shop() {
                 <div className="item-quantity">Количество: {item.quantity}</div>
               )}
               <div className="item-footer">
-                <div className="item-price">💰 {item.price} монет</div>
+                <div className="item-price">💰 {item.price} рублей</div>
                 <button
                   className="btn-purchase"
                   onClick={() => handlePurchase(item.id, item.name, item.price)}
