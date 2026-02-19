@@ -403,43 +403,6 @@ function Home() {
         </AnimatedSection>
       )}
 
-      {/* ===== HOW TO START ===== */}
-      <AnimatedSection className="howto-section">
-        <h2 className="howto-title">Как начать играть</h2>
-        <div className="howto-steps">
-          <div className="howto-step">
-            <div className="howto-num">1</div>
-            <div className="howto-step-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v16.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h6.9" /><path d="M20 14.5V6.5c0-.4-.2-.8-.5-1.1-.3-.3-.7-.5-1.1-.5H15" /><path d="M12 12H9" /><path d="M16 16l4-4-4-4" /></svg>
-            </div>
-            <h3>Войдите через Steam</h3>
-            <p>Авторизуйтесь для доступа к магазину, инвентарю и наградам</p>
-          </div>
-          <div className="howto-connector">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
-          </div>
-          <div className="howto-step">
-            <div className="howto-num">2</div>
-            <div className="howto-step-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><circle cx="6" cy="6" r="1" fill="currentColor" /><circle cx="6" cy="18" r="1" fill="currentColor" /></svg>
-            </div>
-            <h3>Подключитесь к серверу</h3>
-            <p>Скопируйте команду подключения и вставьте в консоль Rust</p>
-          </div>
-          <div className="howto-connector">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24"><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>
-          </div>
-          <div className="howto-step">
-            <div className="howto-num">3</div>
-            <div className="howto-step-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 12 3.269 3.126A59.768 59.768 0 0 1 21.485 12 59.77 59.77 0 0 1 3.27 20.876L5.999 12zm0 0h7.5" /></svg>
-            </div>
-            <h3>Играйте и зарабатывайте</h3>
-            <p>Получайте монеты за ежедневные награды и покупайте предметы</p>
-          </div>
-        </div>
-      </AnimatedSection>
-
       {/* ===== DISCORD ===== */}
       <AnimatedSection className="discord-section">
         <a
@@ -461,14 +424,6 @@ function Home() {
         </a>
       </AnimatedSection>
 
-      {/* ===== CTA ===== */}
-      <AnimatedSection>
-        <section className="cta">
-          <h2>Готовы начать играть?</h2>
-          <p>Присоединяйтесь к нашему серверу прямо сейчас!</p>
-          <Link to="/servers" className="btn-cta">Подключиться к серверу</Link>
-        </section>
-      </AnimatedSection>
     </div>
   );
 }

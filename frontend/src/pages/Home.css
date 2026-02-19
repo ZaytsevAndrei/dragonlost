@@ -793,46 +793,6 @@
   transform: translateX(6px);
 }
 
-/* ===================== CTA ===================== */
-.cta {
-  text-align: center;
-  padding: 60px 20px;
-  background: rgba(26, 31, 46, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 14px;
-  border: 2px solid var(--accent);
-  box-shadow: 0 8px 32px rgba(206, 65, 43, 0.2);
-}
-
-.cta h2 {
-  font-size: 36px;
-  margin-bottom: 15px;
-}
-
-.cta p {
-  font-size: 18px;
-  color: var(--text-secondary);
-  margin-bottom: 30px;
-}
-
-.btn-cta {
-  display: inline-block;
-  padding: 15px 40px;
-  font-size: 18px;
-  font-weight: 600;
-  background: var(--accent);
-  color: white;
-  border-radius: 10px;
-  text-decoration: none;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.btn-cta:hover {
-  background: var(--accent-hover);
-  transform: scale(1.05);
-  color: white;
-}
-
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 900px) {
   .lb-header-row,
@@ -928,10 +888,6 @@
 
   .discord-info h3 {
     font-size: 20px;
-  }
-
-  .cta h2 {
-    font-size: 28px;
   }
 
   .sw-grid {
