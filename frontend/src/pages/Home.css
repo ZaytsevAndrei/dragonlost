@@ -621,88 +621,6 @@
   color: var(--accent);
 }
 
-/* ===================== HOW TO START ===================== */
-.howto-title {
-  text-align: center;
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 40px;
-}
-
-.howto-steps {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 12px;
-}
-
-.howto-step {
-  flex: 1;
-  max-width: 280px;
-  text-align: center;
-  padding: 32px 20px;
-  background: rgba(26, 31, 46, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  position: relative;
-}
-
-.howto-num {
-  position: absolute;
-  top: -16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 32px;
-  height: 32px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.howto-step-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: rgba(206, 65, 43, 0.1);
-  border-radius: 14px;
-  margin-bottom: 16px;
-  margin-top: 8px;
-}
-
-.howto-step-icon svg {
-  width: 28px;
-  height: 28px;
-  color: var(--accent);
-}
-
-.howto-step h3 {
-  font-size: 17px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.howto-step p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.howto-connector {
-  display: flex;
-  align-items: center;
-  padding-top: 60px;
-  color: var(--border);
-  flex-shrink: 0;
-}
-
 /* ===================== DISCORD ===================== */
 .discord-section {
   display: flex;
@@ -853,20 +771,6 @@
 
   .home-reward-right {
     align-items: center;
-  }
-
-  .howto-steps {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .howto-connector {
-    padding-top: 0;
-    transform: rotate(90deg);
-  }
-
-  .howto-step {
-    max-width: 100%;
   }
 
   .section-header {
