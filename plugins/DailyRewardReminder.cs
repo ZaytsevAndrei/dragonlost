@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("DailyRewardReminder", "DragonLost", "1.0.0")]
+    [Info("DailyRewardReminder", "DragonLost.ru", "1.0.0")]
     [Description("Напоминает игрокам зайти на сайт и забрать ежедневную награду")]
     public class DailyRewardReminder : RustPlugin
     {
