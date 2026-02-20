@@ -1,0 +1,381 @@
+/* ===================== MAP VOTE ADMIN ===================== */
+.mva-page {
+  padding: 20px 0;
+}
+
+.mva-page h1 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.mva-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mva-no-access {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.mva-error {
+  padding: 12px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  color: #ef4444;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.mva-loading,
+.mva-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+/* ─── Buttons ─── */
+.mva-btn-create {
+  padding: 10px 24px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mva-btn-create:hover {
+  background: #2563eb;
+}
+
+/* ─── Create Form ─── */
+.mva-form {
+  background: rgba(26, 31, 46, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.mva-form h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.mva-form h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px 0 12px;
+  color: var(--text-secondary);
+}
+
+.mva-form-field {
+  margin-bottom: 16px;
+}
+
+.mva-form-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.mva-form-field input,
+.mva-option-row input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(15, 20, 25, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.mva-form-field input:focus,
+.mva-option-row input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.mva-option-form {
+  padding: 16px;
+  background: rgba(15, 20, 25, 0.3);
+  border: 1px solid rgba(58, 63, 75, 0.3);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.mva-option-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.mva-option-row:last-child {
+  margin-bottom: 0;
+}
+
+.mva-btn-remove {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mva-btn-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.mva-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.mva-btn-add-option {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.mva-btn-add-option:hover {
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+.mva-btn-submit {
+  padding: 10px 24px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: auto;
+}
+
+.mva-btn-submit:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.mva-btn-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ─── Sessions List ─── */
+.mva-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mva-session {
+  background: rgba(26, 31, 46, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.mva-session.active {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.mva-session.closed {
+  opacity: 0.75;
+}
+
+.mva-session.cancelled {
+  opacity: 0.5;
+}
+
+.mva-session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mva-session-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.mva-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mva-status-active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.mva-status-closed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.mva-status-cancelled {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+}
+
+.mva-session-dates {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ─── Options in session ─── */
+.mva-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.mva-option-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(15, 20, 25, 0.4);
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.mva-option-winner {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.mva-option-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.mva-option-votes {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.mva-btn-pick-winner {
+  padding: 5px 12px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  color: #4ade80;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mva-btn-pick-winner:hover {
+  background: rgba(34, 197, 94, 0.2);
+}
+
+.mva-winner-badge {
+  padding: 3px 10px;
+  background: rgba(34, 197, 94, 0.15);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+/* ─── Session actions ─── */
+.mva-session-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(58, 63, 75, 0.3);
+}
+
+.mva-btn-close {
+  padding: 8px 18px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #60a5fa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mva-btn-close:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.mva-btn-cancel {
+  padding: 8px 18px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mva-btn-cancel:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 768px) {
+  .mva-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mva-option-row {
+    flex-direction: column;
+  }
+
+  .mva-session-actions {
+    flex-direction: column;
+  }
+
+  .mva-option-item {
+    flex-wrap: wrap;
+  }
+}

@@ -6,3 +6,14 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   }
   res.status(401).json({ error: 'Unauthorized' });
 };
+
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const user = req.user as any;
+  if (user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  next();
+};

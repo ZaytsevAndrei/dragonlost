@@ -85,6 +85,19 @@ function Header() {
                       <span className="dropdown-icon">🎁</span>
                       Ежедневная награда
                     </Link>
+                    {user.role === 'admin' && (
+                      <>
+                        <div className="dropdown-divider"></div>
+                        <Link
+                          to="/map-vote"
+                          className="dropdown-item"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <span className="dropdown-icon">🗳️</span>
+                          Голосования за карту
+                        </Link>
+                      </>
+                    )}
                     <div className="dropdown-divider"></div>
                     <button 
                       onClick={handleLogout} 

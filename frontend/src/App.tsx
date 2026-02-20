@@ -10,6 +10,7 @@ import Rewards from './pages/Rewards';
 import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
 import PersonalInformation from './pages/PersonalInformation';
+import MapVoteAdmin from './pages/MapVoteAdmin';
 import { useAuthStore } from './store/authStore';
 import { getLastPage, clearLastPage } from './utils/safeLocalStorage';
 
@@ -68,6 +69,7 @@ function App() {
             <Route path="/agreement" element={<Agreement />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/personal-information" element={<PersonalInformation />} />
+            <Route path="/map-vote" element={<MapVoteAdmin />} />
           </Routes>
         </Layout>
       </PageTracker>

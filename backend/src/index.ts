@@ -62,11 +62,13 @@ import shopRoutes from './routes/shop';
 import inventoryRoutes from './routes/inventory';
 import rewardsRoutes from './routes/rewards';
 import webhooksRoutes from './routes/webhooks';
+import mapVoteRoutes from './routes/mapVote';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
 import { EncryptedSessionStore } from './config/encryptedSessionStore';
 import { scheduleDataCleanup } from './services/dataCleanup';
+import { scheduleMapVoteTasks } from './services/mapVoteScheduler';
 import { rconService } from './services/rconService';
 
 const app = express();
@@ -162,6 +164,7 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/rewards', rewardsRoutes);
 app.use('/api/webhooks', webhooksRoutes);
+app.use('/api/map-vote', mapVoteRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -173,6 +176,9 @@ app.listen(PORT, () => {
 
   // Запуск cron-задачи очистки устаревших данных (сессии, транзакции, ордера)
   scheduleDataCleanup();
+
+  // Запуск cron-задач голосования за карту (уведомление Пт 16:00 МСК, автозакрытие)
+  scheduleMapVoteTasks();
 
   // Подключение к Rust RCON (для выдачи предметов из инвентаря)
   if (rconService.isConfigured()) {

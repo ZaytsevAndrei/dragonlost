@@ -1,0 +1,260 @@
+/* ===================== MAP VOTE ===================== */
+.map-vote {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(26, 31, 46, 0.92));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.map-vote-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.map-vote-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.map-vote-title-row svg {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.map-vote-title-row h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.map-vote-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.map-vote-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #60a5fa;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-vote-total {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ─── Cards Grid ─── */
+.map-vote-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.map-vote-card {
+  position: relative;
+  background: rgba(26, 31, 46, 0.8);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+  text-align: left;
+  color: inherit;
+  padding: 0;
+  width: 100%;
+}
+
+.map-vote-card:hover:not(:disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.map-vote-card:disabled {
+  cursor: default;
+}
+
+.map-vote-card-selected {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4), 0 8px 24px rgba(59, 130, 246, 0.2);
+}
+
+.map-vote-card-leading:not(.map-vote-card-selected) {
+  border-color: rgba(250, 204, 21, 0.35);
+}
+
+/* ─── Card Image ─── */
+.map-vote-img {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 20, 25, 0.5);
+  overflow: hidden;
+}
+
+.map-vote-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.map-vote-img-placeholder {
+  color: var(--text-secondary);
+  opacity: 0.3;
+}
+
+/* ─── Card Body ─── */
+.map-vote-card-body {
+  padding: 16px;
+}
+
+.map-vote-card-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.map-vote-card-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.map-vote-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+/* ─── Progress bar ─── */
+.map-vote-bar-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.map-vote-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  min-width: 0;
+}
+
+.map-vote-card-selected .map-vote-bar {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+.map-vote-card-leading:not(.map-vote-card-selected) .map-vote-bar {
+  background: linear-gradient(90deg, #eab308, #facc15);
+}
+
+/* ─── Footer ─── */
+.map-vote-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-vote-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.map-vote-pct {
+  font-size: 15px;
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+.map-vote-card-selected .map-vote-pct {
+  color: #3b82f6;
+}
+
+/* ─── Badges ─── */
+.map-vote-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+}
+
+.map-vote-leading-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: rgba(250, 204, 21, 0.15);
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #facc15;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ─── Login hint ─── */
+.map-vote-login-hint {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 768px) {
+  .map-vote {
+    padding: 24px 16px;
+  }
+
+  .map-vote-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .map-vote-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-vote-img {
+    height: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-vote-title-row h2 {
+    font-size: 18px;
+  }
+}

@@ -4,6 +4,7 @@ export interface User {
   steamid: string;
   username: string;
   avatar: string;
+  role: string;
   created_at: Date;
   last_login: Date;
 }

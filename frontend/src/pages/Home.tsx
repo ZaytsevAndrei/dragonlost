@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import MapVote from '../components/MapVote';
 import './Home.css';
 
 interface Server {
@@ -220,6 +221,11 @@ function Home() {
             <p>Заходите каждый день и получайте бонусные рубли за серии</p>
           </Link>
         </div>
+      </AnimatedSection>
+
+      {/* ===== MAP VOTE ===== */}
+      <AnimatedSection>
+        <MapVote />
       </AnimatedSection>
 
       {/* ===== TOP PLAYERS ===== */}

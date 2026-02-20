@@ -6,6 +6,7 @@ interface User {
   steamid: string;
   username: string;
   avatar: string;
+  role: string;
 }
 
 interface AuthState {
