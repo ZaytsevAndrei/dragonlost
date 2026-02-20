@@ -92,6 +92,7 @@ export const configurePassport = () => {
               steamid,
               username,
               avatar,
+              role: 'user',
               created_at: new Date(),
             };
           }
