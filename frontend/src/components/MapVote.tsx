@@ -158,7 +158,19 @@ function MapVote() {
                 )}
 
                 {opt.description && (
-                  <p className="map-vote-card-desc">{opt.description}</p>
+                  opt.description.startsWith('http') ? (
+                    <a
+                      className="map-vote-card-link"
+                      href={opt.description}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Открыть на RustMaps
+                    </a>
+                  ) : (
+                    <p className="map-vote-card-desc">{opt.description}</p>
+                  )
                 )}
 
                 <div className="map-vote-bar-wrap">

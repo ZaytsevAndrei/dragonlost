@@ -147,6 +147,21 @@
   margin-bottom: 12px;
 }
 
+.map-vote-card-link {
+  display: inline-block;
+  font-size: 12px;
+  color: #60a5fa;
+  text-decoration: none;
+  margin-bottom: 12px;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.map-vote-card-link:hover {
+  color: #93bbfd;
+  text-decoration: underline;
+}
+
 /* ─── Progress bar ─── */
 .map-vote-bar-wrap {
   height: 6px;

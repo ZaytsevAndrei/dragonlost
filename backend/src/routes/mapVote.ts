@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated, isAdmin } from '../middleware/auth';
+import { generateRandomMaps } from '../services/rustmapsApi';
 
 const router = Router();
 
@@ -57,7 +58,7 @@ router.get('/active', async (req, res) => {
        LEFT JOIN map_votes v ON v.option_id = o.id
        WHERE o.session_id = ?
        GROUP BY o.id
-       ORDER BY vote_count DESC, o.id ASC`,
+       ORDER BY o.id ASC`,
       [session.id]
     );
 
@@ -223,6 +224,30 @@ router.post('/vote', isAuthenticated, async (req, res) => {
 // ─── Админские эндпоинты ───
 
 /**
+ * POST /api/map-vote/generate-maps — сгенерировать случайные карты через RustMaps API.
+ *
+ * Body: { size: number, count?: number }
+ */
+router.post('/generate-maps', isAdmin, async (req, res) => {
+  const { size, count } = req.body;
+
+  const mapSize = parseInt(size, 10);
+  if (!mapSize || mapSize < 1000 || mapSize > 6000) {
+    return res.status(400).json({ error: 'Размер карты должен быть от 1000 до 6000' });
+  }
+
+  const mapCount = Math.min(Math.max(parseInt(count, 10) || 5, 1), 10);
+
+  try {
+    const maps = await generateRandomMaps(mapSize, mapCount);
+    res.json({ maps });
+  } catch (error) {
+    console.error('Error generating maps:', error instanceof Error ? error.message : 'Unknown error');
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Ошибка при генерации карт' });
+  }
+});
+
+/**
  * GET /api/map-vote/sessions — все сессии голосования (для админ-панели).
  */
 router.get('/sessions', isAdmin, async (req, res) => {
@@ -275,6 +300,9 @@ router.post('/sessions', isAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Необходимо указать ends_at и минимум 2 варианта карт' });
   }
 
+  const toMysqlDatetime = (iso: string): string =>
+    new Date(iso).toISOString().slice(0, 19).replace('T', ' ');
+
   const connection = await webPool.getConnection();
   try {
     const steamid = (req.user as any).steamid;
@@ -284,7 +312,7 @@ router.post('/sessions', isAdmin, async (req, res) => {
     const [sessionResult] = await connection.query<ResultSetHeader>(
       `INSERT INTO map_vote_sessions (title, starts_at, ends_at, created_by)
        VALUES (?, COALESCE(?, UTC_TIMESTAMP()), ?, ?)`,
-      [title || 'Голосование за карту', starts_at || null, ends_at, steamid]
+      [title || 'Голосование за карту', starts_at ? toMysqlDatetime(starts_at) : null, toMysqlDatetime(ends_at), steamid]
     );
 
     const sessionId = sessionResult.insertId;

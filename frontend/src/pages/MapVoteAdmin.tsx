@@ -1,14 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
-import { api } from '../services/api';
+import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import './MapVoteAdmin.css';
 
-interface MapOptionForm {
-  map_name: string;
-  map_seed: string;
-  map_size: string;
-  image_url: string;
-  description: string;
+interface RustMapResult {
+  seed: number;
+  size: number;
+  mapId: string | null;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  mapPageUrl: string;
+  ready: boolean;
 }
 
 interface MapOption {
@@ -32,13 +34,56 @@ interface VoteSession {
   options: MapOption[];
 }
 
-const emptyOption = (): MapOptionForm => ({
-  map_name: '',
-  map_seed: '',
-  map_size: '',
-  image_url: '',
-  description: '',
-});
+const MAP_SIZES = [3000, 3500, 4000, 4250, 4500, 5000];
+
+function getNextDayOfWeek(dayOfWeek: number, hours: number, minutes: number): Date {
+  const now = new Date();
+  const result = new Date(now);
+  const diff = (dayOfWeek - now.getDay() + 7) % 7;
+  result.setDate(now.getDate() + (diff === 0 && now.getHours() >= hours ? 7 : diff || 7));
+  result.setHours(hours, minutes, 0, 0);
+  return result;
+}
+
+function toLocalDatetimeString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function formatDateTime(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleString('ru-RU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const DATE_PRESETS = [
+  {
+    label: 'Чт 16:00',
+    get: () => getNextDayOfWeek(4, 16, 0),
+  },
+  {
+    label: 'Пт 12:00',
+    get: () => getNextDayOfWeek(5, 12, 0),
+  },
+  {
+    label: 'Через 24ч',
+    get: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+  },
+  {
+    label: 'Через 48ч',
+    get: () => new Date(Date.now() + 48 * 60 * 60 * 1000),
+  },
+  {
+    label: 'Через 72ч',
+    get: () => new Date(Date.now() + 72 * 60 * 60 * 1000),
+  },
+];
 
 function MapVoteAdmin() {
   const { user } = useAuthStore();
@@ -46,12 +91,14 @@ function MapVoteAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Create form state
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('Голосование за карту');
   const [endsAt, setEndsAt] = useState('');
-  const [options, setOptions] = useState<MapOptionForm[]>([emptyOption(), emptyOption()]);
   const [creating, setCreating] = useState(false);
+
+  const [mapSize, setMapSize] = useState(4000);
+  const [generatedMaps, setGeneratedMaps] = useState<RustMapResult[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
@@ -72,17 +119,26 @@ function MapVoteAdmin() {
     if (isAdmin) fetchSessions();
   }, [isAdmin, fetchSessions]);
 
-  const handleAddOption = () => {
-    setOptions((prev) => [...prev, emptyOption()]);
+  const handleGenerateMaps = async () => {
+    if (generating) return;
+    try {
+      setGenerating(true);
+      setError(null);
+      const res = await api.post('/map-vote/generate-maps', { size: mapSize, count: 5 });
+      setGeneratedMaps(res.data.maps || []);
+    } catch {
+      setError('Ошибка при генерации карт. Проверьте настройку RUSTMAPS_API_KEY.');
+    } finally {
+      setGenerating(false);
+    }
   };
 
-  const handleRemoveOption = (index: number) => {
-    if (options.length <= 2) return;
-    setOptions((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveGeneratedMap = (seed: number) => {
+    setGeneratedMaps((prev) => prev.filter((m) => m.seed !== seed));
   };
 
-  const handleOptionChange = (index: number, field: keyof MapOptionForm, value: string) => {
-    setOptions((prev) => prev.map((o, i) => (i === index ? { ...o, [field]: value } : o)));
+  const handleSetPresetDate = (date: Date) => {
+    setEndsAt(toLocalDatetimeString(date));
   };
 
   const handleCreate = async () => {
@@ -91,9 +147,8 @@ function MapVoteAdmin() {
       setError('Укажите дату окончания голосования');
       return;
     }
-    const validOptions = options.filter((o) => o.map_name.trim());
-    if (validOptions.length < 2) {
-      setError('Необходимо минимум 2 варианта карт');
+    if (generatedMaps.length < 2) {
+      setError('Необходимо минимум 2 варианта карт. Сгенерируйте карты.');
       return;
     }
 
@@ -103,18 +158,18 @@ function MapVoteAdmin() {
       await api.post('/map-vote/sessions', {
         title,
         ends_at: new Date(endsAt).toISOString(),
-        options: validOptions.map((o) => ({
-          map_name: o.map_name.trim(),
-          map_seed: o.map_seed ? parseInt(o.map_seed, 10) : null,
-          map_size: o.map_size ? parseInt(o.map_size, 10) : null,
-          image_url: o.image_url.trim() || null,
-          description: o.description.trim() || null,
+        options: generatedMaps.map((m) => ({
+          map_name: `Seed ${m.seed}`,
+          map_seed: m.seed,
+          map_size: m.size,
+          image_url: m.thumbnailUrl || m.imageUrl || null,
+          description: m.mapPageUrl,
         })),
       });
       setShowForm(false);
       setTitle('Голосование за карту');
       setEndsAt('');
-      setOptions([emptyOption(), emptyOption()]);
+      setGeneratedMaps([]);
       await fetchSessions();
     } catch {
       setError('Ошибка при создании голосования');
@@ -163,51 +218,143 @@ function MapVoteAdmin() {
 
       {error && <div className="mva-error">{error}</div>}
 
-      {/* ─── Create Form ─── */}
       {showForm && (
         <div className="mva-form">
           <h3>Новое голосование</h3>
 
           <div className="mva-form-field">
             <label>Заголовок</label>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Голосование за карту" />
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Голосование за карту"
+            />
           </div>
 
+          {/* Date/time picker with presets */}
           <div className="mva-form-field">
             <label>Окончание голосования</label>
-            <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+            <div className="mva-date-picker">
+              <div className="mva-date-presets">
+                {DATE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    className="mva-date-preset-btn"
+                    onClick={() => handleSetPresetDate(preset.get())}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="datetime-local"
+                value={endsAt}
+                onChange={(e) => setEndsAt(e.target.value)}
+              />
+              {endsAt && (
+                <div className="mva-date-preview">
+                  {formatDateTime(endsAt)}
+                </div>
+              )}
+            </div>
           </div>
 
-          <h4>Варианты карт</h4>
-          {options.map((opt, i) => (
-            <div key={i} className="mva-option-form">
-              <div className="mva-option-row">
-                <input type="text" placeholder="Название карты *" value={opt.map_name} onChange={(e) => handleOptionChange(i, 'map_name', e.target.value)} />
-                <input type="number" placeholder="Seed" value={opt.map_seed} onChange={(e) => handleOptionChange(i, 'map_seed', e.target.value)} />
-                <input type="number" placeholder="Размер (м)" value={opt.map_size} onChange={(e) => handleOptionChange(i, 'map_size', e.target.value)} />
-                {options.length > 2 && (
-                  <button className="mva-btn-remove" onClick={() => handleRemoveOption(i)} type="button">×</button>
-                )}
+          {/* Map generation from RustMaps */}
+          <div className="mva-form-section">
+            <h4>Варианты карт</h4>
+            <div className="mva-map-gen-controls">
+              <div className="mva-size-select">
+                <label>Размер карты</label>
+                <select
+                  value={mapSize}
+                  onChange={(e) => setMapSize(Number(e.target.value))}
+                >
+                  {MAP_SIZES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="mva-option-row">
-                <input type="url" placeholder="URL изображения" value={opt.image_url} onChange={(e) => handleOptionChange(i, 'image_url', e.target.value)} />
-                <input type="text" placeholder="Описание" value={opt.description} onChange={(e) => handleOptionChange(i, 'description', e.target.value)} />
-              </div>
+              <button
+                className="mva-btn-generate"
+                onClick={handleGenerateMaps}
+                disabled={generating}
+                type="button"
+              >
+                {generating ? 'Генерация...' : 'Сгенерировать 5 карт'}
+              </button>
             </div>
-          ))}
+
+            {generating && (
+              <div className="mva-generating">
+                <div className="mva-spinner" />
+                <span>
+                  Генерация карт через RustMaps API... Это может занять до 30 секунд.
+                </span>
+              </div>
+            )}
+
+            {generatedMaps.length > 0 && (
+              <div className="mva-generated-maps">
+                {generatedMaps.map((m) => (
+                  <div key={m.seed} className={`mva-gen-card ${m.ready ? '' : 'mva-gen-pending'}`}>
+                    <div className="mva-gen-card-img">
+                      {m.thumbnailUrl || m.imageUrl ? (
+                        <img
+                          src={getImageUrl(m.thumbnailUrl || m.imageUrl || '')}
+                          alt={`Map ${m.seed}`}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="mva-gen-card-placeholder">
+                          {m.ready ? 'Нет превью' : 'Генерация...'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="mva-gen-card-info">
+                      <span className="mva-gen-seed">Seed: {m.seed}</span>
+                      <span className="mva-gen-size">Размер: {m.size}</span>
+                      {m.mapPageUrl && (
+                        <a
+                          href={m.mapPageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mva-gen-link"
+                        >
+                          Открыть на RustMaps
+                        </a>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="mva-btn-remove-gen"
+                      onClick={() => handleRemoveGeneratedMap(m.seed)}
+                      title="Удалить"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="mva-form-actions">
-            <button className="mva-btn-add-option" onClick={handleAddOption} type="button">
-              + Добавить вариант
-            </button>
-            <button className="mva-btn-submit" onClick={handleCreate} disabled={creating}>
+            <button
+              className="mva-btn-submit"
+              onClick={handleCreate}
+              disabled={creating || generatedMaps.length < 2}
+            >
               {creating ? 'Создание...' : 'Создать голосование'}
             </button>
           </div>
         </div>
       )}
 
-      {/* ─── Sessions List ─── */}
+      {/* Sessions List */}
       {loading ? (
         <div className="mva-loading">Загрузка...</div>
       ) : sessions.length === 0 ? (
@@ -219,7 +366,9 @@ function MapVoteAdmin() {
               <div className="mva-session-header">
                 <div>
                   <h3>{s.title}</h3>
-                  <span className={`mva-status mva-status-${s.status}`}>{statusLabel(s.status)}</span>
+                  <span className={`mva-status mva-status-${s.status}`}>
+                    {statusLabel(s.status)}
+                  </span>
                 </div>
                 <div className="mva-session-dates">
                   <span>До: {new Date(s.ends_at).toLocaleString('ru-RU')}</span>
@@ -232,10 +381,27 @@ function MapVoteAdmin() {
                     key={opt.id}
                     className={`mva-option-item ${opt.id === s.winner_option_id ? 'mva-option-winner' : ''}`}
                   >
-                    <span className="mva-option-name">{opt.map_name}</span>
+                    {opt.image_url && (
+                      <img
+                        src={getImageUrl(opt.image_url)}
+                        alt={opt.map_name}
+                        className="mva-option-thumb"
+                      />
+                    )}
+                    <div className="mva-option-details">
+                      <span className="mva-option-name">{opt.map_name}</span>
+                      {opt.map_seed && (
+                        <span className="mva-option-meta">
+                          Seed: {opt.map_seed} | Размер: {opt.map_size}
+                        </span>
+                      )}
+                    </div>
                     <span className="mva-option-votes">{opt.vote_count} голосов</span>
                     {s.status === 'active' && (
-                      <button className="mva-btn-pick-winner" onClick={() => handleClose(s.id, opt.id)}>
+                      <button
+                        className="mva-btn-pick-winner"
+                        onClick={() => handleClose(s.id, opt.id)}
+                      >
                         Выбрать
                       </button>
                     )}
@@ -266,10 +432,14 @@ function MapVoteAdmin() {
 
 function statusLabel(status: string): string {
   switch (status) {
-    case 'active': return 'Активно';
-    case 'closed': return 'Закрыто';
-    case 'cancelled': return 'Отменено';
-    default: return status;
+    case 'active':
+      return 'Активно';
+    case 'closed':
+      return 'Закрыто';
+    case 'cancelled':
+      return 'Отменено';
+    default:
+      return status;
   }
 }
 
