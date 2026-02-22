@@ -121,6 +121,8 @@ function MapVote() {
           const isSelected = userVote === opt.id;
           const isLeading = options.length > 0 && opt.vote_count === Math.max(...options.map(o => o.vote_count)) && opt.vote_count > 0;
 
+          const rustMapsUrl = opt.description?.startsWith('http') ? opt.description : null;
+
           return (
             <div
               key={opt.id}
@@ -128,14 +130,24 @@ function MapVote() {
             >
               {opt.image_url ? (
                 <div
-                  className="map-vote-img map-vote-img-clickable"
-                  onClick={() => window.open(getImageUrl(opt.image_url!), '_blank', 'noopener,noreferrer')}
+                  className={`map-vote-img ${rustMapsUrl ? 'map-vote-img-clickable' : ''}`}
+                  onClick={rustMapsUrl ? () => window.open(rustMapsUrl, '_blank', 'noopener,noreferrer') : undefined}
                 >
                   <img
                     src={getImageUrl(opt.image_url)}
                     alt={opt.map_name}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
+                  {rustMapsUrl && (
+                    <div className="map-vote-img-overlay">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                        <path d="M15 3h6v6" />
+                        <path d="M10 14L21 3" />
+                      </svg>
+                      <span>RustMaps</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="map-vote-img map-vote-img-placeholder">

@@ -22,6 +22,12 @@ function generateRandomSeed(): number {
   return Math.floor(Math.random() * 2147483647) + 1;
 }
 
+function buildMapPageUrl(seed: number, size: number, apiUrl?: string | null, mapId?: string | null): string {
+  if (apiUrl) return apiUrl;
+  if (mapId) return `https://rustmaps.com/map/${mapId}`;
+  return `https://rustmaps.com/map/${size}_${seed}`;
+}
+
 async function getMapFromApi(seed: number, size: number): Promise<RustMapResult | null> {
   try {
     const res = await fetch(`${RUSTMAPS_V2_BASE}/${seed}/${size}`, {
@@ -42,7 +48,7 @@ async function getMapFromApi(seed: number, size: number): Promise<RustMapResult 
       mapId,
       imageUrl: (map.imageUrl as string) || (map.imageIconUrl as string) || null,
       thumbnailUrl: (map.thumbnailUrl as string) || null,
-      mapPageUrl: (map.url as string) || (mapId ? `https://rustmaps.com/map/${mapId}` : ''),
+      mapPageUrl: buildMapPageUrl(seed, size, map.url as string, mapId),
       ready: true,
     };
   } catch {
@@ -99,7 +105,7 @@ async function getOrGenerateMap(seed: number, size: number): Promise<RustMapResu
     mapId: mapId || null,
     imageUrl: null,
     thumbnailUrl: null,
-    mapPageUrl: mapId ? `https://rustmaps.com/map/${mapId}` : '',
+    mapPageUrl: buildMapPageUrl(seed, size, null, mapId),
     ready: false,
   };
 }

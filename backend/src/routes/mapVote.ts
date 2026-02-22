@@ -398,7 +398,7 @@ router.put('/sessions/:id/close', isAdmin, async (req, res) => {
 });
 
 /**
- * DELETE /api/map-vote/sessions/:id — отменить голосование.
+ * DELETE /api/map-vote/sessions/:id — отменить активное голосование.
  */
 router.delete('/sessions/:id', isAdmin, async (req, res) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -411,6 +411,50 @@ router.delete('/sessions/:id', isAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error cancelling vote session:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Ошибка при отмене голосования' });
+  }
+});
+
+/**
+ * DELETE /api/map-vote/sessions/:id/permanent — полностью удалить сессию из истории.
+ * Работает только для closed/cancelled сессий.
+ */
+router.delete('/sessions/:id/permanent', isAdmin, async (req, res) => {
+  const sessionId = parseInt(req.params.id, 10);
+  const connection = await webPool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [sessions] = await connection.query<VoteSessionRow[]>(
+      'SELECT * FROM map_vote_sessions WHERE id = ?',
+      [sessionId]
+    );
+
+    if (sessions.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Сессия не найдена' });
+    }
+
+    if (sessions[0].status === 'active') {
+      await connection.rollback();
+      return res.status(400).json({ error: 'Нельзя удалить активную сессию. Сначала закройте или отмените её.' });
+    }
+
+    await connection.query('DELETE FROM map_votes WHERE session_id = ?', [sessionId]);
+    await connection.query(
+      'UPDATE map_vote_sessions SET winner_option_id = NULL WHERE id = ?',
+      [sessionId]
+    );
+    await connection.query('DELETE FROM map_vote_options WHERE session_id = ?', [sessionId]);
+    await connection.query('DELETE FROM map_vote_sessions WHERE id = ?', [sessionId]);
+
+    await connection.commit();
+    res.json({ success: true });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error deleting vote session:', error instanceof Error ? error.message : 'Unknown error');
+    res.status(500).json({ error: 'Ошибка при удалении сессии' });
+  } finally {
+    connection.release();
   }
 });
 
