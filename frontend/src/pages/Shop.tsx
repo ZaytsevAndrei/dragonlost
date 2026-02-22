@@ -143,7 +143,7 @@ function Shop() {
         {user && balance && (
           <div className="balance-card">
             <div className="balance-label">Ваш баланс:</div>
-            <div className="balance-amount">💰 {(balance.balance || 0).toFixed(2)} рублей</div>
+            <div className="balance-amount">{(balance.balance || 0).toFixed(2)} рублей</div>
           </div>
         )}
       </div>
@@ -190,7 +190,7 @@ function Shop() {
                 <div className="item-quantity">Количество: {item.quantity}</div>
               )}
               <div className="item-footer">
-                <div className="item-price">💰 {item.price} рублей</div>
+                <div className="item-price">{item.price} рублей</div>
                 <button
                   className="btn-purchase"
                   onClick={() => handlePurchase(item.id, item.name, item.price)}
