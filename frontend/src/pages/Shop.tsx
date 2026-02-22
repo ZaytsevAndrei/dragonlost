@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import './Shop.css';
@@ -22,10 +21,6 @@ interface PlayerBalance {
   total_spent: number;
 }
 
-const DEPOSIT_AMOUNTS = [100, 300, 500, 1000, 2000, 5000];
-const MIN_DEPOSIT = 10;
-const MAX_DEPOSIT = 50000;
-
 const CATEGORY_NAMES: Record<string, string> = {
   weapon: '🔫 Оружие',
   armor: '🛡️ Броня',
@@ -37,39 +32,16 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 function Shop() {
   const { user } = useAuthStore();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [balance, setBalance] = useState<PlayerBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [purchasing, setPurchasing] = useState<number | null>(null);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [depositAmount, setDepositAmount] = useState<number>(500);
-  const [depositLoading, setDepositLoading] = useState(false);
-  const [voucherCode, setVoucherCode] = useState('');
-  const [voucherLoading, setVoucherLoading] = useState(false);
 
   useEffect(() => {
     fetchShopData();
   }, [user]);
-
-  useEffect(() => {
-    if (searchParams.get('payment') === 'success') {
-      setPaymentSuccess(true);
-      setSearchParams({}, { replace: true });
-      if (user) {
-        api.get('/shop/balance').then((res) => {
-          const d = res.data;
-          setBalance({
-            balance: Number(d.balance) || 0,
-            total_earned: Number(d.total_earned) || 0,
-            total_spent: Number(d.total_spent) || 0,
-          });
-        }).catch(() => {});
-      }
-    }
-  }, [searchParams, user, setSearchParams]);
 
   const fetchShopData = async () => {
     try {
@@ -93,51 +65,6 @@ function Shop() {
       setError('Не удалось загрузить данные магазина');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDeposit = async () => {
-    if (!user) return;
-    const amount = depositAmount;
-    if (amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
-      alert(`Сумма от ${MIN_DEPOSIT} до ${MAX_DEPOSIT}`);
-      return;
-    }
-    try {
-      setDepositLoading(true);
-      const res = await api.post('/shop/deposit/create', { amount });
-      const url = res.data?.redirect_url;
-      if (url) {
-        window.location.href = url;
-        return;
-      }
-      alert('Не удалось создать платёж');
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка при создании платежа';
-      alert(msg);
-    } finally {
-      setDepositLoading(false);
-    }
-  };
-
-  const handleVoucherRedeem = async () => {
-    if (!user || !voucherCode.trim()) {
-      alert('Введите код промокода');
-      return;
-    }
-    try {
-      setVoucherLoading(true);
-      const res = await api.post('/shop/deposit/redeem', { code: voucherCode.trim() });
-      if (res.data?.success && balance) {
-        setBalance({ ...balance, balance: Number(res.data.new_balance) || 0 });
-        setVoucherCode('');
-        alert(`Промокод активирован! Зачислено ${res.data.amount} рублей.`);
-      }
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка при активации промокода';
-      alert(msg);
-    } finally {
-      setVoucherLoading(false);
     }
   };
 
@@ -221,72 +148,9 @@ function Shop() {
         )}
       </div>
 
-      {paymentSuccess && (
-        <div className="payment-success-notice">
-          Оплата прошла успешно. Баланс обновлён.
-        </div>
-      )}
-
       {!user && (
         <div className="login-notice">
           ℹ️ Войдите через Steam, чтобы совершать покупки
-        </div>
-      )}
-
-      {user && (
-        <div className="deposit-section">
-          <h2 className="deposit-title">Пополнить счёт</h2>
-          <div className="deposit-amounts">
-            {DEPOSIT_AMOUNTS.map((amount) => (
-              <button
-                key={amount}
-                type="button"
-                className={`deposit-amount-btn ${depositAmount === amount ? 'active' : ''}`}
-                onClick={() => setDepositAmount(amount)}
-              >
-                {amount} ₽
-              </button>
-            ))}
-          </div>
-          <div className="deposit-custom">
-            <label>
-              Своя сумма (₽):{' '}
-              <input
-                type="number"
-                min={MIN_DEPOSIT}
-                max={MAX_DEPOSIT}
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(Number(e.target.value) || MIN_DEPOSIT)}
-                className="deposit-input"
-              />
-            </label>
-          </div>
-          <button
-            type="button"
-            className="btn-deposit"
-            onClick={handleDeposit}
-            disabled={depositLoading}
-          >
-            {depositLoading ? 'Создание платежа...' : 'Пополнить баланс'}
-          </button>
-          <div className="voucher-row">
-            <input
-              type="text"
-              placeholder="Код промокода"
-              value={voucherCode}
-              onChange={(e) => setVoucherCode(e.target.value)}
-              className="voucher-input"
-              disabled={voucherLoading}
-            />
-            <button
-              type="button"
-              className="btn-voucher"
-              onClick={handleVoucherRedeem}
-              disabled={voucherLoading || !voucherCode.trim()}
-            >
-              {voucherLoading ? 'Проверка...' : 'Активировать'}
-            </button>
-          </div>
         </div>
       )}
 
