@@ -232,8 +232,8 @@ router.post('/generate-maps', isAdmin, async (req, res) => {
   const { size, count } = req.body;
 
   const mapSize = parseInt(size, 10);
-  if (!mapSize || mapSize < 1000 || mapSize > 6000) {
-    return res.status(400).json({ error: 'Размер карты должен быть от 1000 до 6000' });
+  if (!mapSize || mapSize < 2500 || mapSize > 6250) {
+    return res.status(400).json({ error: 'Размер карты должен быть от 2500 до 6250' });
   }
 
   const mapCount = Math.min(Math.max(parseInt(count, 10) || 5, 1), 10);

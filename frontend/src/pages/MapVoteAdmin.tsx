@@ -34,7 +34,7 @@ interface VoteSession {
   options: MapOption[];
 }
 
-const MAP_SIZES = [3000, 3500, 4000, 4250, 4500, 5000];
+const MAP_SIZES = Array.from({ length: (6250 - 2500) / 250 + 1 }, (_, i) => 2500 + i * 250);
 
 function getNextDayOfWeek(dayOfWeek: number, hours: number, minutes: number): Date {
   const now = new Date();

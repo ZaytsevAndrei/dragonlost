@@ -72,7 +72,6 @@
   border: 2px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  cursor: pointer;
   transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
   text-align: left;
   color: inherit;
@@ -80,14 +79,10 @@
   width: 100%;
 }
 
-.map-vote-card:hover:not(:disabled) {
+.map-vote-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 28px rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.35);
-}
-
-.map-vote-card:disabled {
-  cursor: default;
 }
 
 .map-vote-card-selected {
@@ -115,6 +110,15 @@
   object-fit: cover;
 }
 
+.map-vote-img-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.map-vote-img-clickable:hover {
+  opacity: 0.8;
+}
+
 .map-vote-img-placeholder {
   color: var(--text-secondary);
   opacity: 0.3;
@@ -123,6 +127,20 @@
 /* ─── Card Body ─── */
 .map-vote-card-body {
   padding: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.map-vote-card-body:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.map-vote-card-body-disabled {
+  cursor: default;
+}
+
+.map-vote-card-body-disabled:hover {
+  background: none;
 }
 
 .map-vote-card-name {
@@ -145,21 +163,6 @@
   color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 12px;
-}
-
-.map-vote-card-link {
-  display: inline-block;
-  font-size: 12px;
-  color: #60a5fa;
-  text-decoration: none;
-  margin-bottom: 12px;
-  font-weight: 600;
-  transition: color 0.2s;
-}
-
-.map-vote-card-link:hover {
-  color: #93bbfd;
-  text-decoration: underline;
 }
 
 /* ─── Progress bar ─── */

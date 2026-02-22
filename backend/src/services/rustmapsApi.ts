@@ -30,14 +30,19 @@ async function getMapFromApi(seed: number, size: number): Promise<RustMapResult 
 
     if (!res.ok) return null;
 
-    const data = await res.json() as Record<string, unknown>;
+    const json = await res.json() as Record<string, unknown>;
+    const map = (json.data as Record<string, unknown>) || json;
+    const mapId = (map.id as string) || null;
+
+    console.log(`[RustMaps] GET ${seed}/${size} -> id=${mapId}, imageUrl=${map.imageUrl}, thumbnailUrl=${map.thumbnailUrl}`);
+
     return {
       seed,
       size,
-      mapId: (data.id as string) || null,
-      imageUrl: (data.imageUrl as string) || (data.imageIconUrl as string) || null,
-      thumbnailUrl: (data.thumbnailUrl as string) || null,
-      mapPageUrl: (data.url as string) || `https://rustmaps.com/map/${size}/${seed}`,
+      mapId,
+      imageUrl: (map.imageUrl as string) || (map.imageIconUrl as string) || null,
+      thumbnailUrl: (map.thumbnailUrl as string) || null,
+      mapPageUrl: (map.url as string) || (mapId ? `https://rustmaps.com/map/${mapId}` : ''),
       ready: true,
     };
   } catch {
@@ -53,7 +58,6 @@ async function triggerMapGeneration(seed: number, size: number): Promise<string 
     });
 
     if (!res.ok) {
-      // v2 POST failed, try v4
       const v4Res = await fetch('https://api.rustmaps.com/v4/maps', {
         method: 'POST',
         headers: {
@@ -64,32 +68,24 @@ async function triggerMapGeneration(seed: number, size: number): Promise<string 
       });
 
       if (!v4Res.ok) return null;
-      const v4Data = await v4Res.json() as Record<string, unknown>;
-      return (v4Data.mapId as string) || null;
+      const v4Json = await v4Res.json() as Record<string, unknown>;
+      const v4Map = (v4Json.data as Record<string, unknown>) || v4Json;
+      return (v4Map.mapId as string) || (v4Map.id as string) || null;
     }
 
-    const data = await res.json() as Record<string, unknown>;
-    return (data.mapId as string) || null;
+    const json = await res.json() as Record<string, unknown>;
+    const map = (json.data as Record<string, unknown>) || json;
+    return (map.mapId as string) || (map.id as string) || null;
   } catch {
     return null;
   }
 }
 
 async function getOrGenerateMap(seed: number, size: number): Promise<RustMapResult> {
-  const fallback: RustMapResult = {
-    seed,
-    size,
-    mapId: null,
-    imageUrl: null,
-    thumbnailUrl: null,
-    mapPageUrl: `https://rustmaps.com/map/${size}/${seed}`,
-    ready: false,
-  };
-
   const existing = await getMapFromApi(seed, size);
   if (existing) return existing;
 
-  await triggerMapGeneration(seed, size);
+  const mapId = await triggerMapGeneration(seed, size);
 
   for (let attempt = 0; attempt < 10; attempt++) {
     await sleep(3000);
@@ -97,7 +93,15 @@ async function getOrGenerateMap(seed: number, size: number): Promise<RustMapResu
     if (result) return result;
   }
 
-  return fallback;
+  return {
+    seed,
+    size,
+    mapId: mapId || null,
+    imageUrl: null,
+    thumbnailUrl: null,
+    mapPageUrl: mapId ? `https://rustmaps.com/map/${mapId}` : '',
+    ready: false,
+  };
 }
 
 async function getUsedSeeds(): Promise<number[]> {

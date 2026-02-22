@@ -122,15 +122,15 @@ function MapVote() {
           const isLeading = options.length > 0 && opt.vote_count === Math.max(...options.map(o => o.vote_count)) && opt.vote_count > 0;
 
           return (
-            <button
+            <div
               key={opt.id}
               className={`map-vote-card ${isSelected ? 'map-vote-card-selected' : ''} ${isLeading ? 'map-vote-card-leading' : ''}`}
-              onClick={() => handleVote(opt.id)}
-              disabled={voting || !user}
-              type="button"
             >
               {opt.image_url ? (
-                <div className="map-vote-img">
+                <div
+                  className="map-vote-img map-vote-img-clickable"
+                  onClick={() => window.open(getImageUrl(opt.image_url!), '_blank', 'noopener,noreferrer')}
+                >
                   <img
                     src={getImageUrl(opt.image_url)}
                     alt={opt.map_name}
@@ -147,7 +147,10 @@ function MapVote() {
                 </div>
               )}
 
-              <div className="map-vote-card-body">
+              <div
+                className={`map-vote-card-body ${!user || voting ? 'map-vote-card-body-disabled' : ''}`}
+                onClick={() => handleVote(opt.id)}
+              >
                 <div className="map-vote-card-name">{opt.map_name}</div>
 
                 {(opt.map_size || opt.map_seed) && (
@@ -157,20 +160,8 @@ function MapVote() {
                   </div>
                 )}
 
-                {opt.description && (
-                  opt.description.startsWith('http') ? (
-                    <a
-                      className="map-vote-card-link"
-                      href={opt.description}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Открыть на RustMaps
-                    </a>
-                  ) : (
-                    <p className="map-vote-card-desc">{opt.description}</p>
-                  )
+                {opt.description && !opt.description.startsWith('http') && (
+                  <p className="map-vote-card-desc">{opt.description}</p>
                 )}
 
                 <div className="map-vote-bar-wrap">
@@ -192,7 +183,7 @@ function MapVote() {
               {isLeading && !isSelected && (
                 <div className="map-vote-leading-badge">Лидер</div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
