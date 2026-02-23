@@ -137,7 +137,7 @@ function MapVoteAdmin() {
     try {
       setGenerating(true);
       setError(null);
-      const res = await api.post('/map-vote/generate-maps', { size: mapSize, count: 10 });
+      const res = await api.post('/map-vote/generate-maps', { size: mapSize, count: 3 });
       setGeneratedMaps(res.data.maps || []);
     } catch {
       setError('Ошибка при генерации карт. Проверьте настройку RUSTMAPS_API_KEY.');
@@ -315,7 +315,7 @@ function MapVoteAdmin() {
                 {generating ? (
                   <><span className="mva-spinner-inline" /> Генерация...</>
                 ) : (
-                  'Сгенерировать 10 карт'
+                  'Сгенерировать 3 карты'
                 )}
               </button>
             </div>

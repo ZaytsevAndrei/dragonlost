@@ -3,6 +3,7 @@ import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated, isAdmin } from '../middleware/auth';
 import { generateRandomMaps } from '../services/rustmapsApi';
+import { notifyVoteClosed } from '../services/mapVoteScheduler';
 
 const router = Router();
 
@@ -386,6 +387,8 @@ router.put('/sessions/:id/close', isAdmin, async (req, res) => {
     );
 
     await connection.commit();
+
+    notifyVoteClosed(sessionId, winnerId).catch(() => {});
 
     res.json({ success: true, winner_option_id: winnerId });
   } catch (error) {
