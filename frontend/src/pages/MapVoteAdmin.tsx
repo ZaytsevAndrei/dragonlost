@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import './MapVoteAdmin.css';
@@ -106,6 +106,10 @@ function MapVoteAdmin() {
   const [mapSize, setMapSize] = useState(4000);
   const [generatedMaps, setGeneratedMaps] = useState<RustMapResult[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [highlightedOptionIds, setHighlightedOptionIds] = useState<number[]>([]);
+  const [pctDeltaByOptionId, setPctDeltaByOptionId] = useState<Record<number, number>>({});
+  const previousPctByOptionRef = useRef<Record<number, number>>({});
+  const highlightTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
   const [confirmAction, setConfirmAction] = useState<{ type: 'close' | 'cancel' | 'pick' | 'delete'; sessionId: number; optionId?: number } | null>(null);
 
@@ -114,6 +118,14 @@ function MapVoteAdmin() {
   const activeSession = sessions.find(s => s.status === 'active') || null;
   const pastSessions = sessions.filter(s => s.status !== 'active');
   const activeTimeLeft = useCountdown(activeSession?.ends_at || null);
+  const sortedActiveOptions = useMemo(
+    () => (activeSession ? activeSession.options.slice().sort((a, b) => b.vote_count - a.vote_count) : []),
+    [activeSession]
+  );
+  const activeVotesSignature = useMemo(
+    () => sortedActiveOptions.map((opt) => `${opt.id}:${opt.vote_count}`).join('|'),
+    [sortedActiveOptions]
+  );
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -131,6 +143,12 @@ function MapVoteAdmin() {
   useEffect(() => {
     if (isAdmin) fetchSessions();
   }, [isAdmin, fetchSessions]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(highlightTimersRef.current).forEach((timerId) => clearTimeout(timerId));
+    };
+  }, []);
 
   const handleGenerateMaps = async () => {
     if (generating) return;
@@ -217,16 +235,70 @@ function MapVoteAdmin() {
   const totalVotesActive = activeSession
     ? activeSession.options.reduce((sum, o) => sum + o.vote_count, 0)
     : 0;
-  const maxVotesActive = activeSession
-    ? Math.max(...activeSession.options.map(o => o.vote_count), 0)
+  const topActiveOption = sortedActiveOptions[0] || null;
+  const secondActiveOption = sortedActiveOptions[1] || null;
+  const leadVotes = topActiveOption ? Math.max(topActiveOption.vote_count - (secondActiveOption?.vote_count || 0), 0) : 0;
+  const leadPercent = totalVotesActive > 0 && topActiveOption
+    ? Math.round((topActiveOption.vote_count / totalVotesActive) * 100)
     : 0;
+  const isCloseRace = totalVotesActive > 0 && !!secondActiveOption && leadVotes <= 2;
+  const isLeaderUpdated = !!topActiveOption && highlightedOptionIds.includes(topActiveOption.id);
+  const leaderPctDelta = topActiveOption ? pctDeltaByOptionId[topActiveOption.id] : undefined;
+
+  useEffect(() => {
+    if (!activeSession) {
+      previousPctByOptionRef.current = {};
+      setHighlightedOptionIds([]);
+      setPctDeltaByOptionId({});
+      Object.values(highlightTimersRef.current).forEach((timerId) => clearTimeout(timerId));
+      highlightTimersRef.current = {};
+      return;
+    }
+
+    const nextPcts: Record<number, number> = {};
+    const changedEntries: Array<{ optionId: number; delta: number }> = [];
+
+    sortedActiveOptions.forEach((opt) => {
+      const pct = totalVotesActive > 0 ? Math.round((opt.vote_count / totalVotesActive) * 100) : 0;
+      nextPcts[opt.id] = pct;
+      const prevPct = previousPctByOptionRef.current[opt.id];
+      if (prevPct !== undefined && prevPct !== pct) {
+        changedEntries.push({ optionId: opt.id, delta: pct - prevPct });
+      }
+    });
+
+    previousPctByOptionRef.current = nextPcts;
+    if (changedEntries.length === 0) return;
+
+    setHighlightedOptionIds((prev) => Array.from(new Set([...prev, ...changedEntries.map((entry) => entry.optionId)])));
+    setPctDeltaByOptionId((prev) => {
+      const next = { ...prev };
+      changedEntries.forEach(({ optionId, delta }) => {
+        next[optionId] = delta;
+      });
+      return next;
+    });
+    changedEntries.forEach(({ optionId }) => {
+      const existingTimer = highlightTimersRef.current[optionId];
+      if (existingTimer) clearTimeout(existingTimer);
+      highlightTimersRef.current[optionId] = setTimeout(() => {
+        setHighlightedOptionIds((prev) => prev.filter((id) => id !== optionId));
+        setPctDeltaByOptionId((prev) => {
+          const next = { ...prev };
+          delete next[optionId];
+          return next;
+        });
+        delete highlightTimersRef.current[optionId];
+      }, 1100);
+    });
+  }, [activeSession, activeVotesSignature, sortedActiveOptions, totalVotesActive]);
 
   return (
     <div className="mva-page">
       {/* ─── Header ─── */}
       <div className="mva-header">
         <h1>Управление голосованиями</h1>
-        <button className="mva-btn-create" onClick={() => setShowForm(!showForm)}>
+        <button className={`mva-btn-create ${showForm ? 'mva-btn-create-secondary' : ''}`} onClick={() => setShowForm(!showForm)}>
           {showForm ? 'Отмена' : '+ Создать голосование'}
         </button>
       </div>
@@ -356,6 +428,14 @@ function MapVoteAdmin() {
               ))}
             </div>
           )}
+          {generatedMaps.length === 0 && !generating && (
+            <div className="mva-empty-inline">
+              <p className="mva-empty-inline-text">Сгенерируйте варианты карт, чтобы собрать голосование.</p>
+              <button className="mva-empty-inline-cta" type="button" onClick={handleGenerateMaps}>
+                Сгенерировать карты
+              </button>
+            </div>
+          )}
 
           <div className="mva-form-actions">
             <span className="mva-form-hint">
@@ -372,25 +452,38 @@ function MapVoteAdmin() {
       {loading ? (
         <div className="mva-loading"><div className="mva-spinner" /> Загрузка...</div>
       ) : activeSession ? (
-        <div className="mva-active-panel">
-          <div className="mva-active-header">
-            <div className="mva-active-info">
-              <div className="mva-active-title-row">
-                <span className="mva-status-dot mva-status-dot-active" />
+        <div className={`mva-active-panel ${isCloseRace ? 'mva-active-panel-close-race' : ''}`}>
+          <div className="mva-active-overview">
+            <div className="mva-active-overview-main">
+              <div className="mva-active-title-wrap">
+                <span className="mva-status-badge-live">
+                  <span className="mva-status-dot-active" />
+                  Активно
+                </span>
                 <h2>{activeSession.title}</h2>
+                <span className="mva-active-deadline">До {formatDateTime(activeSession.ends_at)}</span>
               </div>
-              <div className="mva-active-stats">
-                <div className="mva-stat">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                  <span className="mva-stat-value">{activeTimeLeft}</span>
+              {isCloseRace && (
+                <div className="mva-close-race-chip" role="status" aria-live="polite">
+                  Плотная борьба: лидер опережает только на {leadVotes} голос{leadVotes === 1 ? '' : leadVotes < 5 ? 'а' : 'ов'}
                 </div>
-                <div className="mva-stat">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>
-                  <span className="mva-stat-value">{totalVotesActive} голосов</span>
+              )}
+              <div className="mva-active-kpis">
+                <div className="mva-kpi-card">
+                  <span className="mva-kpi-label">До завершения</span>
+                  <span className="mva-kpi-value">{activeTimeLeft}</span>
                 </div>
-                <div className="mva-stat">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" /></svg>
-                  <span className="mva-stat-value">{activeSession.options.length} карт</span>
+                <div className="mva-kpi-card">
+                  <span className="mva-kpi-label">Всего голосов</span>
+                  <span className="mva-kpi-value">{totalVotesActive}</span>
+                </div>
+                <div className="mva-kpi-card">
+                  <span className="mva-kpi-label">Карт в голосовании</span>
+                  <span className="mva-kpi-value">{activeSession.options.length}</span>
+                </div>
+                <div className="mva-kpi-card">
+                  <span className="mva-kpi-label">Разрыв #1 к #2</span>
+                  <span className="mva-kpi-value">+{leadVotes}</span>
                 </div>
               </div>
             </div>
@@ -404,61 +497,110 @@ function MapVoteAdmin() {
             </div>
           </div>
 
-          <div className="mva-active-grid">
-            {activeSession.options
-              .slice()
-              .sort((a, b) => b.vote_count - a.vote_count)
-              .map((opt, idx) => {
-                const pct = totalVotesActive > 0 ? Math.round((opt.vote_count / totalVotesActive) * 100) : 0;
-                const isLeading = opt.vote_count > 0 && opt.vote_count === maxVotesActive;
-                const rustMapsUrl = opt.description?.startsWith('http') ? opt.description : null;
+          {topActiveOption && (
+            <div className={`mva-leader-spotlight ${isLeaderUpdated ? 'mva-leader-spotlight-updated' : ''}`}>
+              <div className="mva-leader-preview">
+                {topActiveOption.image_url ? (
+                  <img src={getImageUrl(topActiveOption.image_url)} alt={topActiveOption.map_name} />
+                ) : (
+                  <div className="mva-leader-noimg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="34" height="34">
+                      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" /><path d="M8 2v16" /><path d="M16 6v16" />
+                    </svg>
+                  </div>
+                )}
+                <span className="mva-leader-tag">Лидер</span>
+              </div>
+              <div className="mva-leader-content">
+                <div className="mva-leader-top">
+                  <div>
+                    <div className="mva-leader-name">{topActiveOption.map_name}</div>
+                    {topActiveOption.map_size && (
+                      <div className="mva-leader-meta">{topActiveOption.map_size}m · seed {topActiveOption.map_seed}</div>
+                    )}
+                  </div>
+                  {topActiveOption.description?.startsWith('http') && (
+                    <a href={topActiveOption.description} target="_blank" rel="noopener noreferrer" className="mva-leader-link" title="Открыть на RustMaps">
+                      RustMaps
+                    </a>
+                  )}
+                </div>
+                <div className="mva-leader-progress-row">
+                  <div className="mva-leader-progress-track">
+                    <div className="mva-leader-progress-fill" style={{ width: `${leadPercent}%` }} />
+                  </div>
+                  <span className="mva-leader-progress-text-wrap">
+                    <span className="mva-leader-progress-text">{leadPercent}%</span>
+                    {leaderPctDelta !== undefined && leaderPctDelta !== 0 && (
+                      <span className={`mva-pct-delta ${leaderPctDelta > 0 ? 'mva-pct-delta-up' : 'mva-pct-delta-down'}`}>
+                        {leaderPctDelta > 0 ? '+' : ''}{leaderPctDelta}%
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="mva-leader-footer">
+                  <span className="mva-leader-votes">{topActiveOption.vote_count} голосов · отрыв +{leadVotes}</span>
+                  <button
+                    className="mva-btn-pick mva-btn-pick-leader"
+                    onClick={() => setConfirmAction({ type: 'pick', sessionId: activeSession.id, optionId: topActiveOption.id })}
+                  >
+                    Назначить победителем
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-                return (
-                  <div key={opt.id} className={`mva-live-card ${isLeading ? 'mva-live-card-leading' : ''}`}>
-                    <div className="mva-live-rank">#{idx + 1}</div>
-                    <div className="mva-live-card-img">
-                      {opt.image_url ? (
-                        <img src={getImageUrl(opt.image_url)} alt={opt.map_name} />
-                      ) : (
-                        <div className="mva-live-card-noimg">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32">
-                            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" /><path d="M8 2v16" /><path d="M16 6v16" />
-                          </svg>
-                        </div>
-                      )}
-                      {isLeading && <div className="mva-live-leading-tag">Лидер</div>}
+          <div className="mva-active-list">
+            {sortedActiveOptions.map((opt, idx) => {
+              const pct = totalVotesActive > 0 ? Math.round((opt.vote_count / totalVotesActive) * 100) : 0;
+              const rustMapsUrl = opt.description?.startsWith('http') ? opt.description : null;
+              const isLeader = idx === 0;
+
+              return (
+                <div
+                  key={opt.id}
+                  className={`mva-active-row ${isLeader ? 'mva-active-row-leader' : ''} ${highlightedOptionIds.includes(opt.id) ? 'mva-active-row-updated' : ''}`}
+                >
+                  <div className="mva-active-row-rank">#{idx + 1}</div>
+                  <div className="mva-active-row-main">
+                    <div className="mva-active-row-head">
+                      <span className="mva-active-row-name">{opt.map_name}</span>
+                      {opt.map_size && <span className="mva-active-row-meta">{opt.map_size}m · seed {opt.map_seed}</span>}
                     </div>
-                    <div className="mva-live-card-body">
-                      <div className="mva-live-card-top">
-                        <span className="mva-live-name">{opt.map_name}</span>
-                        {rustMapsUrl && (
-                          <a href={rustMapsUrl} target="_blank" rel="noopener noreferrer" className="mva-live-link" title="Открыть на RustMaps">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
-                              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><path d="M15 3h6v6" /><path d="M10 14L21 3" />
-                            </svg>
-                          </a>
+                    <div className="mva-active-row-bar-wrap">
+                      <div className="mva-active-row-bar">
+                        <div className="mva-active-row-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="mva-active-row-pct-wrap">
+                        <span className="mva-active-row-pct">{pct}%</span>
+                        {pctDeltaByOptionId[opt.id] !== undefined && pctDeltaByOptionId[opt.id] !== 0 && (
+                          <span className={`mva-pct-delta ${pctDeltaByOptionId[opt.id] > 0 ? 'mva-pct-delta-up' : 'mva-pct-delta-down'}`}>
+                            {pctDeltaByOptionId[opt.id] > 0 ? '+' : ''}{pctDeltaByOptionId[opt.id]}%
+                          </span>
                         )}
-                      </div>
-                      {opt.map_size && <span className="mva-live-meta">{opt.map_size}m · seed {opt.map_seed}</span>}
-                      <div className="mva-live-bar-row">
-                        <div className="mva-live-bar-track">
-                          <div className={`mva-live-bar-fill ${isLeading ? 'mva-live-bar-leading' : ''}`} style={{ width: `${pct}%` }} />
-                        </div>
-                        <span className="mva-live-pct">{pct}%</span>
-                      </div>
-                      <div className="mva-live-card-footer">
-                        <span className="mva-live-votes">{opt.vote_count} голосов</span>
-                        <button
-                          className="mva-btn-pick"
-                          onClick={() => setConfirmAction({ type: 'pick', sessionId: activeSession.id, optionId: opt.id })}
-                        >
-                          Назначить
-                        </button>
-                      </div>
+                      </span>
                     </div>
                   </div>
-                );
-              })}
+                  <div className="mva-active-row-right">
+                    <span className="mva-active-row-votes">{opt.vote_count} голосов</span>
+                    <div className="mva-active-row-actions">
+                      {rustMapsUrl && (
+                        <a href={rustMapsUrl} target="_blank" rel="noopener noreferrer" className="mva-active-row-link" title="Открыть на RustMaps">
+                          RustMaps
+                        </a>
+                      )}
+                      <button
+                        className="mva-btn-pick"
+                        onClick={() => setConfirmAction({ type: 'pick', sessionId: activeSession.id, optionId: opt.id })}
+                      >
+                        Назначить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : !showForm ? (
@@ -467,6 +609,9 @@ function MapVoteAdmin() {
             <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" /><path d="M8 2v16" /><path d="M16 6v16" />
           </svg>
           <p>Нет активного голосования</p>
+          <button className="mva-btn-create" type="button" onClick={() => setShowForm(true)}>
+            Создать голосование
+          </button>
         </div>
       ) : null}
 
@@ -530,6 +675,12 @@ function MapVoteAdmin() {
               );
             })}
           </div>
+        </div>
+      )}
+      {!loading && pastSessions.length === 0 && (
+        <div className="mva-history mva-history-empty">
+          <h3>История</h3>
+          <p className="mva-history-empty-text">Завершенных или отмененных сессий пока нет.</p>
         </div>
       )}
     </div>
