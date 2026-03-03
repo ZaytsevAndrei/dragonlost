@@ -128,6 +128,13 @@ function Shop() {
     img.src = placeholderImage;
   };
 
+  const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    // Если картинка успешно загрузилась, сбрасываем состояние fallback/hide после прошлых ошибок.
+    img.style.display = '';
+    delete img.dataset.fallbackApplied;
+  };
+
   if (loading) {
     return (
       <div className="shop">
@@ -183,6 +190,7 @@ function Shop() {
               <img
                 src={resolveShopImageUrl(item.image_url)}
                 alt={item.name}
+                onLoad={handleImageLoad}
                 onError={handleImageError}
               />
             </div>

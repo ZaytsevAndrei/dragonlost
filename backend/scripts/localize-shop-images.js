@@ -41,6 +41,40 @@ function sanitizeBaseName(input) {
     .replace(/^_+|_+$/g, '') || 'item';
 }
 
+function stripFileExtension(fileName) {
+  return String(fileName || '').replace(/\.[a-z0-9]+$/i, '');
+}
+
+function buildLocalImageIndex() {
+  const byName = new Map();
+  const byStem = new Map();
+
+  if (!fs.existsSync(SHOP_UPLOADS_DIR)) {
+    return { byName, byStem };
+  }
+
+  const entries = fs.readdirSync(SHOP_UPLOADS_DIR, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const fileName = entry.name;
+    const normalizedName = sanitizeBaseName(fileName);
+    const dbPath = `/uploads/shop/${fileName}`;
+    byName.set(normalizedName, dbPath);
+
+    const stem = sanitizeBaseName(stripFileExtension(fileName));
+    if (stem && !byStem.has(stem)) {
+      byStem.set(stem, dbPath);
+    }
+  }
+
+  return { byName, byStem };
+}
+
+function resolveLocalImageByCode(imageIndex, itemCode) {
+  if (!itemCode) return null;
+  return imageIndex.byName.get(itemCode) || imageIndex.byStem.get(itemCode) || null;
+}
+
 function extensionByContentType(contentType) {
   const ct = String(contentType || '').toLowerCase();
   if (ct.includes('image/webp')) return '.webp';
@@ -72,6 +106,7 @@ async function downloadImage(url) {
 
 async function main() {
   ensureUploads();
+  const localImageIndex = buildLocalImageIndex();
 
   const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -104,9 +139,15 @@ async function main() {
     const originalUrl = row.image_url ? String(row.image_url).trim() : '';
 
     let dbPath = PLACEHOLDER_DB_PATH;
+    const localByCode = resolveLocalImageByCode(localImageIndex, itemCode);
 
-    if (downloadedByCode.has(itemCode)) {
+    if (localByCode) {
+      dbPath = localByCode;
+      downloadedByCode.set(itemCode, dbPath);
+    } else if (downloadedByCode.has(itemCode)) {
       dbPath = downloadedByCode.get(itemCode);
+    } else if (originalUrl === PLACEHOLDER_DB_PATH) {
+      placeholders += 1;
     } else if (originalUrl.startsWith('/uploads/shop/')) {
       const localName = path.basename(originalUrl);
       const localFile = path.join(SHOP_UPLOADS_DIR, localName);

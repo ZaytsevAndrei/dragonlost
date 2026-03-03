@@ -77,8 +77,13 @@ const PORT = process.env.PORT || 5000;
 // Доверять первому прокси (nginx и т.п.) для корректного req.ip
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
+// Security middleware.
+// Разрешаем использовать изображения/статику с backend-origin в frontend (другой origin в dev).
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 app.use(compression());
 
 // CORS configuration

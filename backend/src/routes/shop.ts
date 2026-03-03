@@ -5,12 +5,99 @@ import { isAuthenticated } from '../middleware/auth';
 import { sensitiveRateLimiter, paymentRateLimiter } from '../middleware/rateLimiter';
 import { createPayment } from '../services/yookassa';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 
 const MIN_DEPOSIT = 10;
 const MAX_DEPOSIT = 50000;
 const MAX_PURCHASE_QUANTITY = 100;
+const SHOP_UPLOADS_DIR = path.resolve(__dirname, '..', '..', 'uploads', 'shop');
+const LOCAL_IMAGE_PREFIX = '/uploads/shop/';
+
+function normalizeImageKey(value: string | null | undefined): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function stripFileExtension(fileName: string): string {
+  return fileName.replace(/\.[a-z0-9]+$/i, '');
+}
+
+function buildLocalImageIndex() {
+  const byName = new Map<string, string>();
+  const byStem = new Map<string, string>();
+
+  if (!fs.existsSync(SHOP_UPLOADS_DIR)) {
+    return { byName, byStem };
+  }
+
+  const files = fs.readdirSync(SHOP_UPLOADS_DIR, { withFileTypes: true });
+  for (const entry of files) {
+    if (!entry.isFile()) continue;
+    const fileName = entry.name;
+    const normalizedFileName = normalizeImageKey(fileName);
+    const filePath = `${LOCAL_IMAGE_PREFIX}${fileName}`;
+    byName.set(normalizedFileName, filePath);
+
+    const stem = normalizeImageKey(stripFileExtension(fileName));
+    if (stem && !byStem.has(stem)) {
+      byStem.set(stem, filePath);
+    }
+  }
+
+  return { byName, byStem };
+}
+
+function getFileNameFromImageUrl(imageUrl: string | null | undefined): string {
+  const value = String(imageUrl || '').trim();
+  if (!value) return '';
+
+  if (value.startsWith(LOCAL_IMAGE_PREFIX)) {
+    return value.slice(LOCAL_IMAGE_PREFIX.length);
+  }
+
+  try {
+    const parsed = new URL(value);
+    const pathname = parsed.pathname || '';
+    return pathname.split('/').pop() || '';
+  } catch {
+    const withoutQuery = value.split('?')[0];
+    return withoutQuery.split('/').pop() || '';
+  }
+}
+
+function resolveLocalImageUrl(
+  item: Pick<ShopItem, 'name' | 'rust_item_code' | 'image_url'>,
+  imageIndex: ReturnType<typeof buildLocalImageIndex>
+): string | null {
+  const currentUrl = String(item.image_url || '').trim();
+  if (currentUrl.startsWith(LOCAL_IMAGE_PREFIX)) {
+    return currentUrl;
+  }
+
+  const candidates = [
+    normalizeImageKey(getFileNameFromImageUrl(currentUrl)),
+    normalizeImageKey(stripFileExtension(getFileNameFromImageUrl(currentUrl))),
+    normalizeImageKey(item.rust_item_code),
+    normalizeImageKey(item.name),
+    normalizeImageKey(item.name.replace(/\s*x\d+\s*$/i, '')),
+  ].filter(Boolean);
+
+  for (const key of candidates) {
+    const byNameMatch = imageIndex.byName.get(key);
+    if (byNameMatch) return byNameMatch;
+
+    const byStemMatch = imageIndex.byStem.get(key);
+    if (byStemMatch) return byStemMatch;
+  }
+
+  return currentUrl || null;
+}
 
 interface ShopItem {
   id: number;
@@ -38,6 +125,7 @@ interface BalanceRow extends RowDataPacket {
 router.get('/items', async (req, res) => {
   try {
     const { category } = req.query;
+    const localImageIndex = buildLocalImageIndex();
     
     let query = `
       SELECT
@@ -66,7 +154,14 @@ router.get('/items', async (req, res) => {
     query += ' ORDER BY category, price';
     
     const [rows] = await webPool.query<RowDataPacket[]>(query, params);
-    res.json({ items: rows });
+    const items = rows.map((row) => {
+      const typedRow = row as unknown as ShopItem;
+      return {
+        ...row,
+        image_url: resolveLocalImageUrl(typedRow, localImageIndex),
+      };
+    });
+    res.json({ items });
   } catch (error) {
     console.error('Error fetching shop items:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch shop items' });
