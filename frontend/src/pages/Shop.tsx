@@ -66,7 +66,7 @@ function Shop() {
     }
   };
 
-  const handlePurchase = async (itemId: number, itemName: string, price: number) => {
+  const handlePurchase = async (itemId: number, price: number) => {
     if (!user) {
       alert('Войдите в систему для совершения покупок');
       return;
@@ -199,7 +199,7 @@ function Shop() {
                 <div className="item-price">{item.price} рублей</div>
                 <button
                   className="btn-purchase"
-                  onClick={() => handlePurchase(item.id, item.name, item.price)}
+                  onClick={() => handlePurchase(item.id, item.price)}
                   disabled={!user || purchasing === item.id || (balance ? balance.balance < item.price : false)}
                 >
                   {purchasing === item.id ? 'Покупка...' : 'Купить'}
