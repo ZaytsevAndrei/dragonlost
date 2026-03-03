@@ -77,10 +77,6 @@ function Shop() {
       return;
     }
 
-    if (!confirm(`Вы уверены, что хотите купить "${itemName}" за ${price} рублей?`)) {
-      return;
-    }
-
     try {
       setPurchasing(itemId);
       const response = await api.post('/shop/purchase', {
@@ -89,7 +85,6 @@ function Shop() {
       });
 
       if (response.data.success) {
-        alert(`Покупка успешна! ${itemName} добавлен в ваш инвентарь`);
         // Обновляем баланс
         if (balance) {
           setBalance({
