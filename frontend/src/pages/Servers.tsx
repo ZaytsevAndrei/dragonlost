@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import StatePanel from '../components/StatePanel';
 import './Servers.css';
 
 interface Server {
@@ -33,7 +34,7 @@ function Servers() {
       const response = await api.get('/servers');
       setServers(response.data.servers);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Не удалось загрузить информацию о серверах');
     } finally {
       setLoading(false);
@@ -59,7 +60,7 @@ function Servers() {
     return (
       <div className="servers">
         <h1>Наши сервера</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка серверов" />
       </div>
     );
   }
@@ -68,10 +69,7 @@ function Servers() {
     return (
       <div className="servers">
         <h1>Наши сервера</h1>
-        <div className="error">{error}</div>
-        <button onClick={fetchServers} className="btn-retry">
-          Попробовать снова
-        </button>
+        <StatePanel type="error" title="Не удалось загрузить сервера" message={error} actionLabel="Попробовать снова" onAction={fetchServers} />
       </div>
     );
   }
@@ -80,6 +78,9 @@ function Servers() {
     <div className="servers">
       <h1>Наши сервера</h1>
 
+      {servers.length === 0 ? (
+        <StatePanel type="empty" title="Серверы не найдены" message="Список серверов пока пуст. Обновите страницу позже." actionLabel="Обновить" onAction={fetchServers} />
+      ) : (
       <div className="servers-grid">
         {servers.map((server) => (
           <div key={server.id} className="server-card">
@@ -153,6 +154,7 @@ function Servers() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

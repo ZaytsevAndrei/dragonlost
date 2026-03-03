@@ -1,54 +1,54 @@
 .servers {
-  padding: 20px 0;
+  padding: var(--space-5) 0;
 }
 
 .servers h1 {
-  font-size: 36px;
-  margin-bottom: 30px;
+  font-size: var(--font-size-3xl);
+  margin-bottom: var(--space-7);
 }
 
 .servers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 30px;
+  gap: var(--space-7);
 }
 
 .server-card {
-  background-color: rgba(26, 31, 46, 0.85);
+  background-color: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 30px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7);
   transition: transform 0.3s, box-shadow 0.3s;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .server-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(206, 65, 43, 0.2);
+  box-shadow: 0 10px 30px rgba(224, 86, 59, 0.2);
 }
 
 .server-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--border);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-strong);
 }
 
 .server-header h2 {
-  font-size: 24px;
+  font-size: var(--font-size-2xl);
   margin: 0;
   color: var(--text-primary);
 }
 
 .status {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   background-color: var(--bg-tertiary);
 }
 
@@ -63,8 +63,8 @@
 .server-info {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .info-row {
@@ -101,45 +101,18 @@
 
 .btn-connect {
   width: 100%;
-  padding: 14px;
-  background-color: var(--accent);
+  padding: var(--space-3);
+  background-color: var(--brand-500);
   color: white;
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
   font-weight: 600;
   transition: background-color 0.2s, transform 0.2s;
 }
 
 .btn-connect:hover {
-  background-color: var(--accent-hover);
+  background-color: var(--brand-600);
   transform: scale(1.02);
-}
-
-.loading,
-.error {
-  text-align: center;
-  padding: 40px;
-  font-size: 18px;
-  color: var(--text-secondary);
-}
-
-.error {
-  color: var(--accent);
-}
-
-.btn-retry {
-  display: block;
-  margin: 20px auto;
-  padding: 12px 30px;
-  background-color: var(--accent);
-  color: white;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.btn-retry:hover {
-  background-color: var(--accent-hover);
 }
 
 @media (max-width: 768px) {
@@ -152,7 +125,7 @@
   }
 
   .server-card {
-    padding: 20px;
+    padding: var(--space-5);
   }
 
   .server-header h2 {

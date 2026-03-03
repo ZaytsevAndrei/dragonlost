@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../services/api';
+import StatePanel from '../components/StatePanel';
 import './Statistics.css';
 
 interface PlayerStats {
@@ -59,7 +60,7 @@ function Statistics() {
       setPlayers(response.data.players);
       setPagination(response.data.pagination);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Не удалось загрузить статистику');
     } finally {
       setLoading(false);
@@ -118,7 +119,7 @@ function Statistics() {
     return (
       <div className="statistics">
         <h1>Статистика игроков</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка статистики" />
       </div>
     );
   }
@@ -127,10 +128,13 @@ function Statistics() {
     return (
       <div className="statistics">
         <h1>Статистика игроков</h1>
-        <div className="error">{error}</div>
-        <button onClick={() => fetchStats(currentPage, searchTerm)} className="btn-retry">
-          Попробовать снова
-        </button>
+        <StatePanel
+          type="error"
+          title="Не удалось загрузить статистику"
+          message={error}
+          actionLabel="Попробовать снова"
+          onAction={() => fetchStats(currentPage, searchTerm)}
+        />
       </div>
     );
   }
@@ -231,7 +235,16 @@ function Statistics() {
       </div>
 
       {!loading && sortedPlayers.length === 0 && (
-        <div className="no-results">Игроки не найдены</div>
+        <StatePanel
+          type="empty"
+          title="Игроки не найдены"
+          message="Попробуйте изменить строку поиска или сбросить фильтры."
+          actionLabel="Сбросить фильтры"
+          onAction={() => {
+            setSortCategory('all');
+            handleSearch('');
+          }}
+        />
       )}
 
       {sortedPlayers.length > 0 && totalPages > 1 && (

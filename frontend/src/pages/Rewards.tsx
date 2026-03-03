@@ -3,6 +3,7 @@ import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { saveLastPage } from '../utils/safeLocalStorage';
+import StatePanel from '../components/StatePanel';
 import './Rewards.css';
 
 interface RandomPoolEntry {
@@ -135,7 +136,7 @@ function Rewards() {
     return (
       <div className="rewards">
         <h1>Ежедневная награда</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка награды" />
       </div>
     );
   }
@@ -144,7 +145,7 @@ function Rewards() {
     return (
       <div className="rewards">
         <h1>Ежедневная награда</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка награды" />
       </div>
     );
   }
@@ -153,10 +154,7 @@ function Rewards() {
     return (
       <div className="rewards">
         <h1>Ежедневная награда</h1>
-        <div className="error">{error}</div>
-        <button onClick={fetchStatus} className="btn-retry">
-          Попробовать снова
-        </button>
+        <StatePanel type="error" title="Не удалось загрузить ежедневную награду" message={error} actionLabel="Попробовать снова" onAction={fetchStatus} />
       </div>
     );
   }

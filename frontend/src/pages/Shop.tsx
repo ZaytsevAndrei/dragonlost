@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import StatePanel from '../components/StatePanel';
 import './Shop.css';
 
 interface ShopItem {
@@ -61,7 +62,7 @@ function Shop() {
       }
 
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Не удалось загрузить данные магазина');
     } finally {
       setLoading(false);
@@ -119,7 +120,7 @@ function Shop() {
     return (
       <div className="shop">
         <h1>Магазин</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка магазина" />
       </div>
     );
   }
@@ -128,10 +129,7 @@ function Shop() {
     return (
       <div className="shop">
         <h1>Магазин</h1>
-        <div className="error">{error}</div>
-        <button onClick={fetchShopData} className="btn-retry">
-          Попробовать снова
-        </button>
+        <StatePanel type="error" title="Не удалось загрузить магазин" message={error} actionLabel="Попробовать снова" onAction={fetchShopData} />
       </div>
     );
   }
@@ -205,9 +203,13 @@ function Shop() {
       </div>
 
       {filteredItems.length === 0 && (
-        <div className="no-items">
-          Предметы не найдены
-        </div>
+        <StatePanel
+          type="empty"
+          title="Предметы не найдены"
+          message="Попробуйте выбрать другую категорию или обновить список товаров."
+          actionLabel="Сбросить фильтр"
+          onAction={() => setSelectedCategory('all')}
+        />
       )}
     </div>
   );

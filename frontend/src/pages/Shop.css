@@ -1,93 +1,94 @@
 .shop {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: var(--space-6);
 }
 
 .shop-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .shop-header h1 {
-  color: #e74c3c;
-  font-size: 2.5rem;
+  color: var(--brand-400);
+  font-size: var(--font-size-3xl);
   margin: 0;
 }
 
 .balance-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1rem 2rem;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #5f7de0 0%, #6a56b6 100%);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .balance-label {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  margin-bottom: 0.25rem;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-1);
 }
 
 .balance-amount {
   color: #fff;
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
   font-weight: bold;
 }
 
 .login-notice {
-  background: #3498db;
+  background: color-mix(in srgb, var(--brand-500) 22%, var(--bg-elevated));
   color: white;
-  padding: 1rem;
-  border-radius: 8px;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
   text-align: center;
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-md);
+  border: 1px solid color-mix(in srgb, var(--brand-500) 45%, transparent);
 }
 
 .category-filter {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 
 .category-btn {
-  padding: 0.75rem 1.5rem;
-  border: 2px solid #34495e;
-  background: #2c3e50;
-  color: #ecf0f1;
-  border-radius: 25px;
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-radius: 999px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+  font-size: var(--font-size-md);
   font-weight: 500;
 }
 
 .category-btn:hover {
-  background: #34495e;
+  background: var(--bg-tertiary);
   transform: translateY(-2px);
 }
 
 .category-btn.active {
-  background: #e74c3c;
-  border-color: #e74c3c;
+  background: var(--brand-500);
+  border-color: var(--brand-500);
   color: white;
 }
 
 .shop-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
 }
 
 .shop-item {
-  background: #2c3e50;
-  border-radius: 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -97,7 +98,7 @@
 
 .shop-item:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+  box-shadow: 0 8px 25px rgba(224, 86, 59, 0.24);
 }
 
 .item-image {
@@ -118,38 +119,38 @@
 }
 
 .item-content {
-  padding: 1.5rem;
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .item-category {
-  font-size: 0.85rem;
-  color: #3498db;
+  font-size: var(--font-size-sm);
+  color: #62a5ff;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
   text-transform: uppercase;
 }
 
 .item-name {
-  color: #ecf0f1;
-  font-size: 1.4rem;
-  margin: 0 0 0.75rem 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-xl);
+  margin: 0 0 var(--space-3) 0;
 }
 
 .item-description {
-  color: #95a5a6;
-  font-size: 0.95rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
   line-height: 1.5;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-4);
   flex: 1;
 }
 
 .item-quantity {
   color: #f39c12;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
   font-weight: 600;
 }
 
@@ -157,26 +158,26 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
   margin-top: auto;
-  padding-top: 1rem;
+  padding-top: var(--space-4);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .item-price {
-  font-size: 1.3rem;
+  font-size: var(--font-size-xl);
   color: #f39c12;
   font-weight: bold;
 }
 
 .btn-purchase {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-3) var(--space-5);
   background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--font-size-md);
   font-weight: 600;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
@@ -184,7 +185,7 @@
 
 .btn-purchase:hover:not(:disabled) {
   background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
-  transform: scale(1.05);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
 }
 
@@ -194,47 +195,9 @@
   opacity: 0.6;
 }
 
-.no-items {
-  text-align: center;
-  padding: 3rem;
-  color: #95a5a6;
-  font-size: 1.2rem;
-}
-
-.loading,
-.error {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.2rem;
-}
-
-.loading {
-  color: #3498db;
-}
-
-.error {
-  color: #e74c3c;
-}
-
-.btn-retry {
-  margin: 1rem auto;
-  display: block;
-  padding: 0.75rem 1.5rem;
-  background: #3498db;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.btn-retry:hover {
-  background: #2980b9;
-}
-
 @media (max-width: 768px) {
   .shop {
-    padding: 1rem;
+    padding: var(--space-4);
   }
 
   .shop-header {
@@ -248,15 +211,15 @@
 
   .shop-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-5);
   }
 
   .category-filter {
-    gap: 0.5rem;
+    gap: var(--space-2);
   }
 
   .category-btn {
-    padding: 0.6rem 1rem;
+    padding: var(--space-2) var(--space-4);
     font-size: 0.9rem;
   }
 }

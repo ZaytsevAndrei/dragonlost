@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import StatePanel from '../components/StatePanel';
 import './MapVoteAdmin.css';
 
 interface RustMapResult {
@@ -227,7 +228,7 @@ function MapVoteAdmin() {
     return (
       <div className="mva-page">
         <h1>Управление голосованиями</h1>
-        <p className="mva-no-access">Доступ только для администраторов</p>
+        <StatePanel type="error" title="Доступ ограничен" message="Страница доступна только администраторам." />
       </div>
     );
   }
@@ -450,7 +451,7 @@ function MapVoteAdmin() {
 
       {/* ─── Active Session Dashboard ─── */}
       {loading ? (
-        <div className="mva-loading"><div className="mva-spinner" /> Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка голосований" />
       ) : activeSession ? (
         <div className={`mva-active-panel ${isCloseRace ? 'mva-active-panel-close-race' : ''}`}>
           <div className="mva-active-overview">
@@ -604,15 +605,13 @@ function MapVoteAdmin() {
           </div>
         </div>
       ) : !showForm ? (
-        <div className="mva-empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48">
-            <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" /><path d="M8 2v16" /><path d="M16 6v16" />
-          </svg>
-          <p>Нет активного голосования</p>
-          <button className="mva-btn-create" type="button" onClick={() => setShowForm(true)}>
-            Создать голосование
-          </button>
-        </div>
+        <StatePanel
+          type="empty"
+          title="Нет активного голосования"
+          message="Создайте новую сессию, чтобы участники могли начать голосовать."
+          actionLabel="Создать голосование"
+          onAction={() => setShowForm(true)}
+        />
       ) : null}
 
       {/* ─── History ─── */}

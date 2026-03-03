@@ -3,6 +3,7 @@ import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { saveLastPage } from '../utils/safeLocalStorage';
+import StatePanel from '../components/StatePanel';
 import './Inventory.css';
 
 interface InventoryItem {
@@ -59,7 +60,7 @@ function Inventory() {
       const response = await api.get('/inventory');
       setInventory(response.data.inventory);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Не удалось загрузить инвентарь');
     } finally {
       setLoading(false);
@@ -70,7 +71,7 @@ function Inventory() {
     try {
       const response = await api.get('/inventory/check-online');
       setOnlineStatus(response.data);
-    } catch (err) {
+    } catch {
       // Ошибка проверки статуса — молча игнорируем
     }
   };
@@ -122,7 +123,7 @@ function Inventory() {
     return (
       <div className="inventory">
         <h1>Мой инвентарь</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка инвентаря" />
       </div>
     );
   }
@@ -131,7 +132,7 @@ function Inventory() {
     return (
       <div className="inventory">
         <h1>Мой инвентарь</h1>
-        <div className="loading">Загрузка...</div>
+        <StatePanel type="loading" title="Загрузка инвентаря" />
       </div>
     );
   }
@@ -140,10 +141,7 @@ function Inventory() {
     return (
       <div className="inventory">
         <h1>Мой инвентарь</h1>
-        <div className="error">{error}</div>
-        <button onClick={fetchInventory} className="btn-retry">
-          Попробовать снова
-        </button>
+        <StatePanel type="error" title="Не удалось загрузить инвентарь" message={error} actionLabel="Попробовать снова" onAction={fetchInventory} />
       </div>
     );
   }
@@ -257,14 +255,13 @@ function Inventory() {
       )}
 
       {inventory.length === 0 && (
-        <div className="empty-inventory">
-          <div className="empty-icon">📭</div>
-          <h3>Ваш инвентарь пуст</h3>
-          <p>Посетите магазин, чтобы приобрести предметы</p>
-          <button onClick={() => navigate('/shop')} className="btn-shop">
-            Перейти в магазин
-          </button>
-        </div>
+        <StatePanel
+          type="empty"
+          title="Ваш инвентарь пуст"
+          message="Посетите магазин, чтобы приобрести предметы"
+          actionLabel="Перейти в магазин"
+          onAction={() => navigate('/shop')}
+        />
       )}
     </div>
   );
