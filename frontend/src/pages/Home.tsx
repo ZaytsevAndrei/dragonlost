@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, type SyntheticEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
@@ -106,6 +106,11 @@ function Home() {
   const [claimAmount, setClaimAmount] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const placeholderImage = getImageUrl('/uploads/shop/placeholder.svg');
+  const resolveShopImageUrl = (url: string | null | undefined): string => {
+    const normalizedUrl = typeof url === 'string' ? url.trim() : '';
+    return normalizedUrl ? getImageUrl(normalizedUrl) : placeholderImage;
+  };
 
   useEffect(() => {
     api.get('/servers').then(res => {
@@ -163,6 +168,16 @@ function Home() {
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallbackApplied === '1') {
+      img.style.display = 'none';
+      return;
+    }
+    img.dataset.fallbackApplied = '1';
+    img.src = placeholderImage;
   };
 
   return (
@@ -279,19 +294,13 @@ function Home() {
           <div className="showcase-grid">
             {shopItems.map(item => (
               <Link to="/shop" key={item.id} className="showcase-item">
-                {item.image_url ? (
-                  <div className="showcase-img">
-                    <img
-                      src={getImageUrl(item.image_url)}
-                      alt={item.name}
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                ) : (
-                  <div className="showcase-img showcase-img-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
-                  </div>
-                )}
+                <div className="showcase-img">
+                  <img
+                    src={resolveShopImageUrl(item.image_url)}
+                    alt={item.name}
+                    onError={handleImageError}
+                  />
+                </div>
                 <div className="showcase-info">
                   <span className="showcase-name">{item.name}</span>
                   <span className="showcase-price">{item.price} рублей</span>

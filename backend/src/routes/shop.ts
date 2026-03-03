@@ -15,7 +15,7 @@ const MAX_PURCHASE_QUANTITY = 100;
 interface ShopItem {
   id: number;
   name: string;
-  description: string;
+  description: string | null;
   category: string;
   price: number;
   rust_item_code: string;
@@ -39,7 +39,23 @@ router.get('/items', async (req, res) => {
   try {
     const { category } = req.query;
     
-    let query = 'SELECT * FROM shop_items WHERE is_available = TRUE';
+    let query = `
+      SELECT
+        id,
+        name,
+        CASE
+          WHEN description LIKE 'Импорт с SicilianRust%' THEN NULL
+          ELSE description
+        END AS description,
+        category,
+        price,
+        rust_item_code,
+        quantity,
+        image_url,
+        is_available
+      FROM shop_items
+      WHERE is_available = TRUE
+    `;
     const params: string[] = [];
     
     if (category) {

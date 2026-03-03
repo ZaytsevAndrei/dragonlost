@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type SyntheticEvent } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { saveLastPage } from '../utils/safeLocalStorage';
 import StatePanel from '../components/StatePanel';
+import { CATEGORY_NAMES } from '../constants/shopCategories';
 import './Inventory.css';
 
 interface InventoryItem {
@@ -25,15 +26,6 @@ interface OnlineStatus {
   message: string;
 }
 
-const CATEGORY_NAMES: Record<string, string> = {
-  weapon: '🔫 Оружие',
-  armor: '🛡️ Броня',
-  tool: '🔨 Инструменты',
-  resource: '📦 Ресурсы',
-  medical: '💊 Медикаменты',
-  kit: '🎁 Наборы',
-};
-
 function Inventory() {
   const { user, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
@@ -42,6 +34,11 @@ function Inventory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingItem, setUsingItem] = useState<number | null>(null);
+  const placeholderImage = getImageUrl('/uploads/shop/placeholder.svg');
+  const resolveShopImageUrl = (url: string | null | undefined): string => {
+    const normalizedUrl = typeof url === 'string' ? url.trim() : '';
+    return normalizedUrl ? getImageUrl(normalizedUrl) : placeholderImage;
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -119,6 +116,16 @@ function Inventory() {
   const pendingItems = inventory.filter(item => item.status === 'pending');
   const deliveredItems = inventory.filter(item => item.status === 'delivered');
 
+  const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallbackApplied === '1') {
+      img.style.display = 'none';
+      return;
+    }
+    img.dataset.fallbackApplied = '1';
+    img.src = placeholderImage;
+  };
+
   if (authLoading || !user) {
     return (
       <div className="inventory">
@@ -179,17 +186,13 @@ function Inventory() {
           <div className="inventory-grid">
             {pendingItems.map((item) => (
               <div key={item.id} className="inventory-item pending">
-                {item.image_url && (
-                  <div className="item-image">
-                    <img 
-                      src={getImageUrl(item.image_url)} 
-                      alt={item.item_name}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="item-image">
+                  <img
+                    src={resolveShopImageUrl(item.image_url)}
+                    alt={item.item_name}
+                    onError={handleImageError}
+                  />
+                </div>
                 <div className="item-content">
                   <div className="item-category">
                     {CATEGORY_NAMES[item.item_category] || item.item_category}
@@ -222,17 +225,13 @@ function Inventory() {
           <div className="inventory-grid">
             {deliveredItems.map((item) => (
               <div key={item.id} className="inventory-item delivered">
-                {item.image_url && (
-                  <div className="item-image">
-                    <img 
-                      src={getImageUrl(item.image_url)} 
-                      alt={item.item_name}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="item-image">
+                  <img
+                    src={resolveShopImageUrl(item.image_url)}
+                    alt={item.item_name}
+                    onError={handleImageError}
+                  />
+                </div>
                 <div className="item-content">
                   <div className="item-category">
                     {CATEGORY_NAMES[item.item_category] || item.item_category}

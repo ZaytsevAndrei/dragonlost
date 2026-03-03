@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type SyntheticEvent } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import StatePanel from '../components/StatePanel';
+import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
 import './Shop.css';
 
 interface ShopItem {
@@ -22,15 +23,6 @@ interface PlayerBalance {
   total_spent: number;
 }
 
-const CATEGORY_NAMES: Record<string, string> = {
-  weapon: '🔫 Оружие',
-  armor: '🛡️ Броня',
-  tool: '🔨 Инструменты',
-  resource: '📦 Ресурсы',
-  medical: '💊 Медикаменты',
-  kit: '🎁 Наборы',
-};
-
 function Shop() {
   const { user } = useAuthStore();
   const [items, setItems] = useState<ShopItem[]>([]);
@@ -39,6 +31,11 @@ function Shop() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [purchasing, setPurchasing] = useState<number | null>(null);
+  const placeholderImage = getImageUrl('/uploads/shop/placeholder.svg');
+  const resolveShopImageUrl = (url: string | null | undefined): string => {
+    const normalizedUrl = typeof url === 'string' ? url.trim() : '';
+    return normalizedUrl ? getImageUrl(normalizedUrl) : placeholderImage;
+  };
 
   useEffect(() => {
     fetchShopData();
@@ -114,7 +111,27 @@ function Shop() {
     ? items 
     : items.filter(item => item.category === selectedCategory);
 
-  const categories = ['all', ...new Set(items.map(item => item.category))];
+  const categories = [
+    'all',
+    ...Array.from(new Set(items.map((item) => item.category))).sort((a, b) => {
+      const ai = CATEGORY_ORDER.indexOf(a);
+      const bi = CATEGORY_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return a.localeCompare(b, 'ru');
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    }),
+  ];
+
+  const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    if (img.dataset.fallbackApplied === '1') {
+      img.style.display = 'none';
+      return;
+    }
+    img.dataset.fallbackApplied = '1';
+    img.src = placeholderImage;
+  };
 
   if (loading) {
     return (
@@ -167,17 +184,13 @@ function Shop() {
       <div className="shop-grid">
         {filteredItems.map((item) => (
           <div key={item.id} className="shop-item">
-            {item.image_url && (
-              <div className="item-image">
-                <img 
-                  src={getImageUrl(item.image_url)} 
-                  alt={item.name}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
+            <div className="item-image">
+              <img
+                src={resolveShopImageUrl(item.image_url)}
+                alt={item.name}
+                onError={handleImageError}
+              />
+            </div>
             <div className="item-content">
               <div className="item-category">
                 {CATEGORY_NAMES[item.category] || item.category}

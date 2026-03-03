@@ -1,0 +1,33 @@
+export const CATEGORY_NAMES: Record<string, string> = {
+  weapon: '🔫 Оружие',
+  ammo: '💥 Боеприпасы',
+  module: '🎯 Модули',
+  armor: '🛡️ Броня',
+  tool: '🔨 Инструменты',
+  resource: '📦 Ресурсы',
+  construction: '🏗️ Конструкции',
+  electricity: '⚡ Электричество',
+  component: '⚙️ Компоненты',
+  medical: '💊 Медикаменты',
+  food: '🍎 Еда',
+  services: '⭐ Услуги',
+  misc: '📁 Прочее',
+  kit: '🎁 Наборы',
+};
+
+export const CATEGORY_ORDER: string[] = [
+  'weapon',
+  'ammo',
+  'module',
+  'armor',
+  'tool',
+  'resource',
+  'construction',
+  'electricity',
+  'component',
+  'medical',
+  'food',
+  'services',
+  'misc',
+  'kit',
+];

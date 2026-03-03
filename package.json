@@ -15,7 +15,9 @@
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
     "build": "npm run build:backend && npm run build:frontend",
-    "start": "pm2 start ecosystem.config.js"
+    "start": "pm2 start ecosystem.config.js",
+    "shop:localize-images": "cd backend && npm run localize:shop-images",
+    "shop:import-sicilian": "cd backend && npm run import:sicilian-shop"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

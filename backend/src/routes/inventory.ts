@@ -14,7 +14,7 @@ interface InventoryItem {
   purchased_at: string;
   delivered_at: string | null;
   item_name: string;
-  item_description: string;
+  item_description: string | null;
   item_category: string;
   rust_item_code: string;
   image_url: string;
@@ -34,7 +34,10 @@ router.get('/', isAuthenticated, async (req, res) => {
         pi.purchased_at,
         pi.delivered_at,
         si.name as item_name,
-        si.description as item_description,
+        CASE
+          WHEN si.description LIKE 'Импорт с SicilianRust%' THEN NULL
+          ELSE si.description
+        END as item_description,
         si.category as item_category,
         si.rust_item_code,
         si.image_url
