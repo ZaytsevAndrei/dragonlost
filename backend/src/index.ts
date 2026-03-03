@@ -88,8 +88,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Static files: картинки магазина (fallback на внешние URL в БД)
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Static files: картинки магазина.
+// Дублируем раздачу по /api/uploads для окружений, где проксируется только /api.
+const uploadsRoot = path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsRoot));
+app.use('/api/uploads', express.static(uploadsRoot));
 
 // Body parsing middleware
 app.use(express.json());
