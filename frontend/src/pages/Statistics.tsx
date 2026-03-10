@@ -1,30 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import StatePanel from '../components/StatePanel';
+import type { PlayerStats } from '../types';
 import './Statistics.css';
-
-interface PlayerStats {
-  id: number;
-  name: string;
-  stats: {
-    kills: number;
-    deaths: number;
-    kd: number;
-    suicides: number;
-    headshots: number;
-    shots: number;
-    woundedTimes: number;
-    joins: number;
-  };
-  resources: {
-    wood: number;
-    stones: number;
-    metalOre: number;
-    sulfurOre: number;
-  };
-  lastSeen: number;
-  timePlayed: string;
-}
 
 interface PaginationInfo {
   page: number;
@@ -34,8 +12,38 @@ interface PaginationInfo {
 }
 
 type SortCategory = 'all' | 'kills' | 'kd' | 'wood' | 'stones' | 'metal' | 'sulfur';
+type ColumnKey =
+  | 'kills'
+  | 'deaths'
+  | 'kd'
+  | 'headshots'
+  | 'suicides'
+  | 'shots'
+  | 'joins'
+  | 'timePlayed'
+  | 'lastSeen'
+  | 'wood'
+  | 'stones'
+  | 'metalOre'
+  | 'sulfurOre';
 
 const PLAYERS_PER_PAGE = 20;
+const COLUMN_VISIBILITY_STORAGE_KEY = 'statistics-columns-visibility';
+const DEFAULT_VISIBLE_COLUMNS: Record<ColumnKey, boolean> = {
+  kills: true,
+  deaths: true,
+  kd: true,
+  headshots: true,
+  suicides: false,
+  shots: false,
+  joins: true,
+  timePlayed: true,
+  lastSeen: true,
+  wood: true,
+  stones: true,
+  metalOre: true,
+  sulfurOre: true,
+};
 
 function Statistics() {
   const [players, setPlayers] = useState<PlayerStats[]>([]);
@@ -45,6 +53,17 @@ function Statistics() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [sortCategory, setSortCategory] = useState<SortCategory>('all');
+  const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(() => {
+    if (typeof window === 'undefined') return DEFAULT_VISIBLE_COLUMNS;
+    try {
+      const raw = window.localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
+      if (!raw) return DEFAULT_VISIBLE_COLUMNS;
+      const parsed = JSON.parse(raw) as Partial<Record<ColumnKey, boolean>>;
+      return { ...DEFAULT_VISIBLE_COLUMNS, ...parsed };
+    } catch {
+      return DEFAULT_VISIBLE_COLUMNS;
+    }
+  });
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const fetchStats = useCallback(async (page: number, search: string) => {
@@ -70,6 +89,10 @@ function Statistics() {
   useEffect(() => {
     fetchStats(currentPage, searchTerm);
   }, [currentPage, fetchStats]);
+
+  useEffect(() => {
+    window.localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
 
   // Клиентская сортировка текущей страницы
   const sortedPlayers = [...players].sort((a, b) => {
@@ -115,6 +138,66 @@ function Statistics() {
     return num.toLocaleString('ru-RU');
   };
 
+  const formatLastSeen = (timestamp: number) => {
+    if (!timestamp) return '-';
+    return new Date(timestamp * 1000).toLocaleString('ru-RU');
+  };
+
+  const columns: Array<{
+    key: ColumnKey;
+    label: string;
+    cellClassName?: string;
+    render: (player: PlayerStats) => string | number;
+  }> = [
+    { key: 'kills', label: 'Убийств', render: (player) => player.stats.kills },
+    { key: 'deaths', label: 'Смертей', render: (player) => player.stats.deaths },
+    { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
+    { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
+    { key: 'suicides', label: 'Суицидов', render: (player) => formatNumber(player.stats.suicides) },
+    { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
+    { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
+    { key: 'timePlayed', label: 'Время', render: (player) => player.timePlayed || '-' },
+    { key: 'lastSeen', label: 'Был в сети', render: (player) => formatLastSeen(player.lastSeen) },
+    { key: 'wood', label: '🪵 Дерево', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.wood) },
+    { key: 'stones', label: '🪨 Камень', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.stones) },
+    { key: 'metalOre', label: '⛏️ Металл', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.metalOre) },
+    { key: 'sulfurOre', label: '💎 Сера', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.sulfurOre) },
+  ];
+  const activeColumns = columns.filter((column) => visibleColumns[column.key]);
+  const visibleColumnsCount = activeColumns.length;
+  const totalColumnsCount = columns.length;
+
+  const toggleColumnVisibility = (columnKey: ColumnKey) => {
+    setVisibleColumns((prev) => {
+      const next = { ...prev, [columnKey]: !prev[columnKey] };
+      const visibleCount = Object.values(next).filter(Boolean).length;
+      if (visibleCount === 0) return prev;
+      return next;
+    });
+  };
+
+  const selectAllColumns = () => {
+    setVisibleColumns({
+      kills: true,
+      deaths: true,
+      kd: true,
+      headshots: true,
+      suicides: true,
+      shots: true,
+      joins: true,
+      timePlayed: true,
+      lastSeen: true,
+      wood: true,
+      stones: true,
+      metalOre: true,
+      sulfurOre: true,
+    });
+  };
+
+  const resetColumnsToDefault = () => {
+    setVisibleColumns({ ...DEFAULT_VISIBLE_COLUMNS });
+  };
+
   if (loading) {
     return (
       <div className="statistics">
@@ -142,7 +225,12 @@ function Statistics() {
   return (
     <div className="statistics">
       <div className="stats-header">
-        <h1>Статистика игроков</h1>
+        <div className="stats-title-row">
+          <h1>Статистика игроков</h1>
+          <span className="columns-badge">
+            Показано колонок: {visibleColumnsCount}/{totalColumnsCount}
+          </span>
+        </div>
         
         <div className="stats-filters">
           <button
@@ -201,6 +289,34 @@ function Statistics() {
             {pagination && `Показано ${(pagination.page - 1) * pagination.limit + 1}-${Math.min(pagination.page * pagination.limit, pagination.total)} из ${pagination.total}`}
           </div>
         </div>
+
+        <div className="columns-settings">
+          <span className="columns-settings-title">Колонки:</span>
+          <button
+            type="button"
+            className="columns-action-btn"
+            onClick={selectAllColumns}
+          >
+            Выбрать все
+          </button>
+          <button
+            type="button"
+            className="columns-action-btn"
+            onClick={resetColumnsToDefault}
+          >
+            Сбросить к умолчанию
+          </button>
+          {columns.map((column) => (
+            <label key={column.key} className="column-toggle">
+              <input
+                type="checkbox"
+                checked={visibleColumns[column.key]}
+                onChange={() => toggleColumnVisibility(column.key)}
+              />
+              <span>{column.label}</span>
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="stats-table-container">
@@ -208,26 +324,20 @@ function Statistics() {
           <thead>
             <tr>
               <th>Игрок</th>
-              <th>Убийств</th>
-              <th>Смертей</th>
-              <th>K/D</th>
-              <th>🪵 Дерево</th>
-              <th>🪨 Камень</th>
-              <th>⛏️ Металл</th>
-              <th>💎 Сера</th>
+              {activeColumns.map((column) => (
+                <th key={column.key}>{column.label}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {sortedPlayers.map((player) => (
               <tr key={player.id}>
                 <td className="player-name">{player.name || 'Неизвестный игрок'}</td>
-                <td>{player.stats.kills}</td>
-                <td>{player.stats.deaths}</td>
-                <td className="kd-stat">{player.stats.kd.toFixed(2)}</td>
-                <td className="resource-stat">{formatNumber(player.resources.wood)}</td>
-                <td className="resource-stat">{formatNumber(player.resources.stones)}</td>
-                <td className="resource-stat">{formatNumber(player.resources.metalOre)}</td>
-                <td className="resource-stat">{formatNumber(player.resources.sulfurOre)}</td>
+                {activeColumns.map((column) => (
+                  <td key={`${player.id}-${column.key}`} className={column.cellClassName}>
+                    {column.render(player)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
