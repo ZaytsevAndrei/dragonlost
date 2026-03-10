@@ -63,7 +63,6 @@ export interface PlayerStats {
     kills: number;
     deaths: number;
     kd: number;
-    suicides: number;
     headshots: number;
     shots: number;
     experiments: number;

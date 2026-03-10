@@ -17,7 +17,6 @@ type ColumnKey =
   | 'deaths'
   | 'kd'
   | 'headshots'
-  | 'suicides'
   | 'shots'
   | 'joins'
   | 'timePlayed'
@@ -34,7 +33,6 @@ const DEFAULT_VISIBLE_COLUMNS: Record<ColumnKey, boolean> = {
   deaths: true,
   kd: true,
   headshots: true,
-  suicides: false,
   shots: false,
   joins: true,
   timePlayed: true,
@@ -153,7 +151,6 @@ function Statistics() {
     { key: 'deaths', label: 'Смертей', render: (player) => player.stats.deaths },
     { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
     { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
-    { key: 'suicides', label: 'Суицидов', render: (player) => formatNumber(player.stats.suicides) },
     { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
     { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
     { key: 'timePlayed', label: 'Время', render: (player) => player.timePlayed || '-' },
@@ -182,7 +179,6 @@ function Statistics() {
       deaths: true,
       kd: true,
       headshots: true,
-      suicides: true,
       shots: true,
       joins: true,
       timePlayed: true,

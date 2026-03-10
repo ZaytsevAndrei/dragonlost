@@ -38,7 +38,6 @@ function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
       kills,
       deaths,
       kd: deaths > 0 ? parseFloat((kills / deaths).toFixed(2)) : kills,
-      suicides: statisticsDB.Suicides || 0,
       headshots: statisticsDB.Headshots || 0,
       shots: statisticsDB.Shots || 0,
       experiments: statisticsDB.Experiments || 0,
