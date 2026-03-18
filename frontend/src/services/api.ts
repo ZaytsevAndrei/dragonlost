@@ -3,7 +3,7 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const API_BASE = API_URL.replace(/\/+$/, '');
 
-/** Базовый URL бэкенда (без /api) — для статики в т.ч. /uploads/shop */
+/** Базовый URL бэкенда (без /api) для относительных путей */
 export const getBackendOrigin = () => (API_URL || '').replace(/\/api\/?$/, '') || '';
 
 /** URL картинки: относительные пути (/uploads/...) отдаются с бэкенда */

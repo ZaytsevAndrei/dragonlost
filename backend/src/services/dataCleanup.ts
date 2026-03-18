@@ -26,30 +26,6 @@ async function cleanOldTransactions(): Promise<number> {
 }
 
 /**
- * Удаляет платёжные ордера в терминальных статусах старше DATA_RETENTION_YEARS лет.
- * Ордера со статусом 'pending' удаляются, только если они старше 30 дней (зависшие).
- */
-async function cleanOldPaymentOrders(): Promise<number> {
-  const [resultTerminal] = await webPool.query(
-    `DELETE FROM payment_orders
-     WHERE status IN ('success', 'failed', 'refunded')
-       AND created_at < DATE_SUB(NOW(), INTERVAL ? YEAR)`,
-    [DATA_RETENTION_YEARS]
-  );
-
-  const [resultPending] = await webPool.query(
-    `DELETE FROM payment_orders
-     WHERE status = 'pending'
-       AND created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)`
-  );
-
-  return (
-    (resultTerminal as { affectedRows: number }).affectedRows +
-    (resultPending as { affectedRows: number }).affectedRows
-  );
-}
-
-/**
  * Удаляет записи daily_rewards для пользователей, неактивных более DATA_RETENTION_YEARS лет.
  * Ретенция ПДн: не храним данные дольше необходимого (152-ФЗ).
  */
@@ -72,11 +48,10 @@ async function runCleanup(): Promise<void> {
   try {
     const sessions = await cleanExpiredSessions();
     const transactions = await cleanOldTransactions();
-    const orders = await cleanOldPaymentOrders();
     const dailyRewards = await cleanStaleDailyRewards();
 
     console.log(
-      `🧹 [Cleanup] Завершено: сессий=${sessions}, транзакций=${transactions}, ордеров=${orders}, daily_rewards=${dailyRewards}`
+      `🧹 [Cleanup] Завершено: сессий=${sessions}, транзакций=${transactions}, daily_rewards=${dailyRewards}`
     );
   } catch (error) {
     console.error(

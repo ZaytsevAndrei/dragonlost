@@ -7,10 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "type-check": "tsc --noEmit",
-    "localize:shop-images": "node scripts/localize-shop-images.js",
-    "import:sicilian-shop": "node scripts/import-sicilian-shop.js",
-    "cleanup:sicilian-descriptions": "node scripts/cleanup-sicilian-descriptions.js"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "compression": "^1.7.4",

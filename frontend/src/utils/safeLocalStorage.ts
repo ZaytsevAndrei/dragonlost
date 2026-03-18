@@ -1,6 +1,6 @@
 const STORAGE_PREFIX = 'dragonlost_';
 
-const ALLOWED_PAGES = new Set(['/inventory', '/rewards']);
+const ALLOWED_PAGES = new Set(['/rewards']);
 
 function isStorageAvailable(): boolean {
   try {

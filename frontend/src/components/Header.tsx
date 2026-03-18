@@ -44,9 +44,6 @@ function Header() {
             <Link to="/" className="nav-link">
               Главная
             </Link>
-            <Link to="/shop" className="nav-link">
-              Магазин
-            </Link>
             <Link to="/stats" className="nav-link">
               Статистика
             </Link>
@@ -69,14 +66,6 @@ function Header() {
                 
                 {dropdownOpen && (
                   <div className="dropdown-menu">
-                    <Link 
-                      to="/inventory" 
-                      className="dropdown-item"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span className="dropdown-icon">🎒</span>
-                      Мой инвентарь
-                    </Link>
                     <Link 
                       to="/rewards" 
                       className="dropdown-item"

@@ -1,13 +1,7 @@
 // IMPORTANT: Load environment variables FIRST before any other imports
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-
-const uploadsShopDir = path.join(__dirname, '..', 'uploads', 'shop');
-if (!fs.existsSync(uploadsShopDir)) {
-  fs.mkdirSync(uploadsShopDir, { recursive: true });
-}
 
 // Verify critical environment variables are loaded
 if (!process.env.DB_USER || !process.env.DB_PASSWORD) {
@@ -58,10 +52,7 @@ import { configurePassport } from './config/passport';
 import authRoutes from './routes/auth';
 import statsRoutes from './routes/stats';
 import serversRoutes from './routes/servers';
-import shopRoutes from './routes/shop';
-import inventoryRoutes from './routes/inventory';
 import rewardsRoutes from './routes/rewards';
-import webhooksRoutes from './routes/webhooks';
 import mapVoteRoutes from './routes/mapVote';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
@@ -69,7 +60,6 @@ import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
 import { EncryptedSessionStore } from './config/encryptedSessionStore';
 import { scheduleDataCleanup } from './services/dataCleanup';
 import { scheduleMapVoteTasks } from './services/mapVoteScheduler';
-import { rconService } from './services/rconService';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -92,33 +82,6 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-
-// Static files: картинки магазина.
-// Дублируем раздачу по /api/uploads для окружений, где проксируется только /api.
-const uploadsRoot = path.join(__dirname, '..', 'uploads');
-const shopUploadsRoot = path.join(uploadsRoot, 'shop');
-const emptyImageSvg =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1"></svg>';
-
-const serveShopImageWithFallback = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const requestedFile = path.basename(String(req.params.file || ''));
-  if (!requestedFile) {
-    return next();
-  }
-
-  const candidatePath = path.join(shopUploadsRoot, requestedFile);
-  if (fs.existsSync(candidatePath)) {
-    return res.sendFile(candidatePath);
-  }
-
-  res.setHeader('Cache-Control', 'public, max-age=60');
-  res.type('image/svg+xml').status(200).send(emptyImageSvg);
-};
-
-app.get('/uploads/shop/:file', serveShopImageWithFallback);
-app.get('/api/uploads/shop/:file', serveShopImageWithFallback);
-app.use('/uploads', express.static(uploadsRoot));
-app.use('/api/uploads', express.static(uploadsRoot));
 
 // Body parsing middleware
 app.use(express.json());
@@ -177,7 +140,7 @@ app.get('/api/csrf-token', (req, res) => {
   res.json({ csrfToken: token });
 });
 
-// CSRF protection — проверяем токен для POST/PUT/DELETE/PATCH (кроме вебхуков)
+// CSRF protection — проверяем токен для POST/PUT/DELETE/PATCH
 app.use('/api/', csrfProtection);
 
 // Health check endpoint
@@ -191,10 +154,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/api/auth', authRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/servers', serversRoutes);
-app.use('/api/shop', shopRoutes);
-app.use('/api/inventory', inventoryRoutes);
 app.use('/api/rewards', rewardsRoutes);
-app.use('/api/webhooks', webhooksRoutes);
 app.use('/api/map-vote', mapVoteRoutes);
 
 // Error handling
@@ -210,14 +170,4 @@ app.listen(PORT, () => {
 
   // Запуск cron-задач голосования за карту (уведомление Пт 16:00 МСК, автозакрытие)
   scheduleMapVoteTasks();
-
-  // Подключение к Rust RCON (для выдачи предметов из инвентаря)
-  if (rconService.isConfigured()) {
-    rconService.connect().catch((err) => {
-      console.warn('⚠️ RCON: не удалось подключиться при старте:', err instanceof Error ? err.message : err);
-      console.warn('   Выдача предметов будет пытаться подключиться при каждом запросе');
-    });
-  } else {
-    console.warn('⚠️ RCON_PASSWORD не задан — выдача предметов из инвентаря отключена');
-  }
 });

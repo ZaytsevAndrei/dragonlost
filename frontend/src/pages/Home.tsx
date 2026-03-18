@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef, useCallback, type SyntheticEvent } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { api, getImageUrl } from '../services/api';
+import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import MapVote from '../components/MapVote';
 import './Home.css';
@@ -34,16 +34,6 @@ interface TopPlayer {
     sulfurOre: number;
   };
   timePlayed: string;
-}
-
-interface ShopItem {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  image_url: string;
-  is_available: boolean;
 }
 
 interface DailyRewardStatus {
@@ -100,16 +90,11 @@ function Home() {
   const { user } = useAuthStore();
   const [servers, setServers] = useState<Server[]>([]);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
-  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [rewardStatus, setRewardStatus] = useState<DailyRewardStatus | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [claimAmount, setClaimAmount] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const resolveShopImageUrl = (url: string | null | undefined): string => {
-    const normalizedUrl = typeof url === 'string' ? url.trim() : '';
-    return normalizedUrl ? getImageUrl(normalizedUrl) : '';
-  };
 
   useEffect(() => {
     api.get('/servers').then(res => {
@@ -119,11 +104,6 @@ function Home() {
 
     api.get('/stats', { params: { page: 1, limit: 5 } }).then(res => {
       setTopPlayers(res.data.players?.slice(0, 5) || []);
-    }).catch(() => {});
-
-    api.get('/shop/items').then(res => {
-      const items = (res.data.items || []).filter((i: ShopItem) => i.is_available);
-      setShopItems(items.slice(0, 4));
     }).catch(() => {});
   }, []);
 
@@ -169,11 +149,6 @@ function Home() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
-    const img = event.currentTarget;
-    img.style.display = 'none';
-  };
-
   return (
     <div className="home">
       {/* ===== HERO ===== */}
@@ -212,14 +187,6 @@ function Home() {
             </div>
             <h3>Сервера</h3>
             <p>Информация о серверах, онлайн игроков и расписание вайпов</p>
-          </Link>
-
-          <Link to="/shop" className="feature-card feature-card-link">
-            <div className="feature-icon-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
-            </div>
-            <h3>Магазин</h3>
-            <p>Покупайте предметы за внутреннюю валюту и получайте их на сервере</p>
           </Link>
 
           <Link to="/rewards" className="feature-card feature-card-link">
@@ -269,37 +236,6 @@ function Home() {
                 <span className="lb-col lb-stat">{p.stats.deaths}</span>
                 <span className="lb-col lb-stat lb-kd">{p.stats.kd.toFixed(2)}</span>
               </div>
-            ))}
-          </div>
-        </AnimatedSection>
-      )}
-
-      {/* ===== SHOP SHOWCASE ===== */}
-      {shopItems.length > 0 && (
-        <AnimatedSection className="showcase-section">
-          <div className="section-header">
-            <h2>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></svg>
-              Товары в магазине
-            </h2>
-            <Link to="/shop" className="section-link">Все товары →</Link>
-          </div>
-
-          <div className="showcase-grid">
-            {shopItems.map(item => (
-              <Link to="/shop" key={item.id} className="showcase-item">
-                <div className="showcase-img">
-                  <img
-                    src={resolveShopImageUrl(item.image_url)}
-                    alt={item.name}
-                    onError={handleImageError}
-                  />
-                </div>
-                <div className="showcase-info">
-                  <span className="showcase-name">{item.name}</span>
-                  <span className="showcase-price">{item.price} рублей</span>
-                </div>
-              </Link>
             ))}
           </div>
         </AnimatedSection>
