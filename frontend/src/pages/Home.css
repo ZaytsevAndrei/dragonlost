@@ -134,6 +134,7 @@
   background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
   backdrop-filter: blur(10px);
   padding: var(--space-7) var(--space-6);
+  height: 320px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-strong);
   text-align: center;
@@ -364,62 +365,62 @@
   color: var(--brand-400);
 }
 
-/* ===================== DAILY REWARD ===================== */
-.home-reward-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-5);
-  padding: var(--space-7);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-500) 10%, transparent), color-mix(in srgb, var(--bg-secondary) 94%, transparent));
-  backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--brand-500) 30%, transparent);
-  border-radius: var(--radius-xl);
-}
-
-.home-reward-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-}
-
-.home-reward-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: color-mix(in srgb, var(--brand-500) 15%, transparent);
-  border-radius: var(--radius-lg);
-  flex-shrink: 0;
-}
-
-.home-reward-icon svg {
-  width: 28px;
-  height: 28px;
-  color: var(--brand-400);
-}
-
-.home-reward-left h3 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.home-reward-streak {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.home-reward-streak strong {
-  color: var(--brand-400);
-}
-
-.home-reward-right {
+/* ===================== FEATURE CARD VARIANTS ===================== */
+.feature-card-reward {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.feature-reward-meta {
+  margin-bottom: 0;
+}
+
+.feature-reward-meta strong {
+  color: var(--brand-400);
+}
+
+.feature-reward-timer {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.feature-reward-claimed {
+  padding: 10px 18px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.feature-card-inline-link {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--brand-400);
+  text-decoration: none;
+}
+
+.feature-card-inline-link:hover {
+  opacity: 0.8;
+  color: var(--brand-400);
+}
+
+.feature-card-discord .feature-icon-wrap {
+  background: color-mix(in srgb, #5865f2 25%, transparent);
+  border-color: color-mix(in srgb, #5865f2 55%, transparent);
+}
+
+.feature-card-discord:hover .feature-icon-wrap {
+  background: color-mix(in srgb, #5865f2 40%, transparent);
+}
+
+.feature-card-discord .feature-icon-wrap svg {
+  color: #8ea1ff;
 }
 
 .btn-home-claim {
@@ -442,139 +443,6 @@
 .btn-home-claim:disabled {
   opacity: 0.6;
   cursor: default;
-}
-
-.home-reward-timer {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.timer-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.timer-value {
-  font-size: 22px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-
-.home-reward-claimed {
-  padding: 10px 24px;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 10px;
-}
-
-.claimed-amount {
-  font-size: 18px;
-  font-weight: 700;
-  color: #4ade80;
-}
-
-.home-reward-link {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--brand-400);
-  text-decoration: none;
-}
-
-.home-reward-link:hover {
-  opacity: 0.8;
-  color: var(--brand-400);
-}
-
-/* ===================== DISCORD ===================== */
-.discord-section {
-  display: flex;
-  justify-content: center;
-}
-
-.discord-card {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  width: 100%;
-  padding: 32px 40px;
-  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
-  border-radius: var(--radius-xl);
-  text-decoration: none;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.discord-card::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
-  transition: opacity 0.3s;
-  opacity: 0;
-}
-
-.discord-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(88, 101, 242, 0.4);
-  color: #fff;
-}
-
-.discord-card:hover::before {
-  opacity: 1;
-}
-
-.discord-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s;
-}
-
-.discord-card:hover .discord-icon {
-  transform: scale(1.05);
-}
-
-.discord-icon svg {
-  width: 48px;
-  height: 48px;
-}
-
-.discord-info {
-  flex: 1;
-}
-
-.discord-info h3 {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #fff;
-}
-
-.discord-info p {
-  font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.4;
-}
-
-.discord-arrow {
-  flex-shrink: 0;
-  font-size: 28px;
-  font-weight: 700;
-  opacity: 0.6;
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.discord-card:hover .discord-arrow {
-  opacity: 1;
-  transform: translateX(6px);
 }
 
 /* ===================== RESPONSIVE ===================== */
@@ -621,48 +489,18 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .home-reward-card {
-    flex-direction: column;
-    text-align: center;
-    padding: var(--space-6) var(--space-5);
-  }
-
-  .home-reward-left {
-    flex-direction: column;
-  }
-
-  .home-reward-right {
-    align-items: center;
-  }
-
   .section-header {
     flex-direction: column;
     gap: var(--space-2);
     align-items: flex-start;
   }
-
-  .discord-card {
-    flex-direction: column;
-    text-align: center;
-    padding: var(--space-7) var(--space-6);
-    gap: var(--space-4);
-  }
-
-  .discord-arrow {
-    display: none;
-  }
-
-  .discord-info h3 {
-    font-size: 20px;
-  }
-
 }
 
 .feature-card-link:focus-visible,
 .showcase-item:focus-visible,
 .btn-hero-primary:focus-visible,
 .btn-home-claim:focus-visible,
-.discord-card:focus-visible {
+.feature-card-inline-link:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
