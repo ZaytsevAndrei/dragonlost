@@ -15,6 +15,7 @@ const MAX_DEPOSIT = 50000;
 const MAX_PURCHASE_QUANTITY = 100;
 const SHOP_UPLOADS_DIR = path.resolve(__dirname, '..', '..', 'uploads', 'shop');
 const LOCAL_IMAGE_PREFIX = '/uploads/shop/';
+const PLACEHOLDER_LOCAL_IMAGE = `${LOCAL_IMAGE_PREFIX}placeholder.svg`;
 
 function sendDebugLog(hypothesisId: string, location: string, message: string, data: Record<string, unknown>): void {
   // #region agent log
@@ -77,13 +78,20 @@ function getFileNameFromImageUrl(imageUrl: string | null | undefined): string {
   }
 }
 
+function hasLocalShopImage(fileName: string): boolean {
+  if (!fileName) return false;
+  const localFilePath = path.join(SHOP_UPLOADS_DIR, fileName);
+  return fs.existsSync(localFilePath);
+}
+
 function resolveLocalImageUrl(
   item: Pick<ShopItem, 'name' | 'rust_item_code' | 'image_url'>,
   imageIndex: ReturnType<typeof buildLocalImageIndex>
 ): string | null {
   const currentUrl = String(item.image_url || '').trim();
   if (currentUrl.startsWith(LOCAL_IMAGE_PREFIX)) {
-    return currentUrl;
+    const currentFileName = getFileNameFromImageUrl(currentUrl);
+    return hasLocalShopImage(currentFileName) ? currentUrl : PLACEHOLDER_LOCAL_IMAGE;
   }
 
   const candidates = [
@@ -102,7 +110,11 @@ function resolveLocalImageUrl(
     if (byStemMatch) return byStemMatch;
   }
 
-  return currentUrl || null;
+  if (currentUrl.startsWith('http://') || currentUrl.startsWith('https://')) {
+    return currentUrl;
+  }
+
+  return PLACEHOLDER_LOCAL_IMAGE;
 }
 
 interface ShopItem {
@@ -176,9 +188,7 @@ router.get('/items', async (req, res) => {
     const localUrlItems = items.filter((item) => String(item.image_url || '').startsWith(LOCAL_IMAGE_PREFIX));
     const missingLocalFileCount = localUrlItems.reduce((acc, item) => {
       const fileName = getFileNameFromImageUrl(String(item.image_url || ''));
-      if (!fileName) return acc + 1;
-      const filePath = path.join(SHOP_UPLOADS_DIR, fileName);
-      return fs.existsSync(filePath) ? acc : acc + 1;
+      return hasLocalShopImage(fileName) ? acc : acc + 1;
     }, 0);
     sendDebugLog('H1', 'routes/shop.ts:items:resolved', 'Shop items resolved to image URLs', {
       category: category ? String(category) : null,
@@ -188,7 +198,7 @@ router.get('/items', async (req, res) => {
       sampleMissingLocalUrls: localUrlItems
         .filter((item) => {
           const fileName = getFileNameFromImageUrl(String(item.image_url || ''));
-          return !fileName || !fs.existsSync(path.join(SHOP_UPLOADS_DIR, fileName));
+          return !hasLocalShopImage(fileName);
         })
         .slice(0, 10)
         .map((item) => item.image_url),
