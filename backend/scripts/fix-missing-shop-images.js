@@ -5,8 +5,6 @@ const fetch = require('node-fetch');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const SHOP_UPLOADS_DIR = path.resolve(__dirname, '../uploads/shop');
-const PLACEHOLDER_DB_PATH = '/uploads/shop/placeholder.svg';
-const REPORT_PATH = path.resolve(__dirname, '../uploads/shop/missing-image-codes.json');
 
 function sanitizeBaseName(input) {
   return String(input || 'item')
@@ -104,29 +102,20 @@ async function main() {
     connectionLimit: 5,
   });
 
-  const [placeholderRows] = await pool.query(
+  const [missingRows] = await pool.query(
     `
       SELECT rust_item_code, COUNT(*) AS rows_count
       FROM shop_items
-      WHERE image_url = ?
+      WHERE image_url IS NULL OR TRIM(image_url) = ''
       GROUP BY rust_item_code
       ORDER BY rust_item_code
-    `,
-    [PLACEHOLDER_DB_PATH]
+    `
   );
 
-  const codes = placeholderRows.map((row) => String(row.rust_item_code));
+  const codes = missingRows.map((row) => String(row.rust_item_code));
   const localIndex = buildLocalImageIndex();
   const missingCodes = codes.filter((code) => !localIndex.byStem.has(sanitizeBaseName(code)));
-
-  const report = {
-    generated_at: new Date().toISOString(),
-    placeholder_codes_total: codes.length,
-    missing_codes_before_fix: missingCodes,
-  };
-  fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2), 'utf8');
-  console.log(`Список сохранён: ${REPORT_PATH}`);
-  console.log(`Кодов с placeholder: ${codes.length}`);
+  console.log(`Кодов без image_url: ${codes.length}`);
   console.log(`Кодов без локального файла: ${missingCodes.length}`);
 
   const downloaded = [];
@@ -169,15 +158,15 @@ async function main() {
 
   for (const item of downloaded) {
     await pool.query(
-      'UPDATE shop_items SET image_url = ? WHERE rust_item_code = ? AND image_url = ?',
-      [item.dbPath, item.code, PLACEHOLDER_DB_PATH]
+      "UPDATE shop_items SET image_url = ? WHERE rust_item_code = ? AND (image_url IS NULL OR TRIM(image_url) = '')",
+      [item.dbPath, item.code]
     );
   }
 
   for (const item of aliased) {
     await pool.query(
-      'UPDATE shop_items SET image_url = ? WHERE rust_item_code = ? AND image_url = ?',
-      [item.dbPath, item.code, PLACEHOLDER_DB_PATH]
+      "UPDATE shop_items SET image_url = ? WHERE rust_item_code = ? AND (image_url IS NULL OR TRIM(image_url) = '')",
+      [item.dbPath, item.code]
     );
   }
 
@@ -185,11 +174,10 @@ async function main() {
     `
       SELECT rust_item_code, COUNT(*) AS rows_count
       FROM shop_items
-      WHERE image_url = ?
+      WHERE image_url IS NULL OR TRIM(image_url) = ''
       GROUP BY rust_item_code
       ORDER BY rust_item_code
-    `,
-    [PLACEHOLDER_DB_PATH]
+    `
   );
 
   const remainingCodes = remainingRows.map((row) => String(row.rust_item_code));
@@ -197,7 +185,7 @@ async function main() {
   console.log('--- Итог ---');
   console.log(`Скачано новых иконок: ${downloaded.length}`);
   console.log(`Привязано через аналоги: ${aliased.length}`);
-  console.log(`Осталось с placeholder: ${remainingCodes.length} кодов`);
+  console.log(`Осталось без image_url: ${remainingCodes.length} кодов`);
   if (failed.length > 0) {
     console.log('Коды, которые не удалось закрыть:');
     for (const code of failed) {

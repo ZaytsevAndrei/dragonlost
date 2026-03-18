@@ -106,10 +106,9 @@ function Home() {
   const [claimAmount, setClaimAmount] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const placeholderImage = getImageUrl('/uploads/shop/placeholder.svg');
   const resolveShopImageUrl = (url: string | null | undefined): string => {
     const normalizedUrl = typeof url === 'string' ? url.trim() : '';
-    return normalizedUrl ? getImageUrl(normalizedUrl) : placeholderImage;
+    return normalizedUrl ? getImageUrl(normalizedUrl) : '';
   };
 
   useEffect(() => {
@@ -172,12 +171,7 @@ function Home() {
 
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
     const img = event.currentTarget;
-    if (img.dataset.fallbackApplied === '1') {
-      img.style.display = 'none';
-      return;
-    }
-    img.dataset.fallbackApplied = '1';
-    img.src = placeholderImage;
+    img.style.display = 'none';
   };
 
   return (

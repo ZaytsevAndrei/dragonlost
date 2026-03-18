@@ -34,10 +34,9 @@ function Inventory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingItem, setUsingItem] = useState<number | null>(null);
-  const placeholderImage = getImageUrl('/uploads/shop/placeholder.svg');
   const resolveShopImageUrl = (url: string | null | undefined): string => {
     const normalizedUrl = typeof url === 'string' ? url.trim() : '';
-    return normalizedUrl ? getImageUrl(normalizedUrl) : placeholderImage;
+    return normalizedUrl ? getImageUrl(normalizedUrl) : '';
   };
 
   useEffect(() => {
@@ -118,12 +117,7 @@ function Inventory() {
 
   const handleImageError = (event: SyntheticEvent<HTMLImageElement>) => {
     const img = event.currentTarget;
-    if (img.dataset.fallbackApplied === '1') {
-      img.style.display = 'none';
-      return;
-    }
-    img.dataset.fallbackApplied = '1';
-    img.src = placeholderImage;
+    img.style.display = 'none';
   };
 
   if (authLoading || !user) {

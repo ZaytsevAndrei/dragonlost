@@ -15,7 +15,6 @@ const MAX_DEPOSIT = 50000;
 const MAX_PURCHASE_QUANTITY = 100;
 const SHOP_UPLOADS_DIR = path.resolve(__dirname, '..', '..', 'uploads', 'shop');
 const LOCAL_IMAGE_PREFIX = '/uploads/shop/';
-const PLACEHOLDER_LOCAL_IMAGE = `${LOCAL_IMAGE_PREFIX}placeholder.svg`;
 
 function normalizeImageKey(value: string | null | undefined): string {
   return String(value || '')
@@ -85,7 +84,9 @@ function resolveLocalImageUrl(
   const currentUrl = String(item.image_url || '').trim();
   if (currentUrl.startsWith(LOCAL_IMAGE_PREFIX)) {
     const currentFileName = getFileNameFromImageUrl(currentUrl);
-    return hasLocalShopImage(currentFileName) ? currentUrl : PLACEHOLDER_LOCAL_IMAGE;
+    if (hasLocalShopImage(currentFileName)) {
+      return currentUrl;
+    }
   }
 
   const candidates = [
@@ -104,7 +105,7 @@ function resolveLocalImageUrl(
     if (byStemMatch) return byStemMatch;
   }
 
-  return PLACEHOLDER_LOCAL_IMAGE;
+  return null;
 }
 
 interface ShopItem {

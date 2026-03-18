@@ -5,32 +5,9 @@ const fetch = require('node-fetch');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const SHOP_UPLOADS_DIR = path.resolve(__dirname, '../uploads/shop');
-const PLACEHOLDER_NAME = 'placeholder.svg';
-const PLACEHOLDER_DB_PATH = `/uploads/shop/${PLACEHOLDER_NAME}`;
-
-const PLACEHOLDER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#223244"/>
-      <stop offset="100%" stop-color="#121a24"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="36" fill="url(#g)"/>
-  <g fill="none" stroke="#8fb4d8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.95">
-    <rect x="96" y="116" width="320" height="280" rx="18"/>
-    <circle cx="176" cy="196" r="24"/>
-    <path d="M416 326L316 236L212 340L168 296L96 368"/>
-  </g>
-  <text x="256" y="452" text-anchor="middle" fill="#d6e7f7" font-family="Arial, sans-serif" font-size="32">NO IMAGE</text>
-</svg>
-`;
 
 function ensureUploads() {
   fs.mkdirSync(SHOP_UPLOADS_DIR, { recursive: true });
-  const placeholderPath = path.join(SHOP_UPLOADS_DIR, PLACEHOLDER_NAME);
-  if (!fs.existsSync(placeholderPath)) {
-    fs.writeFileSync(placeholderPath, PLACEHOLDER_SVG, 'utf8');
-  }
 }
 
 function sanitizeBaseName(input) {
@@ -130,7 +107,7 @@ async function main() {
 
   const downloadedByCode = new Map();
   let converted = 0;
-  let placeholders = 0;
+  let unresolved = 0;
   let failed = 0;
 
   for (const row of rows) {
@@ -138,7 +115,7 @@ async function main() {
     const itemCode = sanitizeBaseName(row.rust_item_code || `item_${id}`);
     const originalUrl = row.image_url ? String(row.image_url).trim() : '';
 
-    let dbPath = PLACEHOLDER_DB_PATH;
+    let dbPath = null;
     const localByCode = resolveLocalImageByCode(localImageIndex, itemCode);
 
     if (localByCode) {
@@ -146,8 +123,6 @@ async function main() {
       downloadedByCode.set(itemCode, dbPath);
     } else if (downloadedByCode.has(itemCode)) {
       dbPath = downloadedByCode.get(itemCode);
-    } else if (originalUrl === PLACEHOLDER_DB_PATH) {
-      placeholders += 1;
     } else if (originalUrl.startsWith('/uploads/shop/')) {
       const localName = path.basename(originalUrl);
       const localFile = path.join(SHOP_UPLOADS_DIR, localName);
@@ -155,7 +130,7 @@ async function main() {
         dbPath = `/uploads/shop/${localName}`;
         downloadedByCode.set(itemCode, dbPath);
       } else {
-        placeholders += 1;
+        unresolved += 1;
       }
     } else if (originalUrl.startsWith('http://') || originalUrl.startsWith('https://')) {
       try {
@@ -167,11 +142,11 @@ async function main() {
         downloadedByCode.set(itemCode, dbPath);
       } catch (error) {
         failed += 1;
-        placeholders += 1;
+        unresolved += 1;
         console.warn(`Не удалось скачать [id=${id}] ${originalUrl}: ${error.message}`);
       }
     } else {
-      placeholders += 1;
+      unresolved += 1;
     }
 
     await pool.query('UPDATE shop_items SET image_url = ? WHERE id = ?', [dbPath, id]);
@@ -181,7 +156,7 @@ async function main() {
   await pool.end();
 
   console.log(`Готово. Обработано: ${converted}`);
-  console.log(`Placeholder назначен: ${placeholders}`);
+  console.log(`Без локальной картинки: ${unresolved}`);
   console.log(`Ошибок скачивания: ${failed}`);
   console.log(`Папка изображений: ${SHOP_UPLOADS_DIR}`);
 }
