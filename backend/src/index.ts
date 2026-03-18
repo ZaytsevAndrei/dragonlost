@@ -96,6 +96,27 @@ app.use(cors(corsOptions));
 // Static files: картинки магазина.
 // Дублируем раздачу по /api/uploads для окружений, где проксируется только /api.
 const uploadsRoot = path.join(__dirname, '..', 'uploads');
+const shopUploadsRoot = path.join(uploadsRoot, 'shop');
+const emptyImageSvg =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1" viewBox="0 0 1 1"></svg>';
+
+const serveShopImageWithFallback = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const requestedFile = path.basename(String(req.params.file || ''));
+  if (!requestedFile) {
+    return next();
+  }
+
+  const candidatePath = path.join(shopUploadsRoot, requestedFile);
+  if (fs.existsSync(candidatePath)) {
+    return res.sendFile(candidatePath);
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.type('image/svg+xml').status(200).send(emptyImageSvg);
+};
+
+app.get('/uploads/shop/:file', serveShopImageWithFallback);
+app.get('/api/uploads/shop/:file', serveShopImageWithFallback);
 app.use('/uploads', express.static(uploadsRoot));
 app.use('/api/uploads', express.static(uploadsRoot));
 
