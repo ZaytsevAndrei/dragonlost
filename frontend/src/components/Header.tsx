@@ -47,6 +47,9 @@ function Header() {
             <Link to="/stats" className="nav-link">
               Статистика
             </Link>
+            <Link to="/items" className="nav-link">
+              Предметы
+            </Link>
           </nav>
 
           <div className="auth-section">

@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Statistics from './pages/Statistics';
 import Rewards from './pages/Rewards';
+import Items from './pages/Items';
 import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
 import PersonalInformation from './pages/PersonalInformation';
@@ -60,6 +61,7 @@ function App() {
             <Route path="/" element={<HomeWithRedirect />} />
             <Route path="/stats" element={<Statistics />} />
             <Route path="/rewards" element={<Rewards />} />
+            <Route path="/items" element={<Items />} />
             <Route path="/agreement" element={<Agreement />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/personal-information" element={<PersonalInformation />} />

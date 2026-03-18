@@ -59,3 +59,17 @@ export interface HealthResponse {
   status: string;
   timestamp: string;
 }
+
+export interface ShopItem {
+  id?: number;
+  name?: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  image?: string;
+  image_url?: string;
+  price?: number | string;
+  sort_order?: number;
+  is_active?: number | boolean;
+  [key: string]: unknown;
+}
