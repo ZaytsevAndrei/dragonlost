@@ -136,6 +136,14 @@ function Statistics() {
     return num.toLocaleString('ru-RU');
   };
 
+  const formatHoursMinutesPlayed = (timePlayedRaw: string | number) => {
+    const timePlayed = typeof timePlayedRaw === 'number' ? timePlayedRaw : Number.parseFloat(timePlayedRaw);
+    const totalMinutes = Number.isFinite(timePlayed) ? Math.max(0, Math.floor(timePlayed)) : 0;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${formatNumber(hours)} ч ${formatNumber(minutes)} мин`;
+  };
+
   const formatLastSeen = (timestamp: number) => {
     if (!timestamp) return '-';
     return new Date(timestamp * 1000).toLocaleString('ru-RU');
@@ -153,7 +161,7 @@ function Statistics() {
     { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
     { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
     { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
-    { key: 'timePlayed', label: 'Время', render: (player) => player.timePlayed || '-' },
+    { key: 'timePlayed', label: 'Время', render: (player) => formatHoursMinutesPlayed(player.timePlayed) },
     { key: 'lastSeen', label: 'Был в сети', render: (player) => formatLastSeen(player.lastSeen) },
     { key: 'wood', label: '🪵 Дерево', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.wood) },
     { key: 'stones', label: '🪨 Камень', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.stones) },
