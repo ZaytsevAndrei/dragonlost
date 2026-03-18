@@ -98,6 +98,9 @@ app.use(cors(corsOptions));
 const uploadsRoot = path.join(__dirname, '..', 'uploads');
 app.use('/uploads', express.static(uploadsRoot));
 app.use('/api/uploads', express.static(uploadsRoot));
+// #region agent log
+fetch('http://127.0.0.1:7819/ingest/86a4283c-8121-48d2-a4df-05575a1c2a00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4b5f35'},body:JSON.stringify({sessionId:'4b5f35',runId:'shop-images-pre-fix',hypothesisId:'H3',location:'index.ts:static:setup',message:'Static uploads middleware configured',data:{uploadsRoot,uploadsRootExists:fs.existsSync(uploadsRoot),shopDirExists:fs.existsSync(path.join(uploadsRoot,'shop')),shopDirFileCount:fs.existsSync(path.join(uploadsRoot,'shop'))?fs.readdirSync(path.join(uploadsRoot,'shop')).length:0},timestamp:Date.now()})}).catch(()=>{});
+// #endregion
 
 // Body parsing middleware
 app.use(express.json());
