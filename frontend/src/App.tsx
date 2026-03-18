@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Statistics from './pages/Statistics';
-import Servers from './pages/Servers';
 import Rewards from './pages/Rewards';
 import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
@@ -60,7 +59,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomeWithRedirect />} />
             <Route path="/stats" element={<Statistics />} />
-            <Route path="/servers" element={<Servers />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/agreement" element={<Agreement />} />
             <Route path="/privacy" element={<Privacy />} />

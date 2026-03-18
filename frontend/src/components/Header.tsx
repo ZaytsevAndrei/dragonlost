@@ -47,9 +47,6 @@ function Header() {
             <Link to="/stats" className="nav-link">
               Статистика
             </Link>
-            <Link to="/servers" className="nav-link">
-              Сервера
-            </Link>
           </nav>
 
           <div className="auth-section">

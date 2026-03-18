@@ -5,20 +5,6 @@ import { useAuthStore } from '../store/authStore';
 import MapVote from '../components/MapVote';
 import './Home.css';
 
-interface Server {
-  id: number;
-  name: string;
-  ip: string;
-  port: number;
-  players: number;
-  maxPlayers: number;
-  map: string;
-  mapSize?: number;
-  status: string;
-  lastWipe: string | null;
-  uptime?: number;
-}
-
 interface TopPlayer {
   id: number;
   name: string;
@@ -88,7 +74,6 @@ function pluralDays(n: number): string {
 
 function Home() {
   const { user } = useAuthStore();
-  const [servers, setServers] = useState<Server[]>([]);
   const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
   const [rewardStatus, setRewardStatus] = useState<DailyRewardStatus | null>(null);
   const [claiming, setClaiming] = useState(false);
@@ -97,11 +82,6 @@ function Home() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    api.get('/servers').then(res => {
-      const list = res.data.servers;
-      if (list?.length) setServers(list);
-    }).catch(() => {});
-
     api.get('/stats', { params: { page: 1, limit: 5 } }).then(res => {
       setTopPlayers(res.data.players?.slice(0, 5) || []);
     }).catch(() => {});
@@ -156,16 +136,8 @@ function Home() {
         <div className="hero-bg-glow" />
         <div className="hero-content">
           <p className="hero-subtitle">Rust сервер со статистикой и наградами</p>
-          {servers.filter(s => s.status === 'online').map(s => (
-            <div key={s.id} className="hero-online">
-              <span className="online-dot" />
-              <span className="hero-server-name">{s.name}</span>
-              <span className="hero-online-divider" />
-              <span>{s.players} / {s.maxPlayers} онлайн</span>
-            </div>
-          ))}
           <div className="hero-actions">
-            <Link to="/servers" className="btn-hero-primary">Начать играть</Link>
+            <Link to="/stats" className="btn-hero-primary">Смотреть статистику</Link>
           </div>
         </div>
       </section>
@@ -179,14 +151,6 @@ function Home() {
             </div>
             <h3>Статистика</h3>
             <p>Подробная статистика игроков: убийства, смерти, K/D и многое другое</p>
-          </Link>
-
-          <Link to="/servers" className="feature-card feature-card-link">
-            <div className="feature-icon-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><circle cx="6" cy="6" r="1" fill="currentColor" /><circle cx="6" cy="18" r="1" fill="currentColor" /></svg>
-            </div>
-            <h3>Сервера</h3>
-            <p>Информация о серверах, онлайн игроков и расписание вайпов</p>
           </Link>
 
           <Link to="/rewards" className="feature-card feature-card-link">
