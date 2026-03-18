@@ -131,17 +131,6 @@ function Home() {
 
   return (
     <div className="home">
-      {/* ===== HERO ===== */}
-      <section className="hero">
-        <div className="hero-bg-glow" />
-        <div className="hero-content">
-          <p className="hero-subtitle">Rust сервер со статистикой и наградами</p>
-          <div className="hero-actions">
-            <Link to="/stats" className="btn-hero-primary">Смотреть статистику</Link>
-          </div>
-        </div>
-      </section>
-
       {/* ===== FEATURE CARDS ===== */}
       <AnimatedSection>
         <div className="features">
