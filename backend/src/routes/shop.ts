@@ -17,12 +17,6 @@ const SHOP_UPLOADS_DIR = path.resolve(__dirname, '..', '..', 'uploads', 'shop');
 const LOCAL_IMAGE_PREFIX = '/uploads/shop/';
 const PLACEHOLDER_LOCAL_IMAGE = `${LOCAL_IMAGE_PREFIX}placeholder.svg`;
 
-function sendDebugLog(hypothesisId: string, location: string, message: string, data: Record<string, unknown>): void {
-  // #region agent log
-  fetch('http://127.0.0.1:7819/ingest/86a4283c-8121-48d2-a4df-05575a1c2a00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'4b5f35'},body:JSON.stringify({sessionId:'4b5f35',runId:'shop-images-pre-fix',hypothesisId,location,message,data,timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-}
-
 function normalizeImageKey(value: string | null | undefined): string {
   return String(value || '')
     .trim()
@@ -110,10 +104,6 @@ function resolveLocalImageUrl(
     if (byStemMatch) return byStemMatch;
   }
 
-  if (currentUrl.startsWith('http://') || currentUrl.startsWith('https://')) {
-    return currentUrl;
-  }
-
   return PLACEHOLDER_LOCAL_IMAGE;
 }
 
@@ -144,12 +134,6 @@ router.get('/items', async (req, res) => {
   try {
     const { category } = req.query;
     const localImageIndex = buildLocalImageIndex();
-    sendDebugLog('H2', 'routes/shop.ts:items:index', 'Local uploads index built', {
-      byNameSize: localImageIndex.byName.size,
-      byStemSize: localImageIndex.byStem.size,
-      shopUploadsDir: SHOP_UPLOADS_DIR,
-      sampleByName: Array.from(localImageIndex.byName.entries()).slice(0, 5),
-    });
     
     let query = `
       SELECT
@@ -185,29 +169,8 @@ router.get('/items', async (req, res) => {
         image_url: resolveLocalImageUrl(typedRow, localImageIndex),
       };
     });
-    const localUrlItems = items.filter((item) => String(item.image_url || '').startsWith(LOCAL_IMAGE_PREFIX));
-    const missingLocalFileCount = localUrlItems.reduce((acc, item) => {
-      const fileName = getFileNameFromImageUrl(String(item.image_url || ''));
-      return hasLocalShopImage(fileName) ? acc : acc + 1;
-    }, 0);
-    sendDebugLog('H1', 'routes/shop.ts:items:resolved', 'Shop items resolved to image URLs', {
-      category: category ? String(category) : null,
-      totalItems: items.length,
-      localUrlItems: localUrlItems.length,
-      missingLocalFileCount,
-      sampleMissingLocalUrls: localUrlItems
-        .filter((item) => {
-          const fileName = getFileNameFromImageUrl(String(item.image_url || ''));
-          return !hasLocalShopImage(fileName);
-        })
-        .slice(0, 10)
-        .map((item) => item.image_url),
-    });
     res.json({ items });
   } catch (error) {
-    sendDebugLog('H4', 'routes/shop.ts:items:error', 'Error in /shop/items', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
     console.error('Error fetching shop items:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch shop items' });
   }
