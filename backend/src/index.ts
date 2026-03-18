@@ -87,6 +87,8 @@ app.use(cors(corsOptions));
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+app.use('/api/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 // MySQL Session Store configuration (данные шифруются AES-256-GCM)
 const MySQLSessionStore = MySQLStore(session);

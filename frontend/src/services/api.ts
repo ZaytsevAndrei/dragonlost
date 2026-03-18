@@ -9,9 +9,23 @@ export const getBackendOrigin = () => (API_URL || '').replace(/\/api\/?$/, '') |
 /** URL картинки: относительные пути (/uploads/...) отдаются с бэкенда */
 export const getImageUrl = (url: string | null | undefined): string => {
   if (!url) return '';
-  if (url.startsWith('/uploads/')) return `${API_BASE}${url}`;
-  if (url.startsWith('/')) return getBackendOrigin() + url;
-  return url;
+
+  const value = url.trim();
+  if (!value) return '';
+
+  if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
+    return value;
+  }
+
+  const normalizedPath = (() => {
+    if (value.startsWith('/uploads/')) return value;
+    if (value.startsWith('uploads/')) return `/${value}`;
+    if (value.startsWith('/')) return value;
+    return `/uploads/${value}`;
+  })();
+
+  if (normalizedPath.startsWith('/uploads/')) return `${API_BASE}${normalizedPath}`;
+  return getBackendOrigin() + normalizedPath;
 };
 
 export const api = axios.create({
