@@ -166,6 +166,8 @@ app.get('/api/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+// Совместимость с прокси-конфигами, которые могут ошибочно добавлять /api дважды.
+app.use('/api/api/auth', authRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/servers', serversRoutes);
 app.use('/api/shop', shopRoutes);
