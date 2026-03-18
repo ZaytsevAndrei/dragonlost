@@ -23,6 +23,8 @@ interface PlayerBalance {
   total_spent: number;
 }
 
+const EXCLUDED_SHOP_CATEGORIES = new Set(['services']);
+
 function Shop() {
   const { user } = useAuthStore();
   const [items, setItems] = useState<ShopItem[]>([]);
@@ -102,13 +104,15 @@ function Shop() {
     }
   };
 
-  const filteredItems = selectedCategory === 'all' 
-    ? items 
-    : items.filter(item => item.category === selectedCategory);
+  const visibleItems = items.filter((item) => !EXCLUDED_SHOP_CATEGORIES.has(item.category));
+  const filteredItems =
+    selectedCategory === 'all'
+      ? visibleItems
+      : visibleItems.filter((item) => item.category === selectedCategory);
 
   const categories = [
     'all',
-    ...Array.from(new Set(items.map((item) => item.category))).sort((a, b) => {
+    ...Array.from(new Set(visibleItems.map((item) => item.category))).sort((a, b) => {
       const ai = CATEGORY_ORDER.indexOf(a);
       const bi = CATEGORY_ORDER.indexOf(b);
       if (ai === -1 && bi === -1) return a.localeCompare(b, 'ru');
