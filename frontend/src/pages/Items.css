@@ -21,7 +21,8 @@
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(220px, auto) 1fr;
-  margin-bottom: var(--space-5);
+  width: min(100%, 700px);
+  margin: 0 auto var(--space-5);
   padding: clamp(14px, 2vw, 20px);
   background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
   border: 1px solid var(--border-strong);

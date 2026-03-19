@@ -138,7 +138,8 @@ interface PlayerBalance {
   total_spent: number;
 }
 
-const SHOW_WALLET_ACTIONS = false;
+const SHOW_DEPOSIT_ACTIONS = false;
+const SHOW_PROMOCODE_ACTIONS = true;
 
 function Items() {
   const { user } = useAuthStore();
@@ -152,6 +153,7 @@ function Items() {
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
+  const hasWalletControls = SHOW_DEPOSIT_ACTIONS || SHOW_PROMOCODE_ACTIONS;
 
   const fetchItems = useCallback(async () => {
     try {
@@ -362,46 +364,50 @@ function Items() {
   return (
     <div className="items">
       <div className="items-header">
-        <h1>Магазин</h1>
-        <p>Выберите товар, пополните баланс и совершайте покупки в одном разделе.</p>
+        <h1>Предметы</h1>
+        <p>Активируйте промокод, выберите предмет и совершайте покупки, всё в одном разделе.</p>
       </div>
 
       {user ? (
-        <section className={`wallet-panel ${SHOW_WALLET_ACTIONS ? '' : 'wallet-panel--compact'}`.trim()}>
+        <section className={`wallet-panel ${hasWalletControls ? '' : 'wallet-panel--compact'}`.trim()}>
           <div className="wallet-balance">
             <div className="wallet-balance-title">Баланс</div>
             <div className="wallet-balance-value">{(balance?.balance || 0).toFixed(2)} ₽</div>
           </div>
-          {SHOW_WALLET_ACTIONS ? (
+          {hasWalletControls ? (
             <div className="wallet-controls">
-              <div className="wallet-row">
-                <input
-                  type="number"
-                  min={10}
-                  max={50000}
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(Number(e.target.value) || 10)}
-                  className="wallet-input"
-                  placeholder="Сумма пополнения"
-                  disabled={depositLoading}
-                />
-                <button type="button" className="wallet-btn" onClick={handleDeposit} disabled={depositLoading}>
-                  {depositLoading ? 'Создание...' : 'Пополнить'}
-                </button>
-              </div>
-              <div className="wallet-row">
-                <input
-                  type="text"
-                  value={voucherCode}
-                  onChange={(e) => setVoucherCode(e.target.value)}
-                  className="wallet-input"
-                  placeholder="Промокод"
-                  disabled={voucherLoading}
-                />
-                <button type="button" className="wallet-btn" onClick={handleVoucherRedeem} disabled={voucherLoading}>
-                  {voucherLoading ? 'Проверка...' : 'Активировать'}
-                </button>
-              </div>
+              {SHOW_DEPOSIT_ACTIONS ? (
+                <div className="wallet-row">
+                  <input
+                    type="number"
+                    min={10}
+                    max={50000}
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(Number(e.target.value) || 10)}
+                    className="wallet-input"
+                    placeholder="Сумма пополнения"
+                    disabled={depositLoading}
+                  />
+                  <button type="button" className="wallet-btn" onClick={handleDeposit} disabled={depositLoading}>
+                    {depositLoading ? 'Создание...' : 'Пополнить'}
+                  </button>
+                </div>
+              ) : null}
+              {SHOW_PROMOCODE_ACTIONS ? (
+                <div className="wallet-row">
+                  <input
+                    type="text"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value)}
+                    className="wallet-input"
+                    placeholder="Промокод"
+                    disabled={voucherLoading}
+                  />
+                  <button type="button" className="wallet-btn" onClick={handleVoucherRedeem} disabled={voucherLoading}>
+                    {voucherLoading ? 'Проверка...' : 'Активировать'}
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </section>

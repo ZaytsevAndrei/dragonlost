@@ -48,7 +48,7 @@ function Header() {
               Статистика
             </Link>
             <Link to="/shop" className="nav-link">
-              Магазин
+              Предметы
             </Link>
             {user ? (
               <>
