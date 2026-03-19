@@ -50,6 +50,16 @@ function Header() {
             <Link to="/shop" className="nav-link">
               Магазин
             </Link>
+            {user ? (
+              <>
+                <Link to="/inventory" className="nav-link">
+                  Инвентарь
+                </Link>
+                <Link to="/rewards" className="nav-link">
+                  Ежедневная награда
+                </Link>
+              </>
+            ) : null}
           </nav>
 
           <div className="auth-section">
@@ -66,17 +76,8 @@ function Header() {
                 
                 {dropdownOpen && (
                   <div className="dropdown-menu">
-                    <Link 
-                      to="/rewards" 
-                      className="dropdown-item"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span className="dropdown-icon">🎁</span>
-                      Ежедневная награда
-                    </Link>
                     {user.role === 'admin' && (
                       <>
-                        <div className="dropdown-divider"></div>
                         <Link
                           to="/map-vote"
                           className="dropdown-item"
@@ -87,7 +88,6 @@ function Header() {
                         </Link>
                       </>
                     )}
-                    <div className="dropdown-divider"></div>
                     <button 
                       onClick={handleLogout} 
                       className="dropdown-item logout"

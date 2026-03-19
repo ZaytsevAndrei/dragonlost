@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Statistics from './pages/Statistics';
 import Rewards from './pages/Rewards';
 import Items from './pages/Items';
+import Inventory from './pages/Inventory';
 import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
 import PersonalInformation from './pages/PersonalInformation';
@@ -38,7 +39,7 @@ function PageTracker({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (location.pathname === '/') return;
-    if (location.pathname !== '/rewards') {
+    if (location.pathname !== '/rewards' && location.pathname !== '/inventory') {
       clearLastPage();
     }
   }, [location.pathname]);
@@ -61,6 +62,7 @@ function App() {
             <Route path="/" element={<HomeWithRedirect />} />
             <Route path="/stats" element={<Statistics />} />
             <Route path="/rewards" element={<Rewards />} />
+            <Route path="/inventory" element={<Inventory />} />
             <Route path="/shop" element={<Items />} />
             <Route path="/items" element={<Navigate to="/shop" replace />} />
             <Route path="/agreement" element={<Agreement />} />
