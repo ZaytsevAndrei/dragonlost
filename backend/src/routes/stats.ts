@@ -29,6 +29,12 @@ function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
   const kills = statisticsDB.Kills || 0;
   const deaths = statisticsDB.Deaths || 0;
   const gathered = statisticsDB.Gathered || {};
+  const barrelsBroken =
+    statisticsDB.BarrelsDestroyed ||
+    statisticsDB.BrokenBarrels ||
+    statisticsDB.BarrelsBroken ||
+    statisticsDB.Barrels ||
+    0;
 
   return {
     id: row.id,
@@ -45,6 +51,7 @@ function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
       woundedTimes: statisticsDB.WoundedTimes || 0,
       craftedItems: statisticsDB.CraftedItems || 0,
       repairedItems: statisticsDB.RepairedItems || 0,
+      barrelsBroken,
       secondsPlayed: statisticsDB.SecondsPlayed || 0,
       joins: statisticsDB.Joins || 0,
     },

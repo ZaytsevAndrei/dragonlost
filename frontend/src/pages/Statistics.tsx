@@ -18,6 +18,7 @@ type ColumnKey =
   | 'kd'
   | 'headshots'
   | 'shots'
+  | 'barrelsBroken'
   | 'joins'
   | 'timePlayed'
   | 'lastSeen'
@@ -34,6 +35,7 @@ const DEFAULT_VISIBLE_COLUMNS: Record<ColumnKey, boolean> = {
   kd: true,
   headshots: true,
   shots: false,
+  barrelsBroken: false,
   joins: true,
   timePlayed: true,
   lastSeen: true,
@@ -160,6 +162,7 @@ function Statistics() {
     { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
     { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
     { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
+    { key: 'barrelsBroken', label: '🛢️ Бочек', render: (player) => formatNumber(player.stats.barrelsBroken) },
     { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
     { key: 'timePlayed', label: 'Время', render: (player) => formatHoursMinutesPlayed(player.timePlayed) },
     { key: 'lastSeen', label: 'Был в сети', render: (player) => formatLastSeen(player.lastSeen) },
@@ -188,6 +191,7 @@ function Statistics() {
       kd: true,
       headshots: true,
       shots: true,
+      barrelsBroken: true,
       joins: true,
       timePlayed: true,
       lastSeen: true,

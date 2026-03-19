@@ -22,6 +22,7 @@ export interface PlayerStats {
     woundedTimes: number;
     craftedItems: number;
     repairedItems: number;
+    barrelsBroken: number;
     secondsPlayed: number;
     joins: number;
   };
