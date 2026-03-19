@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatePanel from '../components/StatePanel';
 import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
 import { api, getBackendOrigin, getImageUrl } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import type { ShopItem } from '../types';
 import './Items.css';
 
@@ -131,28 +132,166 @@ function ItemImage({ imagePath, alt }: ItemImageProps) {
   );
 }
 
+interface PlayerBalance {
+  balance: number;
+  total_earned: number;
+  total_spent: number;
+}
+
+const SHOW_WALLET_ACTIONS = false;
+
 function Items() {
+  const { user } = useAuthStore();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [balance, setBalance] = useState<PlayerBalance | null>(null);
+  const [depositAmount, setDepositAmount] = useState<number>(500);
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [purchasingId, setPurchasingId] = useState<number | null>(null);
 
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get<{ items: ShopItem[] }>('/shop/items');
       setItems(response.data.items || []);
+
+      if (user) {
+        const balanceResponse = await api.get<PlayerBalance>('/shop/balance');
+        setBalance({
+          balance: Number(balanceResponse.data.balance) || 0,
+          total_earned: Number(balanceResponse.data.total_earned) || 0,
+          total_spent: Number(balanceResponse.data.total_spent) || 0,
+        });
+      } else {
+        setBalance(null);
+      }
+
       setError(null);
     } catch {
-      setError('Не удалось загрузить список предметов');
+      setError('Не удалось загрузить список товаров');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  const handleDeposit = useCallback(async () => {
+    if (!user) return;
+    const amount = Number.isFinite(depositAmount) ? depositAmount : 0;
+    if (amount < 10 || amount > 50000) {
+      alert('Сумма должна быть от 10 до 50000');
+      return;
+    }
+
+    try {
+      setDepositLoading(true);
+      const res = await api.post<{ redirect_url?: string }>('/shop/deposit/create', { amount });
+      const url = res.data?.redirect_url;
+      if (!url) {
+        alert('Не удалось создать платёж');
+        return;
+      }
+      window.location.href = url;
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Ошибка при создании платежа';
+      alert(msg);
+    } finally {
+      setDepositLoading(false);
+    }
+  }, [depositAmount, user]);
+
+  const handleVoucherRedeem = useCallback(async () => {
+    if (!user) return;
+    const code = voucherCode.trim();
+    if (!code) {
+      alert('Введите код промокода');
+      return;
+    }
+
+    try {
+      setVoucherLoading(true);
+      const res = await api.post<{ success: boolean; amount: number; new_balance: number }>('/shop/deposit/redeem', {
+        code,
+      });
+      if (res.data?.success) {
+        setVoucherCode('');
+        setBalance((prev) =>
+          prev
+            ? { ...prev, balance: Number(res.data.new_balance) || prev.balance }
+            : { balance: Number(res.data.new_balance) || 0, total_earned: 0, total_spent: 0 }
+        );
+        alert(`Промокод активирован, начислено ${res.data.amount} ₽`);
+      }
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Ошибка при активации промокода';
+      alert(msg);
+    } finally {
+      setVoucherLoading(false);
+    }
+  }, [user, voucherCode]);
+
+  const handlePurchase = useCallback(
+    async (item: ShopItem) => {
+      if (!user) return;
+      const itemId = Number(item.id);
+      const itemPrice = Number(item.price ?? 0);
+      const itemName = getItemTitle(item);
+
+      if (!Number.isFinite(itemId) || itemId <= 0) {
+        alert('Некорректный ID предмета');
+        return;
+      }
+      if (!Number.isFinite(itemPrice) || itemPrice <= 0) {
+        alert('Некорректная цена предмета');
+        return;
+      }
+      if (balance && balance.balance < itemPrice) {
+        alert('Недостаточно средств на балансе');
+        return;
+      }
+      if (!window.confirm(`Купить "${itemName}" за ${itemPrice} ₽?`)) {
+        return;
+      }
+
+      try {
+        setPurchasingId(itemId);
+        const response = await api.post<{ success: boolean; new_balance: number }>('/shop/purchase', {
+          item_id: itemId,
+          quantity: 1,
+        });
+        if (response.data?.success) {
+          setBalance((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  balance: Number(response.data.new_balance) || prev.balance,
+                  total_spent: prev.total_spent + itemPrice,
+                }
+              : prev
+          );
+          alert('Покупка успешна, предмет добавлен в инвентарь');
+        }
+      } catch (err: unknown) {
+        const msg =
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка при покупке';
+        alert(msg);
+      } finally {
+        setPurchasingId(null);
+      }
+    },
+    [balance, user]
+  );
 
   const groupedItems = useMemo(() => {
     const groups = new Map<string, { key: string; label: string; items: ShopItem[] }>();
@@ -190,8 +329,8 @@ function Items() {
   if (loading) {
     return (
       <div className="items">
-        <h1>Предметы</h1>
-        <StatePanel type="loading" title="Загрузка предметов" />
+        <h1>Магазин</h1>
+        <StatePanel type="loading" title="Загрузка товаров" />
       </div>
     );
   }
@@ -199,10 +338,10 @@ function Items() {
   if (error) {
     return (
       <div className="items">
-        <h1>Предметы</h1>
+        <h1>Магазин</h1>
         <StatePanel
           type="error"
-          title="Не удалось загрузить предметы"
+          title="Не удалось загрузить товары"
           message={error}
           actionLabel="Попробовать снова"
           onAction={fetchItems}
@@ -214,8 +353,8 @@ function Items() {
   if (items.length === 0) {
     return (
       <div className="items">
-        <h1>Предметы</h1>
-        <StatePanel type="empty" title="Список предметов пуст" message="В таблице shop_items пока нет записей." />
+        <h1>Магазин</h1>
+        <StatePanel type="empty" title="Список товаров пуст" message="В таблице shop_items пока нет записей." />
       </div>
     );
   }
@@ -223,9 +362,52 @@ function Items() {
   return (
     <div className="items">
       <div className="items-header">
-        <h1>Предметы</h1>
-        <p>Список предметов из таблицы shop_items.</p>
+        <h1>Магазин</h1>
+        <p>Выберите товар, пополните баланс и совершайте покупки в одном разделе.</p>
       </div>
+
+      {user ? (
+        <section className={`wallet-panel ${SHOW_WALLET_ACTIONS ? '' : 'wallet-panel--compact'}`.trim()}>
+          <div className="wallet-balance">
+            <div className="wallet-balance-title">Баланс</div>
+            <div className="wallet-balance-value">{(balance?.balance || 0).toFixed(2)} ₽</div>
+          </div>
+          {SHOW_WALLET_ACTIONS ? (
+            <div className="wallet-controls">
+              <div className="wallet-row">
+                <input
+                  type="number"
+                  min={10}
+                  max={50000}
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(Number(e.target.value) || 10)}
+                  className="wallet-input"
+                  placeholder="Сумма пополнения"
+                  disabled={depositLoading}
+                />
+                <button type="button" className="wallet-btn" onClick={handleDeposit} disabled={depositLoading}>
+                  {depositLoading ? 'Создание...' : 'Пополнить'}
+                </button>
+              </div>
+              <div className="wallet-row">
+                <input
+                  type="text"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value)}
+                  className="wallet-input"
+                  placeholder="Промокод"
+                  disabled={voucherLoading}
+                />
+                <button type="button" className="wallet-btn" onClick={handleVoucherRedeem} disabled={voucherLoading}>
+                  {voucherLoading ? 'Проверка...' : 'Активировать'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : (
+        <section className="wallet-guest-note">Войдите через Steam, чтобы пополнять баланс и покупать товары.</section>
+      )}
 
       <div className="items-filters">
         {filters.map((filter) => (
@@ -265,6 +447,19 @@ function Items() {
                         </span>
                       ) : null}
                     </div>
+                    {user ? (
+                      <button
+                        type="button"
+                        className="item-buy-btn"
+                        onClick={() => handlePurchase(item)}
+                        disabled={
+                          purchasingId === Number(item.id) ||
+                          (balance ? balance.balance < Number(item.price ?? 0) : false)
+                        }
+                      >
+                        {purchasingId === Number(item.id) ? 'Покупка...' : 'Купить'}
+                      </button>
+                    ) : null}
                     {extraFields.length > 0 ? (
                       <dl className="item-extra-fields">
                         {extraFields.map(([key, value]) => (

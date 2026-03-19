@@ -61,7 +61,8 @@ function App() {
             <Route path="/" element={<HomeWithRedirect />} />
             <Route path="/stats" element={<Statistics />} />
             <Route path="/rewards" element={<Rewards />} />
-            <Route path="/items" element={<Items />} />
+            <Route path="/shop" element={<Items />} />
+            <Route path="/items" element={<Navigate to="/shop" replace />} />
             <Route path="/agreement" element={<Agreement />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/personal-information" element={<PersonalInformation />} />
