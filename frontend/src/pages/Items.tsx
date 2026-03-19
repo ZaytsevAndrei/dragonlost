@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatePanel from '../components/StatePanel';
 import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
-import { api, getImageUrl } from '../services/api';
+import { api, getBackendOrigin, getImageUrl } from '../services/api';
 import type { ShopItem } from '../types';
 import './Items.css';
 
@@ -61,6 +61,74 @@ function getCategoryOrderIndex(categoryKey: string): number {
   if (index !== -1) return index;
   if (categoryKey === '__uncategorized') return CATEGORY_ORDER.length + 1;
   return CATEGORY_ORDER.length;
+}
+
+function normalizeImagePath(rawPath: string): string {
+  const value = rawPath.trim();
+  if (value.startsWith('/uploads/')) return value;
+  if (value.startsWith('uploads/')) return `/${value}`;
+  if (value.startsWith('/')) return value;
+  return `/uploads/${value}`;
+}
+
+function buildImageCandidates(rawPath: string | null | undefined): string[] {
+  if (!rawPath) return [];
+  const value = rawPath.trim();
+  if (!value) return [];
+
+  if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
+    return [value];
+  }
+
+  const normalized = normalizeImagePath(value);
+  const backendOrigin = getBackendOrigin();
+  const candidates = [
+    getImageUrl(value),
+    normalized,
+    `${backendOrigin}${normalized}`,
+    `${backendOrigin}/api${normalized}`,
+  ];
+
+  return Array.from(new Set(candidates.filter(Boolean)));
+}
+
+interface ItemImageProps {
+  imagePath: string;
+  alt: string;
+}
+
+function ItemImage({ imagePath, alt }: ItemImageProps) {
+  const candidates = useMemo(() => buildImageCandidates(imagePath), [imagePath]);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    setCandidateIndex(0);
+    setHidden(false);
+  }, [imagePath]);
+
+  if (hidden || candidates.length === 0) return null;
+
+  const currentSrc = candidates[candidateIndex];
+
+  return (
+    <div className="item-card-image-wrap">
+      <img
+        src={currentSrc}
+        alt={alt}
+        className="item-card-image"
+        loading="lazy"
+        onError={() => {
+          const nextIndex = candidateIndex + 1;
+          if (nextIndex < candidates.length) {
+            setCandidateIndex(nextIndex);
+            return;
+          }
+          setHidden(true);
+        }}
+      />
+    </div>
+  );
 }
 
 function Items() {
@@ -178,7 +246,6 @@ function Items() {
           <div className="items-grid">
             {group.items.map((item, index) => {
               const imagePath = item.image_url ?? item.image;
-              const imageUrl = typeof imagePath === 'string' ? getImageUrl(imagePath) : '';
               const extraFields = Object.entries(item).filter(([key, value]) => {
                 if (IGNORED_META_KEYS.has(key)) return false;
                 return value !== null && value !== undefined && value !== '';
@@ -186,11 +253,7 @@ function Items() {
 
               return (
                 <article key={String(item.id ?? `${getItemTitle(item)}-${index}`)} className="item-card">
-                  {imageUrl ? (
-                    <div className="item-card-image-wrap">
-                      <img src={imageUrl} alt={getItemTitle(item)} className="item-card-image" loading="lazy" />
-                    </div>
-                  ) : null}
+                  {typeof imagePath === 'string' ? <ItemImage imagePath={imagePath} alt={getItemTitle(item)} /> : null}
                   <div className="item-card-body">
                     <h3>{getItemTitle(item)}</h3>
                     <p className="item-card-description">{toDisplayText(item.description)}</p>
