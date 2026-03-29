@@ -36,8 +36,32 @@ interface VoteSession {
 
 const MAP_SIZES = Array.from({ length: (6250 - 2500) / 250 + 1 }, (_, i) => 2500 + i * 250);
 
-/** Количество карт за один запрос к RustMaps (лимит бэкенда: 1–10). */
-const GENERATE_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+/** Всего карт в одном голосовании (сумма по двум размерам). */
+const VOTE_TOTAL_OPTIONS = Array.from({ length: 19 }, (_, i) => i + 2);
+
+/** Допустимое разбиение total на два слагаемых в [0..10]. */
+function splitVoteTotal(total: number, preferFirst: number): { a: number; b: number } {
+  const lo = Math.max(0, total - 10);
+  const hi = Math.min(10, total);
+  let a = Math.min(Math.max(preferFirst, lo), hi);
+  let b = total - a;
+  if (b > 10) {
+    b = 10;
+    a = total - b;
+  }
+  return { a, b };
+}
+
+function mapResultKey(m: RustMapResult): string {
+  return `${m.size}-${m.seed}`;
+}
+
+/** Допустимые значения «первого» слагаемого при разбиении total (второе = total − первое, оба в 0..10). */
+function countOptionsForSplit(total: number): number[] {
+  const lo = Math.max(0, total - 10);
+  const hi = Math.min(10, total);
+  return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+}
 
 function mapsCountLabel(n: number): string {
   const mod10 = n % 10;
@@ -114,8 +138,11 @@ function MapVoteAdmin() {
   const [endsAt, setEndsAt] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const [mapSize, setMapSize] = useState(4000);
-  const [generateCount, setGenerateCount] = useState(3);
+  const [totalVoteMaps, setTotalVoteMaps] = useState(4);
+  const [genSizeA, setGenSizeA] = useState(3500);
+  const [genSizeB, setGenSizeB] = useState(4000);
+  const [genCountA, setGenCountA] = useState(2);
+  const [genCountB, setGenCountB] = useState(2);
   const [generatedMaps, setGeneratedMaps] = useState<RustMapResult[]>([]);
   const [generating, setGenerating] = useState(false);
   const [highlightedOptionIds, setHighlightedOptionIds] = useState<number[]>([]);
@@ -162,11 +189,32 @@ function MapVoteAdmin() {
 
   const handleGenerateMaps = async () => {
     if (generating) return;
+    if (genCountA + genCountB !== totalVoteMaps) {
+      setError(`Сумма карт по размерам (${genCountA} + ${genCountB}) должна совпадать с выбранным всего (${totalVoteMaps})`);
+      return;
+    }
+    if (totalVoteMaps < 2) {
+      setError('Нужно минимум 2 карты');
+      return;
+    }
     try {
       setGenerating(true);
       setError(null);
-      const res = await api.post('/map-vote/generate-maps', { size: mapSize, count: generateCount });
-      setGeneratedMaps(res.data.maps || []);
+      const merged: RustMapResult[] = [];
+      if (genSizeA === genSizeB) {
+        const res = await api.post('/map-vote/generate-maps', { size: genSizeA, count: genCountA + genCountB });
+        merged.push(...(res.data.maps || []));
+      } else {
+        if (genCountA > 0) {
+          const res = await api.post('/map-vote/generate-maps', { size: genSizeA, count: genCountA });
+          merged.push(...(res.data.maps || []));
+        }
+        if (genCountB > 0) {
+          const res = await api.post('/map-vote/generate-maps', { size: genSizeB, count: genCountB });
+          merged.push(...(res.data.maps || []));
+        }
+      }
+      setGeneratedMaps(merged);
     } catch {
       setError('Ошибка при генерации карт. Проверьте настройку RUSTMAPS_API_KEY.');
     } finally {
@@ -174,8 +222,23 @@ function MapVoteAdmin() {
     }
   };
 
-  const handleRemoveGeneratedMap = (seed: number) => {
-    setGeneratedMaps((prev) => prev.filter((m) => m.seed !== seed));
+  const handleRemoveGeneratedMap = (m: RustMapResult) => {
+    const k = mapResultKey(m);
+    setGeneratedMaps((prev) => prev.filter((x) => mapResultKey(x) !== k));
+  };
+
+  const onChangeCountA = (n: number) => {
+    const b = totalVoteMaps - n;
+    if (b < 0 || b > 10 || n < 0 || n > 10) return;
+    setGenCountA(n);
+    setGenCountB(b);
+  };
+
+  const onChangeCountB = (n: number) => {
+    const a = totalVoteMaps - n;
+    if (a < 0 || a > 10 || n < 0 || n > 10) return;
+    setGenCountA(a);
+    setGenCountB(n);
   };
 
   const handleCreate = async () => {
@@ -245,6 +308,8 @@ function MapVoteAdmin() {
   const isCloseRace = totalVotesActive > 0 && !!secondActiveOption && leadVotes <= 2;
   const isLeaderUpdated = !!topActiveOption && highlightedOptionIds.includes(topActiveOption.id);
   const leaderPctDelta = topActiveOption ? pctDeltaByOptionId[topActiveOption.id] : undefined;
+
+  const splitCountOptions = useMemo(() => countOptionsForSplit(totalVoteMaps), [totalVoteMaps]);
 
   useEffect(() => {
     if (!activeSession) {
@@ -377,26 +442,74 @@ function MapVoteAdmin() {
 
           <div className="mva-map-gen-row">
             <h4>Варианты карт <span className="mva-count-badge">{generatedMaps.length}</span></h4>
-            <div className="mva-map-gen-controls">
+            <div className="mva-map-gen-split-hint">
+              Два варианта размера; сумма карт по строкам должна совпадать с «Всего карт» (каждая строка не больше 10 — лимит RustMaps за запрос).
+            </div>
+            <div className="mva-map-gen-controls mva-map-gen-controls-total">
               <div className="mva-size-select">
-                <label>Размер</label>
-                <select value={mapSize} onChange={(e) => setMapSize(Number(e.target.value))}>
-                  {MAP_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="mva-size-select">
-                <label>Количество</label>
-                <select value={generateCount} onChange={(e) => setGenerateCount(Number(e.target.value))}>
-                  {GENERATE_COUNTS.map((c) => (
-                    <option key={c} value={c}>{mapsCountLabel(c)}</option>
+                <label>Всего карт в голосовании</label>
+                <select
+                  value={totalVoteMaps}
+                  onChange={(e) => {
+                    const total = Number(e.target.value);
+                    const { a, b } = splitVoteTotal(total, genCountA);
+                    setTotalVoteMaps(total);
+                    setGenCountA(a);
+                    setGenCountB(b);
+                  }}
+                >
+                  {VOTE_TOTAL_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{mapsCountLabel(t)}</option>
                   ))}
                 </select>
               </div>
+            </div>
+            <div className="mva-map-gen-size-rows">
+              <div className="mva-map-gen-size-row">
+                <span className="mva-map-gen-size-label">Размер 1</span>
+                <div className="mva-size-select">
+                  <label>Размер карты</label>
+                  <select value={genSizeA} onChange={(e) => setGenSizeA(Number(e.target.value))}>
+                    {MAP_SIZES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mva-size-select">
+                  <label>Количество</label>
+                  <select value={genCountA} onChange={(e) => onChangeCountA(Number(e.target.value))}>
+                    {splitCountOptions.map((c) => (
+                      <option key={c} value={c}>{mapsCountLabel(c)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mva-map-gen-size-row">
+                <span className="mva-map-gen-size-label">Размер 2</span>
+                <div className="mva-size-select">
+                  <label>Размер карты</label>
+                  <select value={genSizeB} onChange={(e) => setGenSizeB(Number(e.target.value))}>
+                    {MAP_SIZES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mva-size-select">
+                  <label>Количество</label>
+                  <select value={genCountB} onChange={(e) => onChangeCountB(Number(e.target.value))}>
+                    {splitCountOptions.map((c) => (
+                      <option key={c} value={c}>{mapsCountLabel(c)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="mva-map-gen-controls mva-map-gen-controls-generate">
               <button className="mva-btn-generate" onClick={handleGenerateMaps} disabled={generating} type="button">
                 {generating ? (
                   <><span className="mva-spinner-inline" /> Генерация...</>
                 ) : (
-                  `Сгенерировать ${mapsCountLabel(generateCount)}`
+                  `Сгенерировать ${mapsCountLabel(totalVoteMaps)}`
                 )}
               </button>
             </div>
@@ -412,14 +525,14 @@ function MapVoteAdmin() {
           {generatedMaps.length > 0 && (
             <div className="mva-generated-maps">
               {generatedMaps.map((m) => (
-                <div key={m.seed} className={`mva-gen-card ${m.ready ? '' : 'mva-gen-pending'}`}>
+                <div key={mapResultKey(m)} className={`mva-gen-card ${m.ready ? '' : 'mva-gen-pending'}`}>
                   <div className="mva-gen-card-img">
                     {m.thumbnailUrl || m.imageUrl ? (
                       <img src={getImageUrl(m.thumbnailUrl || m.imageUrl || '')} alt={`Map ${m.seed}`} loading="lazy" />
                     ) : (
                       <div className="mva-gen-card-placeholder">{m.ready ? 'Нет превью' : '...'}</div>
                     )}
-                    <button type="button" className="mva-btn-remove-gen" onClick={() => handleRemoveGeneratedMap(m.seed)} title="Удалить">×</button>
+                    <button type="button" className="mva-btn-remove-gen" onClick={() => handleRemoveGeneratedMap(m)} title="Удалить">×</button>
                   </div>
                   <div className="mva-gen-card-info">
                     <span className="mva-gen-seed">Seed {m.seed}</span>
@@ -441,7 +554,7 @@ function MapVoteAdmin() {
             <div className="mva-empty-inline">
               <p className="mva-empty-inline-text">Сгенерируйте варианты карт, чтобы собрать голосование.</p>
               <button className="mva-empty-inline-cta" type="button" onClick={handleGenerateMaps}>
-                Сгенерировать {mapsCountLabel(generateCount)}
+                Сгенерировать {mapsCountLabel(totalVoteMaps)}
               </button>
             </div>
           )}
