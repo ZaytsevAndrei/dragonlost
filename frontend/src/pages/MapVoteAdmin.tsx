@@ -422,8 +422,8 @@ function MapVoteAdmin() {
                     <button type="button" className="mva-btn-remove-gen" onClick={() => handleRemoveGeneratedMap(m.seed)} title="Удалить">×</button>
                   </div>
                   <div className="mva-gen-card-info">
-                    <span className="mva-gen-seed">{m.seed}</span>
-                    <span className="mva-gen-size">{m.size}m</span>
+                    <span className="mva-gen-seed">Seed {m.seed}</span>
+                    <span className="mva-gen-size">maps {m.size}</span>
                     {m.mapPageUrl && (
                       <a href={m.mapPageUrl} target="_blank" rel="noopener noreferrer" className="mva-gen-link">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
@@ -524,8 +524,8 @@ function MapVoteAdmin() {
                 <div className="mva-leader-top">
                   <div>
                     <div className="mva-leader-name">{topActiveOption.map_name}</div>
-                    {topActiveOption.map_size && (
-                      <div className="mva-leader-meta">{topActiveOption.map_size}m · seed {topActiveOption.map_seed}</div>
+                    {topActiveOption.map_size != null && (
+                      <div className="mva-leader-meta">maps {topActiveOption.map_size}</div>
                     )}
                   </div>
                   {topActiveOption.description?.startsWith('http') && (
@@ -575,7 +575,7 @@ function MapVoteAdmin() {
                   <div className="mva-active-row-main">
                     <div className="mva-active-row-head">
                       <span className="mva-active-row-name">{opt.map_name}</span>
-                      {opt.map_size && <span className="mva-active-row-meta">{opt.map_size}m · seed {opt.map_seed}</span>}
+                      {opt.map_size != null && <span className="mva-active-row-meta">maps {opt.map_size}</span>}
                     </div>
                     <div className="mva-active-row-bar-wrap">
                       <div className="mva-active-row-bar">

@@ -165,10 +165,9 @@ function MapVote() {
               >
                 <div className="map-vote-card-name">{opt.map_name}</div>
 
-                {(opt.map_size || opt.map_seed) && (
+                {opt.map_size != null && (
                   <div className="map-vote-card-details">
-                    {opt.map_size && <span>{opt.map_size}m</span>}
-                    {opt.map_seed && <span>seed: {opt.map_seed}</span>}
+                    <span>maps {opt.map_size}</span>
                   </div>
                 )}
 
