@@ -227,7 +227,7 @@ router.post('/vote', isAuthenticated, async (req, res) => {
 /**
  * POST /api/map-vote/generate-maps — сгенерировать случайные карты через RustMaps API.
  *
- * Body: { size: number, count?: number }
+ * Body: { size: number, count?: number } — count от 1 до 10, по умолчанию 3.
  */
 router.post('/generate-maps', isAdmin, async (req, res) => {
   const { size, count } = req.body;
@@ -237,7 +237,8 @@ router.post('/generate-maps', isAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Размер карты должен быть от 2500 до 6250' });
   }
 
-  const mapCount = Math.min(Math.max(parseInt(count, 10) || 5, 1), 10);
+  const parsedCount = parseInt(count, 10);
+  const mapCount = Math.min(Math.max(Number.isFinite(parsedCount) ? parsedCount : 3, 1), 10);
 
   try {
     const maps = await generateRandomMaps(mapSize, mapCount);

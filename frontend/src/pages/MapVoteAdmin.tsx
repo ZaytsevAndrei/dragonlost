@@ -36,6 +36,18 @@ interface VoteSession {
 
 const MAP_SIZES = Array.from({ length: (6250 - 2500) / 250 + 1 }, (_, i) => 2500 + i * 250);
 
+/** Количество карт за один запрос к RustMaps (лимит бэкенда: 1–10). */
+const GENERATE_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+function mapsCountLabel(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return `${n} карт`;
+  if (mod10 === 1) return `${n} карту`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} карты`;
+  return `${n} карт`;
+}
+
 function getNextDayOfWeek(dayOfWeek: number, hours: number, minutes: number): Date {
   const now = new Date();
   const result = new Date(now);
@@ -103,6 +115,7 @@ function MapVoteAdmin() {
   const [creating, setCreating] = useState(false);
 
   const [mapSize, setMapSize] = useState(4000);
+  const [generateCount, setGenerateCount] = useState(3);
   const [generatedMaps, setGeneratedMaps] = useState<RustMapResult[]>([]);
   const [generating, setGenerating] = useState(false);
   const [highlightedOptionIds, setHighlightedOptionIds] = useState<number[]>([]);
@@ -152,7 +165,7 @@ function MapVoteAdmin() {
     try {
       setGenerating(true);
       setError(null);
-      const res = await api.post('/map-vote/generate-maps', { size: mapSize, count: 3 });
+      const res = await api.post('/map-vote/generate-maps', { size: mapSize, count: generateCount });
       setGeneratedMaps(res.data.maps || []);
     } catch {
       setError('Ошибка при генерации карт. Проверьте настройку RUSTMAPS_API_KEY.');
@@ -371,11 +384,19 @@ function MapVoteAdmin() {
                   {MAP_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+              <div className="mva-size-select">
+                <label>Количество</label>
+                <select value={generateCount} onChange={(e) => setGenerateCount(Number(e.target.value))}>
+                  {GENERATE_COUNTS.map((c) => (
+                    <option key={c} value={c}>{mapsCountLabel(c)}</option>
+                  ))}
+                </select>
+              </div>
               <button className="mva-btn-generate" onClick={handleGenerateMaps} disabled={generating} type="button">
                 {generating ? (
                   <><span className="mva-spinner-inline" /> Генерация...</>
                 ) : (
-                  'Сгенерировать 3 карты'
+                  `Сгенерировать ${mapsCountLabel(generateCount)}`
                 )}
               </button>
             </div>
@@ -420,7 +441,7 @@ function MapVoteAdmin() {
             <div className="mva-empty-inline">
               <p className="mva-empty-inline-text">Сгенерируйте варианты карт, чтобы собрать голосование.</p>
               <button className="mva-empty-inline-cta" type="button" onClick={handleGenerateMaps}>
-                Сгенерировать карты
+                Сгенерировать {mapsCountLabel(generateCount)}
               </button>
             </div>
           )}
