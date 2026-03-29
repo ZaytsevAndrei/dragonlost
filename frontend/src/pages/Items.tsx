@@ -501,7 +501,6 @@ function Items() {
                         </span>
                       ) : null}
                     </div>
-                    <p className="item-card-hint">Нажмите, чтобы купить</p>
                     {extraFields.length > 0 ? (
                       <dl className="item-extra-fields">
                         {extraFields.map(([key, value]) => (

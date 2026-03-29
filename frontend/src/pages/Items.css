@@ -191,12 +191,6 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 35%, transparent);
 }
 
-.item-card-hint {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
-}
-
 .item-card-image-wrap {
   height: var(--item-image-height);
   background-color: rgba(13, 18, 26, 0.5);
