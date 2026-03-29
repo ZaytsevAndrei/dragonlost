@@ -558,7 +558,7 @@ function Items() {
                     <p className="item-modal-description">{toDisplayText(mi.description)}</p>
                     <div className="item-modal-price-row">
                       <span className="item-modal-unit-price">
-                        Цена за единицу: {Number.isFinite(unitPrice) ? unitPrice.toFixed(2) : '—'} ₽
+                        Цена: {Number.isFinite(unitPrice) ? unitPrice.toFixed(2) : '—'} ₽
                       </span>
                       {Number.isFinite(perPack) && perPack > 1 ? (
                         <span className="item-modal-pack-hint">За покупку в инвентарь: {perPack} шт.</span>
