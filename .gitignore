@@ -49,6 +49,7 @@ pm2.log
 # Temporary files
 *.tmp
 *.temp
+backend/scripts/tmp-rust-items.json
 
 # SSL certificates (if stored locally)
 *.pem
