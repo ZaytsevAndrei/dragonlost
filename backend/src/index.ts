@@ -56,6 +56,7 @@ import rewardsRoutes from './routes/rewards';
 import mapVoteRoutes from './routes/mapVote';
 import shopRoutes from './routes/shop';
 import inventoryRoutes from './routes/inventory';
+import adminVouchersRoutes from './routes/adminVouchers';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
@@ -162,6 +163,7 @@ app.use('/api/rewards', rewardsRoutes);
 app.use('/api/map-vote', mapVoteRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/admin/vouchers', adminVouchersRoutes);
 
 // Error handling
 app.use(errorHandler);

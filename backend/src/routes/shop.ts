@@ -5,6 +5,7 @@ import { webPool } from '../config/database';
 import { isAuthenticated } from '../middleware/auth';
 import { paymentRateLimiter, sensitiveRateLimiter } from '../middleware/rateLimiter';
 import { createPayment } from '../services/yookassa';
+import { redeemVoucherInTransaction } from '../services/voucherRedeem';
 
 const router = Router();
 const MIN_DEPOSIT = 10;
@@ -28,11 +29,6 @@ interface BalanceRow extends RowDataPacket {
   balance: number;
   total_earned?: number;
   total_spent?: number;
-}
-
-interface VoucherRow extends RowDataPacket {
-  id: number;
-  amount: number;
 }
 
 router.get('/items', async (_req, res) => {
@@ -147,39 +143,23 @@ router.post('/deposit/redeem', sensitiveRateLimiter, isAuthenticated, async (req
   try {
     const steamid = req.user!.steamid;
     const code = String(req.body.code || '').trim();
-    if (!code) {
-      return res.status(400).json({ error: 'Укажите код промокода' });
-    }
 
     await connection.beginTransaction();
 
-    const [rows] = await connection.query<VoucherRow[]>(
-      'SELECT id, amount FROM voucher_codes WHERE code = ? AND used_by IS NULL FOR UPDATE',
-      [code]
-    );
-    if (rows.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ error: 'Промокод не найден или уже использован' });
-    }
-
-    const voucher = rows[0];
-    const amount = Number(voucher.amount);
-
-    await connection.query('UPDATE voucher_codes SET used_by = ?, used_at = NOW() WHERE id = ?', [req.user!.id, voucher.id]);
-    await connection.query(
-      `INSERT INTO player_balance (steamid, balance, total_earned, total_spent) VALUES (?, ?, ?, 0)
-       ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
-      [steamid, amount, amount, amount, amount]
-    );
-    await connection.query('INSERT INTO transactions (steamid, type, amount, description) VALUES (?, ?, ?, ?)', [
+    const result = await redeemVoucherInTransaction(connection, {
+      userId: req.user!.id,
       steamid,
-      'earn',
-      amount,
-      'Активация промокода',
-    ]);
+      code,
+    });
+
+    if (!result.ok) {
+      await connection.rollback();
+      return res.status(result.status).json({ error: result.error });
+    }
 
     await connection.commit();
 
+    const amount = result.amount;
     const [balanceRows] = await connection.query<BalanceRow[]>('SELECT balance FROM player_balance WHERE steamid = ?', [steamid]);
     const newBalance = balanceRows.length > 0 ? Number(balanceRows[0].balance) : amount;
 

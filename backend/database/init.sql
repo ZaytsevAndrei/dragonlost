@@ -106,3 +106,39 @@ ALTER TABLE map_vote_sessions
   ADD CONSTRAINT fk_winner_option
   FOREIGN KEY (winner_option_id) REFERENCES map_vote_options(id)
   ON DELETE SET NULL;
+
+-- Промокоды (начисление баланса; лимиты и сроки — см. админ-модуль /api/admin/vouchers)
+CREATE TABLE IF NOT EXISTS voucher_codes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(64) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  used_by INT NULL,
+  used_at TIMESTAMP NULL DEFAULT NULL,
+  valid_from DATETIME NULL DEFAULT NULL,
+  valid_until DATETIME NULL DEFAULT NULL,
+  max_activations_total INT NULL DEFAULT NULL,
+  activations_count INT NOT NULL DEFAULT 0,
+  max_activations_per_user INT NOT NULL DEFAULT 1,
+  weekly_repeat TINYINT(1) NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_voucher_code (code),
+  INDEX idx_voucher_used_by (used_by),
+  CONSTRAINT fk_voucher_used_by FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS voucher_redemptions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  voucher_id INT NOT NULL,
+  user_id INT NOT NULL,
+  steamid VARCHAR(32) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (voucher_id) REFERENCES voucher_codes(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_vr_voucher_user (voucher_id, user_id),
+  INDEX idx_vr_voucher_week (voucher_id, user_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO voucher_codes (code, amount) VALUES ('wipe', 100.00);

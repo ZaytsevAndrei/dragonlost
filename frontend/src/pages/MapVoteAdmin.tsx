@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { api, getImageUrl } from '../services/api';
-import { useAuthStore } from '../store/authStore';
 import StatePanel from '../components/StatePanel';
 import './MapVoteAdmin.css';
 
@@ -94,7 +93,6 @@ const DATE_PRESETS = [
 ];
 
 function MapVoteAdmin() {
-  const { user } = useAuthStore();
   const [sessions, setSessions] = useState<VoteSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,8 +111,6 @@ function MapVoteAdmin() {
   const highlightTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
   const [confirmAction, setConfirmAction] = useState<{ type: 'close' | 'cancel' | 'pick' | 'delete'; sessionId: number; optionId?: number } | null>(null);
-
-  const isAdmin = user?.role === 'admin';
 
   const activeSession = sessions.find(s => s.status === 'active') || null;
   const pastSessions = sessions.filter(s => s.status !== 'active');
@@ -142,8 +138,8 @@ function MapVoteAdmin() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) fetchSessions();
-  }, [isAdmin, fetchSessions]);
+    fetchSessions();
+  }, [fetchSessions]);
 
   useEffect(() => {
     return () => {
@@ -223,15 +219,6 @@ function MapVoteAdmin() {
       setError(messages[type] || 'Ошибка при закрытии голосования');
     }
   };
-
-  if (!user || !isAdmin) {
-    return (
-      <div className="mva-page">
-        <h1>Управление голосованиями</h1>
-        <StatePanel type="error" title="Доступ ограничен" message="Страница доступна только администраторам." />
-      </div>
-    );
-  }
 
   const totalVotesActive = activeSession
     ? activeSession.options.reduce((sum, o) => sum + o.vote_count, 0)

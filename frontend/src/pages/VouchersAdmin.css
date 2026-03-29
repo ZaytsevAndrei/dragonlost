@@ -1,0 +1,215 @@
+.va-page {
+  padding: 20px 0;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.va-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.va-lead {
+  margin: 0 0 24px;
+  color: var(--text-muted, #64748b);
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 720px;
+}
+
+.va-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  color: #ef4444;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.va-error-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0 0 12px;
+  opacity: 0.75;
+}
+
+.va-error-close:hover {
+  opacity: 1;
+}
+
+.va-card {
+  background: var(--panel-bg, rgba(15, 23, 42, 0.45));
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.15));
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 24px;
+}
+
+.va-card h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.va-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px 18px;
+  margin-bottom: 18px;
+}
+
+.va-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.va-field span:first-child {
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+}
+
+.va-field input[type='text'],
+.va-field input[type='number'],
+.va-field input[type='datetime-local'] {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+  background: var(--input-bg, rgba(0, 0, 0, 0.2));
+  color: inherit;
+  font-size: 14px;
+}
+
+.va-field-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+}
+
+.va-field-check input {
+  width: 18px;
+  height: 18px;
+}
+
+.va-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.va-btn-primary {
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.va-btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.va-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.va-btn-secondary {
+  padding: 10px 18px;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.va-btn-secondary:hover {
+  border-color: #64748b;
+  color: #e2e8f0;
+}
+
+.va-table-wrap {
+  overflow: hidden;
+}
+
+.va-table-scroll {
+  overflow-x: auto;
+  margin: 0 -6px;
+}
+
+.va-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.va-table th,
+.va-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, rgba(148, 163, 184, 0.12));
+  vertical-align: top;
+}
+
+.va-table th {
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+}
+
+.va-row-inactive {
+  opacity: 0.55;
+}
+
+.va-dates {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-muted, #94a3b8);
+}
+
+.va-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.va-btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, rgba(148, 163, 184, 0.35));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.va-btn-small:hover {
+  border-color: #64748b;
+}
+
+.va-btn-danger:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.va-muted {
+  color: var(--text-muted, #64748b);
+  margin: 0;
+}

@@ -77,16 +77,14 @@ function Header() {
                 {dropdownOpen && (
                   <div className="dropdown-menu">
                     {user.role === 'admin' && (
-                      <>
-                        <Link
-                          to="/map-vote"
-                          className="dropdown-item"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          <span className="dropdown-icon">🗳️</span>
-                          Голосования за карту
-                        </Link>
-                      </>
+                      <Link
+                        to="/admin"
+                        className="dropdown-item"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <span className="dropdown-icon">⚙️</span>
+                        Админка
+                      </Link>
                     )}
                     <button 
                       onClick={handleLogout} 

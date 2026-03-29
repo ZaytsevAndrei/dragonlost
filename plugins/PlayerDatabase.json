@@ -1,0 +1,10 @@
+{
+  "Data Type : 0 (Files) or 1 (SQLite) or 2 (MySQL)": 2,
+  "MySQL - Database Name": "rust",
+  "MySQL - Host": "31.130.135.146",
+  "MySQL - Password": "uKF3FTZ?N3pG-a",
+  "MySQL - Port": 3306,
+  "MySQL - Username": "oxide",
+  "MySQL/SQLite - Database Table Name": "PlayerDatabase",
+  "SQLite - Database Name": "playerdatabase.db"
+}
