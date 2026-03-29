@@ -145,6 +145,7 @@ interface PlayerBalance {
 
 const SHOW_DEPOSIT_ACTIONS = false;
 const SHOW_PROMOCODE_ACTIONS = true;
+const MAX_BUY_QUANTITY = 100;
 
 function Items() {
   const { user } = useAuthStore();
@@ -158,6 +159,8 @@ function Items() {
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
+  const [modalItem, setModalItem] = useState<ShopItem | null>(null);
+  const [modalQuantity, setModalQuantity] = useState(1);
   const hasWalletControls = SHOW_DEPOSIT_ACTIONS || SHOW_PROMOCODE_ACTIONS;
 
   const fetchItems = useCallback(async () => {
@@ -188,6 +191,29 @@ function Items() {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  useEffect(() => {
+    if (!modalItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setModalItem(null);
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [modalItem]);
+
+  const openItemModal = useCallback((item: ShopItem) => {
+    setModalItem(item);
+    setModalQuantity(1);
+  }, []);
+
+  const closeItemModal = useCallback(() => {
+    setModalItem(null);
+  }, []);
 
   const handleDeposit = useCallback(async () => {
     if (!user) return;
@@ -249,11 +275,16 @@ function Items() {
   }, [user, voucherCode]);
 
   const handlePurchase = useCallback(
-    async (item: ShopItem) => {
+    async (item: ShopItem, purchaseQuantity: number) => {
       if (!user) return;
       const itemId = Number(item.id);
       const itemPrice = Number(item.price ?? 0);
       const itemName = getItemTitle(item);
+      const qty = Math.min(
+        MAX_BUY_QUANTITY,
+        Math.max(1, Math.floor(Number.isFinite(purchaseQuantity) ? purchaseQuantity : 1))
+      );
+      const totalPrice = itemPrice * qty;
 
       if (!Number.isFinite(itemId) || itemId <= 0) {
         alert('Некорректный ID предмета');
@@ -263,11 +294,8 @@ function Items() {
         alert('Некорректная цена предмета');
         return;
       }
-      if (balance && balance.balance < itemPrice) {
+      if (balance && balance.balance < totalPrice) {
         alert('Недостаточно средств на балансе');
-        return;
-      }
-      if (!window.confirm(`Купить "${itemName}" за ${itemPrice} ₽?`)) {
         return;
       }
 
@@ -275,7 +303,7 @@ function Items() {
         setPurchasingId(itemId);
         const response = await api.post<{ success: boolean; new_balance: number }>('/shop/purchase', {
           item_id: itemId,
-          quantity: 1,
+          quantity: qty,
         });
         if (response.data?.success) {
           setBalance((prev) =>
@@ -283,11 +311,12 @@ function Items() {
               ? {
                   ...prev,
                   balance: Number(response.data.new_balance) || prev.balance,
-                  total_spent: prev.total_spent + itemPrice,
+                  total_spent: prev.total_spent + totalPrice,
                 }
               : prev
           );
-          alert('Покупка успешна, предмет добавлен в инвентарь');
+          alert(`Покупка успешна: «${itemName}» × ${qty}. Предметы добавлены в инвентарь.`);
+          setModalItem(null);
         }
       } catch (err: unknown) {
         const msg =
@@ -444,33 +473,35 @@ function Items() {
                 return value !== null && value !== undefined && value !== '';
               });
 
+              const title = getItemTitle(item);
               return (
-                <article key={String(item.id ?? `${getItemTitle(item)}-${index}`)} className="item-card">
-                  {typeof imagePath === 'string' ? <ItemImage imagePath={imagePath} alt={getItemTitle(item)} /> : null}
+                <article
+                  key={String(item.id ?? `${title}-${index}`)}
+                  className="item-card item-card--clickable"
+                  tabIndex={0}
+                  role="button"
+                  onClick={() => openItemModal(item)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openItemModal(item);
+                    }
+                  }}
+                  aria-label={`${title}, открыть карточку товара`}
+                >
+                  {typeof imagePath === 'string' ? <ItemImage imagePath={imagePath} alt={title} /> : null}
                   <div className="item-card-body">
-                    <h3>{getItemTitle(item)}</h3>
+                    <h3>{title}</h3>
                     <p className="item-card-description">{toDisplayText(item.description)}</p>
                     <div className="item-card-meta">
-                      <span className="item-price">Цена: {toDisplayText(item.price)}</span>
+                      <span className="item-price">Цена: {toDisplayText(item.price)} ₽</span>
                       {item.is_active !== undefined ? (
                         <span className={`item-status ${Number(item.is_active) ? 'active' : 'inactive'}`}>
                           {Number(item.is_active) ? 'Активен' : 'Неактивен'}
                         </span>
                       ) : null}
                     </div>
-                    {user ? (
-                      <button
-                        type="button"
-                        className="item-buy-btn"
-                        onClick={() => handlePurchase(item)}
-                        disabled={
-                          purchasingId === Number(item.id) ||
-                          (balance ? balance.balance < Number(item.price ?? 0) : false)
-                        }
-                      >
-                        {purchasingId === Number(item.id) ? 'Покупка...' : 'Купить'}
-                      </button>
-                    ) : null}
+                    <p className="item-card-hint">Нажмите, чтобы купить</p>
                     {extraFields.length > 0 ? (
                       <dl className="item-extra-fields">
                         {extraFields.map(([key, value]) => (
@@ -488,6 +519,122 @@ function Items() {
           </div>
         </section>
       ))}
+
+      {modalItem ? (
+        <div className="item-modal-backdrop" onClick={closeItemModal} role="presentation">
+          <div
+            className="item-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="item-modal-title"
+          >
+            <button type="button" className="item-modal-close" onClick={closeItemModal} aria-label="Закрыть">
+              ×
+            </button>
+            {(() => {
+              const mi = modalItem;
+              const modalImage = mi.image_url ?? mi.image;
+              const title = getItemTitle(mi);
+              const unitPrice = Number(mi.price ?? 0);
+              const totalPrice = unitPrice * modalQuantity;
+              const perPack = Number(mi.quantity ?? 1);
+              const canAfford = !balance || balance.balance >= totalPrice;
+              const buying = purchasingId === Number(mi.id);
+
+              return (
+                <>
+                  <div className="item-modal-media">
+                    {typeof modalImage === 'string' ? (
+                      <ItemImage imagePath={modalImage} alt={title} />
+                    ) : (
+                      <div className="item-modal-media-placeholder" />
+                    )}
+                  </div>
+                  <div className="item-modal-body">
+                    <h2 id="item-modal-title">{title}</h2>
+                    <p className="item-modal-category">{getCategoryLabel(mi.category)}</p>
+                    <p className="item-modal-description">{toDisplayText(mi.description)}</p>
+                    <div className="item-modal-price-row">
+                      <span className="item-modal-unit-price">
+                        Цена за единицу: {Number.isFinite(unitPrice) ? unitPrice.toFixed(2) : '—'} ₽
+                      </span>
+                      {Number.isFinite(perPack) && perPack > 1 ? (
+                        <span className="item-modal-pack-hint">За покупку в инвентарь: {perPack} шт.</span>
+                      ) : null}
+                    </div>
+
+                    {user ? (
+                      <>
+                        <div className="item-modal-qty">
+                          <span className="item-modal-qty-label">Количество</span>
+                          <div className="item-modal-qty-controls">
+                            <button
+                              type="button"
+                              className="item-modal-qty-btn"
+                              onClick={() => setModalQuantity((q) => Math.max(1, q - 1))}
+                              disabled={buying || modalQuantity <= 1}
+                              aria-label="Уменьшить количество"
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              className="item-modal-qty-input"
+                              min={1}
+                              max={MAX_BUY_QUANTITY}
+                              value={modalQuantity}
+                              onChange={(e) => {
+                                const n = Number.parseInt(e.target.value, 10);
+                                if (!Number.isFinite(n)) return;
+                                setModalQuantity(Math.min(MAX_BUY_QUANTITY, Math.max(1, n)));
+                              }}
+                              disabled={buying}
+                            />
+                            <button
+                              type="button"
+                              className="item-modal-qty-btn"
+                              onClick={() => setModalQuantity((q) => Math.min(MAX_BUY_QUANTITY, q + 1))}
+                              disabled={buying || modalQuantity >= MAX_BUY_QUANTITY}
+                              aria-label="Увеличить количество"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <div className="item-modal-total">
+                          Итого:{' '}
+                          <strong>
+                            {Number.isFinite(totalPrice) ? totalPrice.toFixed(2) : '—'} ₽
+                          </strong>
+                          {!canAfford ? (
+                            <span className="item-modal-total-warn">Недостаточно средств</span>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          className="item-modal-buy"
+                          onClick={() => handlePurchase(mi, modalQuantity)}
+                          disabled={
+                            buying ||
+                            !Number.isFinite(unitPrice) ||
+                            unitPrice <= 0 ||
+                            !canAfford
+                          }
+                        >
+                          {buying ? 'Покупка...' : 'Купить'}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="item-modal-guest">Войдите через Steam, чтобы выбрать количество и купить товар.</p>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
