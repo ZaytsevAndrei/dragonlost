@@ -491,26 +491,28 @@ function Items() {
                 >
                   {typeof imagePath === 'string' ? <ItemImage imagePath={imagePath} alt={title} /> : null}
                   <div className="item-card-body">
-                    <h3>{title}</h3>
-                    <p className="item-card-description">{toDisplayText(item.description)}</p>
-                    <div className="item-card-meta">
+                    <div className="item-card-content">
+                      <h3>{title}</h3>
+                      <p className="item-card-description">{toDisplayText(item.description)}</p>
+                      {extraFields.length > 0 ? (
+                        <dl className="item-extra-fields">
+                          {extraFields.map(([key, value]) => (
+                            <div key={`${String(item.id)}-${key}`} className="item-extra-row">
+                              <dt>{key}</dt>
+                              <dd>{toDisplayText(value)}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : null}
+                    </div>
+                    <footer className="item-card-footer">
                       <span className="item-price">Цена: {toDisplayText(item.price)} ₽</span>
                       {item.is_active !== undefined ? (
                         <span className={`item-status ${Number(item.is_active) ? 'active' : 'inactive'}`}>
                           {Number(item.is_active) ? 'Активен' : 'Неактивен'}
                         </span>
                       ) : null}
-                    </div>
-                    {extraFields.length > 0 ? (
-                      <dl className="item-extra-fields">
-                        {extraFields.map(([key, value]) => (
-                          <div key={`${String(item.id)}-${key}`} className="item-extra-row">
-                            <dt>{key}</dt>
-                            <dd>{toDisplayText(value)}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : null}
+                    </footer>
                   </div>
                 </article>
               );
