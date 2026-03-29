@@ -72,5 +72,11 @@ export interface ShopItem {
   price?: number | string;
   sort_order?: number;
   is_active?: number | boolean;
+  /** Служебные поля API — не показываются в карточке магазина */
+  rust_item_code?: string;
+  quantity?: number;
+  is_available?: number | boolean;
+  created_at?: string;
+  updated_at?: string;
   [key: string]: unknown;
 }

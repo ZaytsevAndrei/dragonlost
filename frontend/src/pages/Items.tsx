@@ -12,11 +12,16 @@ const IGNORED_META_KEYS = new Set([
   'title',
   'description',
   'category',
+  'created_at',
   'image',
   'image_url',
-  'price',
-  'sort_order',
   'is_active',
+  'is_available',
+  'price',
+  'quantity',
+  'rust_item_code',
+  'sort_order',
+  'updated_at',
 ]);
 
 function toDisplayText(value: unknown): string {
