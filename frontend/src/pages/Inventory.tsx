@@ -190,7 +190,7 @@ function Inventory() {
                   <h3 className="item-name">{item.item_name}</h3>
                   {item.item_description ? <p className="item-description">{item.item_description}</p> : null}
                   {item.quantity > 1 ? <div className="item-quantity">Количество: {item.quantity}</div> : null}
-                  <div className="item-date">Куплено: {formatDate(item.purchased_at)}</div>
+                  <div className="item-date">Выведено: {formatDate(item.purchased_at)}</div>
                   <button
                     className="btn-use"
                     type="button"
