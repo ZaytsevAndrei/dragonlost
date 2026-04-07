@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
 import './ServerStatus.css';
 
 interface ServerInfo {
@@ -19,8 +20,33 @@ interface ServerInfo {
 
 const POLL_MS = 60_000;
 
+interface LatestVoteOption {
+  id: number;
+  map_name: string;
+  map_seed: number | null;
+  map_size: number | null;
+  description: string | null;
+  is_winner?: boolean;
+}
+
+interface LatestVotePayload {
+  session: { winner_option_id: number | null } | null;
+  options: LatestVoteOption[];
+}
+
+function resolveVoteWinnerMap(options: LatestVoteOption[], winnerOptionId: number | null) {
+  const winner =
+    options.find((o) => o.is_winner) ??
+    (winnerOptionId != null ? options.find((o) => o.id === winnerOptionId) : undefined);
+  if (!winner) return null;
+  const url = rustMapsUrlFromVoteOption(winner);
+  if (!url) return null;
+  return { map_name: winner.map_name, url };
+}
+
 function ServerStatus() {
   const [servers, setServers] = useState<ServerInfo[]>([]);
+  const [voteWinnerMap, setVoteWinnerMap] = useState<{ map_name: string; url: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -31,11 +57,21 @@ function ServerStatus() {
     else if (!silent) setLoading(true);
     setError(null);
     try {
-      const res = await api.get<{ servers: ServerInfo[] }>('/servers');
-      setServers(res.data.servers || []);
+      const [serversRes, voteRes] = await Promise.all([
+        api.get<{ servers: ServerInfo[] }>('/servers'),
+        api.get<LatestVotePayload>('/map-vote/latest-result').catch(() => ({ data: { session: null, options: [] } })),
+      ]);
+      setServers(serversRes.data.servers || []);
+      const vr = voteRes.data;
+      if (vr.session && vr.options?.length) {
+        setVoteWinnerMap(resolveVoteWinnerMap(vr.options, vr.session.winner_option_id));
+      } else {
+        setVoteWinnerMap(null);
+      }
     } catch {
       setError('Не удалось загрузить статус сервера');
       setServers([]);
+      setVoteWinnerMap(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,7 +153,23 @@ function ServerStatus() {
               </div>
               <div className="server-status-row">
                 <dt>Карта</dt>
-                <dd title={s.map}>{s.map}</dd>
+                <dd>
+                  {voteWinnerMap ? (
+                    <a
+                      href={voteWinnerMap.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="server-status-map-link"
+                    >
+                      {voteWinnerMap.map_name}
+                      <span className="server-status-map-link-ext" aria-hidden>
+                        ↗
+                      </span>
+                    </a>
+                  ) : (
+                    <span title={s.map}>{s.map}</span>
+                  )}
+                </dd>
               </div>
               <div className="server-status-row">
                 <dt>Адрес</dt>

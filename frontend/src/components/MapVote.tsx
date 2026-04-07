@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
 import './MapVote.css';
 
 interface MapOption {
@@ -121,7 +122,7 @@ function MapVote() {
           const isSelected = userVote === opt.id;
           const isLeading = options.length > 0 && opt.vote_count === Math.max(...options.map(o => o.vote_count)) && opt.vote_count > 0;
 
-          const rustMapsUrl = opt.description?.startsWith('http') ? opt.description : null;
+          const rustMapsUrl = rustMapsUrlFromVoteOption(opt);
 
           return (
             <div
