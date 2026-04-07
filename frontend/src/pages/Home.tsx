@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import MapVote from '../components/MapVote';
+import ServerStatus from '../components/ServerStatus';
 import './Home.css';
 
 interface TopPlayer {
@@ -187,6 +188,11 @@ function Home() {
             <p>Общайся с игроками, следи за новостями и будь в курсе событий</p>
           </a>
         </div>
+      </AnimatedSection>
+
+      {/* ===== SERVER STATUS ===== */}
+      <AnimatedSection>
+        <ServerStatus />
       </AnimatedSection>
 
       {/* ===== MAP VOTE ===== */}
