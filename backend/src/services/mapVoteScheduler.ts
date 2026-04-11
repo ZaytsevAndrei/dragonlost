@@ -224,17 +224,28 @@ export async function notifyVoteClosed(sessionId: number, winnerId: number | nul
   }
 }
 
+/** Откладывает async-задачу на следующий тик event loop — снижает WARN «missed execution» от node-cron при кратковременной блокировке цикла. */
+function runDeferred(fn: () => void | Promise<void>): void {
+  setImmediate(() => {
+    void Promise.resolve(fn()).catch((err) =>
+      console.error('[Cron] Необработанная ошибка задачи:', err instanceof Error ? err.message : err)
+    );
+  });
+}
+
 export function scheduleMapVoteTasks(): void {
   // Пятница 16:00 МСК = 13:00 UTC (cron работает в UTC на сервере)
   // Формат: минута час * * день_недели (5 = пятница)
   cron.schedule('0 13 * * 5', () => {
-    console.log('🔔 [MapVote] Пятничная проверка голосования (16:00 МСК)');
-    checkAndNotifyAdmin();
+    runDeferred(() => {
+      console.log('🔔 [MapVote] Пятничная проверка голосования (16:00 МСК)');
+      return checkAndNotifyAdmin();
+    });
   });
 
   // Автозакрытие истёкших голосований каждые 5 минут
   cron.schedule('*/5 * * * *', () => {
-    closeExpiredSessions();
+    runDeferred(closeExpiredSessions);
   });
 
   console.log('✅ Cron: уведомление о карте (Пт 16:00 МСК), автозакрытие каждые 5 мин');

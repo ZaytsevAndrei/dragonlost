@@ -65,11 +65,17 @@ async function runCleanup(): Promise<void> {
  * Инициализирует cron-задачу очистки.
  * По умолчанию запускается каждый день в 03:00.
  */
+function runCleanupDeferred(): void {
+  setImmediate(() => {
+    void runCleanup();
+  });
+}
+
 export function scheduleDataCleanup(): void {
-  runCleanup();
+  runCleanupDeferred();
 
   cron.schedule('0 3 * * *', () => {
-    runCleanup();
+    runCleanupDeferred();
   });
 
   console.log('✅ Cron-задача очистки данных запланирована (ежедневно в 03:00)');
