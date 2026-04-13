@@ -43,11 +43,17 @@ async function cleanStaleDailyRewards(): Promise<number> {
 /**
  * Запускает полный цикл очистки устаревших данных.
  */
+function yieldEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 async function runCleanup(): Promise<void> {
   console.log('🧹 [Cleanup] Начинается очистка устаревших данных...');
   try {
     const sessions = await cleanExpiredSessions();
+    await yieldEventLoop();
     const transactions = await cleanOldTransactions();
+    await yieldEventLoop();
     const dailyRewards = await cleanStaleDailyRewards();
 
     console.log(
@@ -63,7 +69,7 @@ async function runCleanup(): Promise<void> {
 
 /**
  * Инициализирует cron-задачу очистки.
- * По умолчанию запускается каждый день в 03:00.
+ * 03:10 МСК — не совпадает с :00/:05 (автозакрытие map-vote), меньше WARN «missed execution» у node-cron.
  */
 function runCleanupDeferred(): void {
   setImmediate(() => {
@@ -74,9 +80,9 @@ function runCleanupDeferred(): void {
 export function scheduleDataCleanup(): void {
   runCleanupDeferred();
 
-  cron.schedule('0 3 * * *', () => {
+  cron.schedule('10 3 * * *', () => {
     runCleanupDeferred();
   });
 
-  console.log('✅ Cron-задача очистки данных запланирована (ежедневно в 03:00)');
+  console.log('✅ Cron-задача очистки данных запланирована (ежедневно в 03:10, локальное время сервера)');
 }
