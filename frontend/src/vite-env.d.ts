@@ -2,7 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
-  // Add more env variables as needed
+  /** Подсказка под календарём вайпов (расписание, Discord и т.д.) */
+  readonly VITE_WIPE_SCHEDULE_HINT?: string;
 }
 
 interface ImportMeta {

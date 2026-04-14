@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
 import './MapVote.css';
 
-interface MapOption {
+export interface MapOption {
   id: number;
   map_name: string;
   map_seed: number | null;
@@ -15,7 +15,7 @@ interface MapOption {
   percentage: number;
 }
 
-interface VoteSession {
+export interface VoteSession {
   id: number;
   title: string;
   starts_at: string;
@@ -24,32 +24,24 @@ interface VoteSession {
   total_votes: number;
 }
 
-function MapVote() {
+export interface MapVoteCardsProps {
+  session: VoteSession;
+  options: MapOption[];
+  userVote: number | null;
+  onRefresh: () => Promise<void>;
+}
+
+export function MapVoteCards({ session, options, userVote: initialUserVote, onRefresh }: MapVoteCardsProps) {
   const { user } = useAuthStore();
-  const [session, setSession] = useState<VoteSession | null>(null);
-  const [options, setOptions] = useState<MapOption[]>([]);
-  const [userVote, setUserVote] = useState<number | null>(null);
+  const [userVote, setUserVote] = useState<number | null>(initialUserVote);
   const [voting, setVoting] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
 
-  const fetchActiveVote = useCallback(async () => {
-    try {
-      const res = await api.get('/map-vote/active');
-      setSession(res.data.session);
-      setOptions(res.data.options || []);
-      setUserVote(res.data.user_vote || null);
-    } catch {
-      // ignore
-    }
-  }, []);
+  useEffect(() => {
+    setUserVote(initialUserVote);
+  }, [initialUserVote]);
 
   useEffect(() => {
-    fetchActiveVote();
-  }, [fetchActiveVote]);
-
-  useEffect(() => {
-    if (!session) return;
-
     const update = () => {
       const now = new Date().getTime();
       const end = new Date(session.ends_at).getTime();
@@ -77,23 +69,24 @@ function MapVote() {
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [session]);
+  }, [session.ends_at]);
 
-  const handleVote = useCallback(async (optionId: number) => {
-    if (voting || !user) return;
-    try {
-      setVoting(true);
-      await api.post('/map-vote/vote', { option_id: optionId });
-      setUserVote(optionId);
-      await fetchActiveVote();
-    } catch {
-      // ignore
-    } finally {
-      setVoting(false);
-    }
-  }, [voting, user, fetchActiveVote]);
-
-  if (!session || options.length === 0) return null;
+  const handleVote = useCallback(
+    async (optionId: number) => {
+      if (voting || !user) return;
+      try {
+        setVoting(true);
+        await api.post('/map-vote/vote', { option_id: optionId });
+        setUserVote(optionId);
+        await onRefresh();
+      } catch {
+        // ignore
+      } finally {
+        setVoting(false);
+      }
+    },
+    [voting, user, onRefresh]
+  );
 
   return (
     <div className="map-vote">
@@ -108,7 +101,10 @@ function MapVote() {
         </div>
         <div className="map-vote-meta">
           <span className="map-vote-timer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
             {timeLeft}
           </span>
           <span className="map-vote-total">
@@ -120,7 +116,8 @@ function MapVote() {
       <div className="map-vote-grid">
         {options.map((opt) => {
           const isSelected = userVote === opt.id;
-          const isLeading = options.length > 0 && opt.vote_count === Math.max(...options.map(o => o.vote_count)) && opt.vote_count > 0;
+          const isLeading =
+            options.length > 0 && opt.vote_count === Math.max(...options.map((o) => o.vote_count)) && opt.vote_count > 0;
 
           const rustMapsUrl = rustMapsUrlFromVoteOption(opt);
 
@@ -137,7 +134,9 @@ function MapVote() {
                   <img
                     src={getImageUrl(opt.image_url)}
                     alt={opt.map_name}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                   {rustMapsUrl && (
                     <div className="map-vote-img-overlay">
@@ -188,13 +187,13 @@ function MapVote() {
 
               {isSelected && (
                 <div className="map-vote-check">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="18" height="18"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" width="18" height="18">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
                 </div>
               )}
 
-              {isLeading && !isSelected && (
-                <div className="map-vote-leading-badge">Лидер</div>
-              )}
+              {isLeading && !isSelected && <div className="map-vote-leading-badge">Лидер</div>}
             </div>
           );
         })}
@@ -217,5 +216,3 @@ function pluralVotes(n: number): string {
   if (last >= 2 && last <= 4) return 'голоса';
   return 'голосов';
 }
-
-export default MapVote;

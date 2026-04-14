@@ -13,6 +13,7 @@ import MapVoteAdmin from './pages/MapVoteAdmin';
 import VouchersAdmin from './pages/VouchersAdmin';
 import AdminLayout from './pages/AdminLayout';
 import AdminHome from './pages/AdminHome';
+import Voting from './pages/Voting';
 import { useAuthStore } from './store/authStore';
 import { getLastPage, clearLastPage } from './utils/safeLocalStorage';
 
@@ -64,6 +65,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomeWithRedirect />} />
             <Route path="/stats" element={<Statistics />} />
+            <Route path="/vote" element={<Voting />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/shop" element={<Items />} />

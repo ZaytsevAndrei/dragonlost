@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import MapVote from '../components/MapVote';
 import ServerStatus from '../components/ServerStatus';
 import './Home.css';
 
@@ -193,11 +192,6 @@ function Home() {
       {/* ===== SERVER STATUS ===== */}
       <AnimatedSection>
         <ServerStatus />
-      </AnimatedSection>
-
-      {/* ===== MAP VOTE ===== */}
-      <AnimatedSection>
-        <MapVote />
       </AnimatedSection>
 
       {/* ===== TOP PLAYERS ===== */}

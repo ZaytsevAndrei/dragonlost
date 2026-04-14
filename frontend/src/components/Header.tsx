@@ -50,6 +50,9 @@ function Header() {
             <Link to="/shop" className="nav-link">
               Предметы
             </Link>
+            <Link to="/vote" className="nav-link">
+              Голосование
+            </Link>
             {user ? (
               <>
                 <Link to="/inventory" className="nav-link">

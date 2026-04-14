@@ -33,6 +33,19 @@ interface UserVoteRow extends RowDataPacket {
   option_id: number;
 }
 
+interface VoteHistoryRow extends RowDataPacket {
+  id: number;
+  title: string;
+  ends_at: Date;
+  winner_option_id: number | null;
+  total_votes: number;
+  winner_map_name: string | null;
+  winner_map_seed: number | null;
+  winner_map_size: number | null;
+  winner_image_url: string | null;
+  winner_description: string | null;
+}
+
 // ─── Публичные эндпоинты ───
 
 /**
@@ -157,6 +170,55 @@ router.get('/latest-result', async (req, res) => {
   } catch (error) {
     console.error('Error fetching latest vote result:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Ошибка при загрузке результатов' });
+  }
+});
+
+/**
+ * GET /api/map-vote/history — завершённые голосования (календарь вайпов / история карт).
+ */
+router.get('/history', async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit), 10) || 120, 1), 500);
+    const [rows] = await webPool.query<VoteHistoryRow[]>(
+      `SELECT s.id,
+              s.title,
+              s.ends_at,
+              s.winner_option_id,
+              (SELECT COUNT(*) FROM map_votes v WHERE v.session_id = s.id) AS total_votes,
+              o.map_name AS winner_map_name,
+              o.map_seed AS winner_map_seed,
+              o.map_size AS winner_map_size,
+              o.image_url AS winner_image_url,
+              o.description AS winner_description
+       FROM map_vote_sessions s
+       LEFT JOIN map_vote_options o ON o.id = s.winner_option_id
+       WHERE s.status = 'closed'
+       ORDER BY s.ends_at DESC
+       LIMIT ?`,
+      [limit]
+    );
+
+    res.json({
+      entries: rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        ends_at: r.ends_at,
+        total_votes: Number(r.total_votes),
+        winner:
+          r.winner_option_id != null && r.winner_map_name != null
+            ? {
+                map_name: r.winner_map_name,
+                map_seed: r.winner_map_seed,
+                map_size: r.winner_map_size,
+                image_url: r.winner_image_url,
+                description: r.winner_description,
+              }
+            : null,
+      })),
+    });
+  } catch (error) {
+    console.error('Error fetching map vote history:', error instanceof Error ? error.message : 'Unknown error');
+    res.status(500).json({ error: 'Ошибка при загрузке истории голосований' });
   }
 });
 
