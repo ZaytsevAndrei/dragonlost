@@ -11,7 +11,7 @@ using Time = Oxide.Core.Libraries.Time;
 
 namespace Oxide.Plugins;
 
-[Info("Statistics DB", "misticos", "1.2.7")]
+[Info("Statistics DB", "misticos", "1.2.8")]
 [Description("Statistics database for developers")]
 internal class StatisticsDB : CovalencePlugin
 {
@@ -139,6 +139,8 @@ internal class StatisticsDB : CovalencePlugin
     {
         foreach (var kvp in _data.Statistics)
         {
+            if (kvp.Value == null)
+                continue;
             SaveData(kvp.Key);
         }
     }
@@ -153,7 +155,9 @@ internal class StatisticsDB : CovalencePlugin
         var success = PlayerDatabase.Call("GetPlayerDataRaw", id.ToString(), Name);
         if (success is string result)
         {
-            _data.Statistics[id] = JsonConvert.DeserializeObject<PlayerStats>(result);
+            var deserialized = JsonConvert.DeserializeObject<PlayerStats>(result);
+            if (deserialized != null)
+                _data.Statistics[id] = deserialized;
         }
     }
 
@@ -334,10 +338,18 @@ internal class StatisticsDB : CovalencePlugin
         var removed = 0;
         for (var i = _data.Statistics.Count - 1; i >= 0; i--)
         {
+            var key = data[i].Key;
             var entry = data[i].Value;
+            if (entry == null)
+            {
+                _data.Statistics.Remove(key);
+                removed++;
+                continue;
+            }
+
             if (entry.LastUpdate + _config.Lifetime > current) continue;
 
-            _data.Statistics.Remove(data[i].Key);
+            _data.Statistics.Remove(key);
             removed++;
         }
 
@@ -407,11 +419,17 @@ internal class StatisticsDB : CovalencePlugin
         var attacker = info.InitiatorPlayer;
 
         var stats = PlayerStats.Find(player.userID);
-        if (_config.CollectSuicides && info.damageTypes.GetMajorityDamageType() == DamageType.Suicide)
+        if (stats == null)
+            return;
+
+        var isSuicide = info.damageTypes != null &&
+                        info.damageTypes.GetMajorityDamageType() == DamageType.Suicide;
+
+        if (_config.CollectSuicides && isSuicide)
         {
             if (attacker != null && !attacker.IsNpc)
                 stats.Suicides++;
-        }    
+        }
         else
         {
             if (_config.CollectDeaths)
@@ -423,8 +441,11 @@ internal class StatisticsDB : CovalencePlugin
             if (attacker == null || attacker.IsNpc)
                 return;
 
-            stats = PlayerStats.Find(attacker.userID);
-            stats.Kills++;
+            var killerStats = PlayerStats.Find(attacker.userID);
+            if (killerStats == null)
+                return;
+
+            killerStats.Kills++;
         }
     }
 
