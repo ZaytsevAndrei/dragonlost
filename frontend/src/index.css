@@ -1,22 +1,6 @@
-:root {
-  /* Palette */
-  --bg-primary: #0d121a;
-  --bg-secondary: #151c27;
-  --bg-tertiary: #222c3a;
-  --bg-elevated: #1b2532;
-  --text-primary: #f3f6fb;
-  --text-secondary: #b6c0cf;
-  --text-muted: #8f9aad;
-  --brand-400: #f06a4f;
-  --brand-500: #e0563b;
-  --brand-600: #b8422c;
-  --success-500: #34c76f;
-  --warning-500: #f5c542;
-  --error-500: #f46868;
-  --focus-ring: #7ab2ff;
-  --border: #334154;
-  --border-strong: #425269;
+@import './theme/themes.css';
 
+:root {
   /* Typography scale */
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -41,10 +25,6 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
-
-  /* Backward compatibility for existing CSS */
-  --accent: var(--brand-500);
-  --accent-hover: var(--brand-600);
 }
 
 *,
@@ -62,7 +42,7 @@ body {
   font-family: Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(rgba(13, 18, 26, 0.88), rgba(13, 18, 26, 0.88)),
+  background: linear-gradient(var(--body-bg-overlay-a), var(--body-bg-overlay-b)),
     url('/dragon-lost-bg.jpg') no-repeat center center fixed;
   background-size: cover;
   color: var(--text-primary);

@@ -1,0 +1,118 @@
+/* Цветовые наборы: :root = тема по умолчанию (ember), пока скрипт не выставил data-theme */
+
+:root,
+html[data-theme='ember'] {
+  --bg-primary: #0d121a;
+  --bg-secondary: #151c27;
+  --bg-tertiary: #222c3a;
+  --bg-elevated: #1b2532;
+  --text-primary: #f3f6fb;
+  --text-secondary: #b6c0cf;
+  --text-muted: #8f9aad;
+  --brand-400: #f06a4f;
+  --brand-500: #e0563b;
+  --brand-600: #b8422c;
+  --success-500: #34c76f;
+  --warning-500: #f5c542;
+  --error-500: #f46868;
+  --focus-ring: #7ab2ff;
+  --border: #334154;
+  --border-strong: #425269;
+  --body-bg-overlay-a: rgba(13, 18, 26, 0.88);
+  --body-bg-overlay-b: rgba(13, 18, 26, 0.88);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+}
+
+html[data-theme='frost'] {
+  --bg-primary: #0a121c;
+  --bg-secondary: #0f1a2a;
+  --bg-tertiary: #162536;
+  --bg-elevated: #121f2e;
+  --text-primary: #eef6ff;
+  --text-secondary: #a8bdd9;
+  --text-muted: #7a92b0;
+  --brand-400: #5ec8ff;
+  --brand-500: #2fa8f2;
+  --brand-600: #1f7bc0;
+  --success-500: #3dd9a0;
+  --warning-500: #ffd060;
+  --error-500: #ff7a7a;
+  --focus-ring: #8ad4ff;
+  --border: #2a4a66;
+  --border-strong: #3a5f82;
+  --body-bg-overlay-a: rgba(8, 18, 32, 0.9);
+  --body-bg-overlay-b: rgba(10, 28, 48, 0.85);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+}
+
+html[data-theme='forest'] {
+  --bg-primary: #0c140f;
+  --bg-secondary: #121f18;
+  --bg-tertiary: #1a2d24;
+  --bg-elevated: #152219;
+  --text-primary: #eef5ef;
+  --text-secondary: #a8c4b0;
+  --text-muted: #7a9a84;
+  --brand-400: #5cdb8f;
+  --brand-500: #2eb86a;
+  --brand-600: #1f8f52;
+  --success-500: #4ae090;
+  --warning-500: #e8c94a;
+  --error-500: #f08070;
+  --focus-ring: #7ef0a8;
+  --border: #2d4a3a;
+  --border-strong: #3a624c;
+  --body-bg-overlay-a: rgba(10, 22, 14, 0.9);
+  --body-bg-overlay-b: rgba(12, 32, 20, 0.82);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+}
+
+html[data-theme='aurora'] {
+  --bg-primary: #0e0a18;
+  --bg-secondary: #16102a;
+  --bg-tertiary: #241a3d;
+  --bg-elevated: #1a1430;
+  --text-primary: #f4f0ff;
+  --text-secondary: #c4b8e8;
+  --text-muted: #9588c4;
+  --brand-400: #c99cff;
+  --brand-500: #9b6dff;
+  --brand-600: #7448d4;
+  --success-500: #5ce8b8;
+  --warning-500: #ffd478;
+  --error-500: #ff8ab8;
+  --focus-ring: #c4a8ff;
+  --border: #3d3266;
+  --border-strong: #524080;
+  --body-bg-overlay-a: rgba(18, 8, 36, 0.88);
+  --body-bg-overlay-b: rgba(8, 20, 40, 0.86);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+}
+
+/* Пламя (акцент) + лёд (холодные границы и фокус) */
+html[data-theme='flameice'] {
+  --bg-primary: #0c1018;
+  --bg-secondary: #121a2a;
+  --bg-tertiary: #1c2838;
+  --bg-elevated: #152030;
+  --text-primary: #f2f6fb;
+  --text-secondary: #b8c8d8;
+  --text-muted: #7a94a8;
+  --brand-400: #ff8a65;
+  --brand-500: #f0653a;
+  --brand-600: #c94a28;
+  --success-500: #4cd4a8;
+  --warning-500: #ffd27a;
+  --error-500: #ff7a8c;
+  --focus-ring: #7ec8ff;
+  --border: #3a5a78;
+  --border-strong: #4a6f8f;
+  --body-bg-overlay-a: rgba(28, 14, 8, 0.82);
+  --body-bg-overlay-b: rgba(6, 22, 38, 0.9);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+}

@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import StatePanel from '../components/StatePanel';
+import ThemeSwitcher from '../components/ThemeSwitcher';
 import './AdminLayout.css';
 
 function AdminLayout() {
@@ -44,6 +45,9 @@ function AdminLayout() {
             Промокоды
           </NavLink>
         </nav>
+        <div className="admin-sidebar-footer">
+          <ThemeSwitcher compact />
+        </div>
       </aside>
       <div className="admin-main">
         <Outlet />

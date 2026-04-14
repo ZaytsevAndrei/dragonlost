@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
+import ThemeSwitcher from './ThemeSwitcher';
 import './Header.css';
 
 function Header() {
@@ -64,6 +65,10 @@ function Header() {
               </>
             ) : null}
           </nav>
+
+          <div className="header-tools">
+            <ThemeSwitcher />
+          </div>
 
           <div className="auth-section">
             {user ? (
