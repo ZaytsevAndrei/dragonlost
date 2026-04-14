@@ -5,23 +5,6 @@ import { useAuthStore } from '../store/authStore';
 import ServerStatus from '../components/ServerStatus';
 import './Home.css';
 
-interface TopPlayer {
-  id: number;
-  name: string;
-  stats: {
-    kills: number;
-    deaths: number;
-    kd: number;
-  };
-  resources: {
-    wood: number;
-    stones: number;
-    metalOre: number;
-    sulfurOre: number;
-  };
-  timePlayed: string;
-}
-
 interface DailyRewardStatus {
   available: boolean;
   current_streak: number;
@@ -74,18 +57,11 @@ function pluralDays(n: number): string {
 
 function Home() {
   const { user } = useAuthStore();
-  const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([]);
   const [rewardStatus, setRewardStatus] = useState<DailyRewardStatus | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [claimAmount, setClaimAmount] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    api.get('/stats', { params: { page: 1, limit: 5 } }).then(res => {
-      setTopPlayers(res.data.players?.slice(0, 5) || []);
-    }).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -193,43 +169,6 @@ function Home() {
       <AnimatedSection>
         <ServerStatus />
       </AnimatedSection>
-
-      {/* ===== TOP PLAYERS ===== */}
-      {topPlayers.length > 0 && (
-        <AnimatedSection className="leaderboard-section">
-          <div className="section-header">
-            <h2>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="28" height="28"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 8 9 8 9" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 16 9 16 9" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
-              Топ игроков
-            </h2>
-            <Link to="/stats" className="section-link">Вся статистика →</Link>
-          </div>
-
-          <div className="leaderboard">
-            <div className="lb-header-row">
-              <span className="lb-col lb-rank">#</span>
-              <span className="lb-col lb-name">Игрок</span>
-              <span className="lb-col lb-stat">Убийств</span>
-              <span className="lb-col lb-stat">Смертей</span>
-              <span className="lb-col lb-stat">K/D</span>
-            </div>
-            {topPlayers.map((p, i) => (
-              <div key={p.id} className={`lb-row ${i < 3 ? `lb-top-${i + 1}` : ''}`}>
-                <span className="lb-col lb-rank">
-                  {i === 0 && <span className="lb-medal">🥇</span>}
-                  {i === 1 && <span className="lb-medal">🥈</span>}
-                  {i === 2 && <span className="lb-medal">🥉</span>}
-                  {i >= 3 && <span className="lb-rank-num">{i + 1}</span>}
-                </span>
-                <span className="lb-col lb-name">{p.name || 'Неизвестный'}</span>
-                <span className="lb-col lb-stat">{p.stats.kills}</span>
-                <span className="lb-col lb-stat">{p.stats.deaths}</span>
-                <span className="lb-col lb-stat lb-kd">{p.stats.kd.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </AnimatedSection>
-      )}
 
     </div>
   );
