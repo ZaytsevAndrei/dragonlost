@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { MapVoteCards } from '../components/MapVote';
 import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
@@ -48,6 +48,32 @@ function dayKeyLocal(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function formatDayKeyRu(dayKey: string): string {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  if (!y || !m || !d) return dayKey;
+  return new Date(y, m - 1, d).toLocaleDateString('ru-RU', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function WinnerDescription({ text }: { text: string | null | undefined }) {
+  if (!text?.trim()) return null;
+  const t = text.trim();
+  if (t.startsWith('http://') || t.startsWith('https://')) {
+    return (
+      <p className="wipe-cal-modal-desc">
+        <a href={t} target="_blank" rel="noopener noreferrer" className="wipe-cal-modal-desc-link">
+          Открыть ссылку
+        </a>
+      </p>
+    );
+  }
+  return <p className="wipe-cal-modal-desc">{t}</p>;
+}
+
 function estimateFutureWipeDates(entries: HistoryEntry[], max: number): Date[] {
   if (entries.length === 0) return [];
   const sorted = [...entries].sort(
@@ -74,6 +100,10 @@ function estimateFutureWipeDates(entries: HistoryEntry[], max: number): Date[] {
   return out;
 }
 
+type CalModal =
+  | { mode: 'entries'; dayKey: string; entries: HistoryEntry[] }
+  | { mode: 'estimate'; dayKey: string };
+
 function WipeCalendar({
   history,
   estimatedFuture,
@@ -85,6 +115,8 @@ function WipeCalendar({
     const n = new Date();
     return { y: n.getFullYear(), m: n.getMonth() };
   });
+  const [modal, setModal] = useState<CalModal | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   const wipeDays = useMemo(() => {
     const map = new Map<string, HistoryEntry[]>();
@@ -117,6 +149,21 @@ function WipeCalendar({
     return { gridDays: cells, labelMonth: `${MONTHS_RU[cursor.m]} ${cursor.y}` };
   }, [cursor]);
 
+  useEffect(() => {
+    if (!modal) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeBtnRef.current?.focus();
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') setModal(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [modal]);
+
   const shift = (delta: number) => {
     setCursor((c) => {
       const d = new Date(c.y, c.m + delta, 1);
@@ -125,64 +172,166 @@ function WipeCalendar({
   };
 
   return (
-    <div className="wipe-cal">
-      <div className="wipe-cal-toolbar">
-        <button type="button" className="wipe-cal-nav" onClick={() => shift(-1)} aria-label="Предыдущий месяц">
-          ‹
-        </button>
-        <h3 className="wipe-cal-title">{labelMonth}</h3>
-        <button type="button" className="wipe-cal-nav" onClick={() => shift(1)} aria-label="Следующий месяц">
-          ›
-        </button>
-      </div>
-      <div className="wipe-cal-weekdays">
-        {WD_RU.map((w) => (
-          <span key={w} className="wipe-cal-wd">
-            {w}
+    <>
+      <div className="wipe-cal">
+        <div className="wipe-cal-toolbar">
+          <button type="button" className="wipe-cal-nav" onClick={() => shift(-1)} aria-label="Предыдущий месяц">
+            ‹
+          </button>
+          <h3 className="wipe-cal-title">{labelMonth}</h3>
+          <button type="button" className="wipe-cal-nav" onClick={() => shift(1)} aria-label="Следующий месяц">
+            ›
+          </button>
+        </div>
+        <div className="wipe-cal-weekdays">
+          {WD_RU.map((w) => (
+            <span key={w} className="wipe-cal-wd">
+              {w}
+            </span>
+          ))}
+        </div>
+        <div className="wipe-cal-grid">
+          {gridDays.map((cell, i) => {
+            if (cell.kind === 'empty' || cell.key === null || cell.d === null) {
+              return <div key={`e-${i}`} className="wipe-cal-cell wipe-cal-cell-empty" />;
+            }
+            const dayKey = cell.key;
+            const hadWipe = wipeDays.has(dayKey);
+            const estimates = estimatedKeys.has(dayKey);
+            const list = wipeDays.get(dayKey);
+            const inner = (
+              <>
+                <span className="wipe-cal-date-num">{cell.d}</span>
+                {hadWipe && <span className="wipe-cal-dot wipe-cal-dot-past" />}
+                {estimates && !hadWipe && <span className="wipe-cal-dot wipe-cal-dot-estimate" />}
+              </>
+            );
+            if (hadWipe && list?.length) {
+              return (
+                <button
+                  key={dayKey}
+                  type="button"
+                  className="wipe-cal-cell wipe-cal-cell-day wipe-cal-cell-past wipe-cal-cell-clickable"
+                  aria-label={`Вайп ${cell.d}: открыть победившую карту`}
+                  onClick={() => setModal({ mode: 'entries', dayKey, entries: list })}
+                >
+                  {inner}
+                </button>
+              );
+            }
+            if (estimates) {
+              return (
+                <button
+                  key={dayKey}
+                  type="button"
+                  className="wipe-cal-cell wipe-cal-cell-day wipe-cal-cell-estimate wipe-cal-cell-clickable"
+                  aria-label={`${cell.d}: ориентировочная дата вайпа`}
+                  onClick={() => setModal({ mode: 'estimate', dayKey })}
+                >
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <div key={dayKey} className="wipe-cal-cell wipe-cal-cell-day">
+                {inner}
+              </div>
+            );
+          })}
+        </div>
+        <div className="wipe-cal-legend">
+          <span>
+            <span className="wipe-cal-dot wipe-cal-dot-past" /> вайп (нажмите для карты-победителя)
           </span>
-        ))}
+          <span>
+            <span className="wipe-cal-dot wipe-cal-dot-estimate" /> ориентировочная дата (нажмите для подсказки)
+          </span>
+        </div>
       </div>
-      <div className="wipe-cal-grid">
-        {gridDays.map((cell, i) => {
-          if (cell.kind === 'empty' || cell.key === null) {
-            return <div key={`e-${i}`} className="wipe-cal-cell wipe-cal-cell-empty" />;
-          }
-          const hadWipe = wipeDays.has(cell.key);
-          const estimates = estimatedKeys.has(cell.key);
-          const list = wipeDays.get(cell.key);
-          const title =
-            hadWipe && list?.length
-              ? list
-                  .map((e) => (e.winner ? e.winner.map_name : e.title))
-                  .filter(Boolean)
-                  .join('; ')
-              : estimates
-                ? 'Предполагаемая дата вайпа (оценка по интервалу прошлых голосований)'
-                : undefined;
-          return (
-            <div
-              key={cell.key}
-              className={`wipe-cal-cell wipe-cal-cell-day ${
-                hadWipe ? 'wipe-cal-cell-past' : ''
-              } ${estimates ? 'wipe-cal-cell-estimate' : ''}`}
-              title={title}
-            >
-              <span className="wipe-cal-date-num">{cell.d}</span>
-              {hadWipe && <span className="wipe-cal-dot wipe-cal-dot-past" />}
-              {estimates && !hadWipe && <span className="wipe-cal-dot wipe-cal-dot-estimate" />}
+
+      {modal ? (
+        <div
+          className="wipe-cal-modal-backdrop"
+          role="presentation"
+          onClick={() => setModal(null)}
+        >
+          <div
+            className="wipe-cal-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wipe-cal-modal-title"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <div className="wipe-cal-modal-head">
+              <h3 id="wipe-cal-modal-title" className="wipe-cal-modal-title">
+                {formatDayKeyRu(modal.dayKey)}
+              </h3>
+              <button
+                ref={closeBtnRef}
+                type="button"
+                className="wipe-cal-modal-close"
+                aria-label="Закрыть"
+                onClick={() => setModal(null)}
+              >
+                ×
+              </button>
             </div>
-          );
-        })}
-      </div>
-      <div className="wipe-cal-legend">
-        <span>
-          <span className="wipe-cal-dot wipe-cal-dot-past" /> вайп состоялся (есть запись голосования)
-        </span>
-        <span>
-          <span className="wipe-cal-dot wipe-cal-dot-estimate" /> ориентировочная дата
-        </span>
-      </div>
-    </div>
+            <div className="wipe-cal-modal-body">
+              {modal.mode === 'estimate' ? (
+                <p className="wipe-cal-modal-estimate-text">
+                  Ориентировочная дата следующего вайпа по среднему интервалу между прошлыми голосованиями. Точное время
+                  смотрите в Discord и объявлениях.
+                </p>
+              ) : (
+                modal.entries.map((e) => {
+                  const url = e.winner ? rustMapsUrlFromVoteOption(e.winner) : null;
+                  return (
+                    <article key={e.id} className="wipe-cal-modal-entry">
+                      <p className="wipe-cal-modal-session">{e.title}</p>
+                      <div className="wipe-cal-modal-entry-body">
+                        {e.winner?.image_url ? (
+                          <img
+                            className="wipe-cal-modal-img"
+                            src={getImageUrl(e.winner.image_url)}
+                            alt=""
+                            onError={(ev) => {
+                              (ev.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="wipe-cal-modal-img wipe-cal-modal-img-placeholder" />
+                        )}
+                        <div className="wipe-cal-modal-entry-text">
+                          <div className="wipe-cal-modal-map">
+                            {e.winner ? (
+                              url ? (
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="wipe-cal-modal-link">
+                                  {e.winner.map_name}
+                                </a>
+                              ) : (
+                                e.winner.map_name
+                              )
+                            ) : (
+                              <span className="wipe-cal-modal-unknown">Победитель не зафиксирован</span>
+                            )}
+                          </div>
+                          <p className="wipe-cal-modal-meta">
+                            {e.total_votes}{' '}
+                            {e.total_votes === 1 ? 'голос' : e.total_votes < 5 ? 'голоса' : 'голосов'}
+                            {e.winner?.map_size != null ? ` · карта ${e.winner.map_size}` : null}
+                          </p>
+                          <WinnerDescription text={e.winner?.description} />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -260,90 +409,43 @@ function Voting() {
           <h1 className="voting-title">Голосование и вайпы</h1>
           <p className="voting-subtitle">
             {hasActiveVote
-              ? 'Выберите карту для следующего цикла сервера. Один аккаунт Steam — один голос.'
-              : 'Сейчас голосования нет. Ниже — календарь и история карт по прошлым вайпам.'}
+              ? 'Выберите карту для следующего цикла сервера. Один аккаунт Steam — один голос. История прошлых вайпов — в календаре ниже.'
+              : 'Сейчас голосования нет. История победивших карт — в календаре: нажмите на отмеченный день.'}
           </p>
         </div>
       </header>
 
       {loading ? (
         <div className="voting-loading">Загрузка…</div>
-      ) : hasActiveVote && session ? (
-        <MapVoteCards
-          session={session}
-          options={options}
-          userVote={userVote}
-          onRefresh={async () => {
-            await loadActive();
-            await loadHistory();
-          }}
-        />
       ) : (
         <>
-          <section className="voting-section">
-            <h2 className="voting-section-title">Расписание вайпов</h2>
-            <p className="voting-hint">{WIPE_HINT}</p>
-            <WipeCalendar history={history} estimatedFuture={estimatedFuture} />
-          </section>
+          {hasActiveVote && session ? (
+            <MapVoteCards
+              session={session}
+              options={options}
+              userVote={userVote}
+              onRefresh={async () => {
+                await loadActive();
+                await loadHistory();
+              }}
+            />
+          ) : null}
 
           <section className="voting-section">
-            <h2 className="voting-section-title">История: какая карта побеждала</h2>
-            {history.length === 0 ? (
-              <p className="voting-empty">Пока нет завершённых голосований — история появится после первых вайпов.</p>
-            ) : (
-              <ul className="wipe-history-list">
-                {history.map((e) => {
-                  const url = e.winner ? rustMapsUrlFromVoteOption(e.winner) : null;
-                  const when = new Date(e.ends_at);
-                  const dateStr = when.toLocaleDateString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  });
-                  return (
-                    <li key={e.id} className="wipe-history-item">
-                      <div className="wipe-history-date">{dateStr}</div>
-                      <div className="wipe-history-body">
-                        {e.winner?.image_url ? (
-                          <img
-                            className="wipe-history-thumb"
-                            src={getImageUrl(e.winner.image_url)}
-                            alt=""
-                            onError={(ev) => {
-                              (ev.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="wipe-history-thumb wipe-history-thumb-placeholder" />
-                        )}
-                        <div>
-                          <div className="wipe-history-map">
-                            {e.winner ? (
-                              url ? (
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="wipe-history-link">
-                                  {e.winner.map_name}
-                                </a>
-                              ) : (
-                                e.winner.map_name
-                              )
-                            ) : (
-                              <span className="wipe-history-unknown">Победитель не зафиксирован</span>
-                            )}
-                          </div>
-                          <div className="wipe-history-meta">
-                            {e.total_votes} {e.total_votes === 1 ? 'голос' : e.total_votes < 5 ? 'голоса' : 'голосов'}
-                            {e.winner?.map_size != null ? ` · maps ${e.winner.map_size}` : null}
-                          </div>
-                          {e.winner?.description && !e.winner.description.startsWith('http') && (
-                            <p className="wipe-history-desc">{e.winner.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            <h2 className="voting-section-title">
+              {hasActiveVote ? 'История победивших карт' : 'Календарь вайпов и победивших карт'}
+            </h2>
+            <div className="voting-hint">
+              <p className="voting-hint-main">{WIPE_HINT}</p>
+              <p className="voting-hint-cal">
+                Зелёная отметка — состоявшийся вайп: нажмите день, чтобы открыть карту-победителя и описание. Синяя
+                пунктирная — ориентировочная дата следующего вайпа.
+              </p>
+            </div>
+            {history.length === 0 && estimatedFuture.length === 0 ? (
+              <p className="voting-empty">Пока нет завершённых голосований — календарь заполнится после первых вайпов.</p>
+            ) : null}
+            <WipeCalendar history={history} estimatedFuture={estimatedFuture} />
           </section>
         </>
       )}
