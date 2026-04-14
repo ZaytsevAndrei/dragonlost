@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { webPool } from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { generateRandomMaps } from './rustmapsApi';
+import { isGameServerWipeConfigured, runGameServerWipeFromLatestVote } from './gameServerPanel';
 
 const MSK_TZ = 'Europe/Moscow';
 
@@ -314,6 +315,39 @@ export async function notifyVoteClosed(sessionId: number, winnerId: number | nul
   }
 }
 
+/** Пятница 17:30 МСК: seed/size победителя → панель (вебхук / Pterodactyl) или RCON (SurvivalHost и др.). */
+async function fridayGameServerRestart(): Promise<void> {
+  try {
+    const r = await runGameServerWipeFromLatestVote();
+    if (!r.ok) {
+      if (r.reason === 'no_winner') {
+        await sendDiscordNotification(
+          '⚠️ **Перезапуск сервера (Пт 17:30 МСК)**\n' +
+            'Нет закрытого голосования с победителем и полями seed/size — действие пропущено.'
+        );
+        console.warn('[GameServer] Пт 17:30: нет победителя для seed/size');
+      }
+      return;
+    }
+    const modeHint =
+      r.mode === 'rcon'
+        ? 'RCON (`server.seed` / размер карты) и `quit` для рестарта панелью.'
+        : r.mode === 'pterodactyl'
+          ? 'Pterodactyl: переменные панели и restart.'
+          : 'вебхук.';
+    console.log(`🔄 [GameServer] Пт 17:30 МСК: ${r.mode}, seed=${r.seed}, size=${r.size}`);
+    await sendDiscordNotification(
+      `🔄 **Игровой сервер (вайп по голосованию)**\n` +
+        `Канал: **${r.mode}** — ${modeHint}\n` +
+        `seed **${r.seed}**, size **${r.size}**.`
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[GameServer] Ошибка перезапуска:', msg);
+    await sendDiscordNotification(`❌ **Перезапуск сервера (Пт 17:30 МСК)**\n\`${msg}\``);
+  }
+}
+
 /** Откладывает async-задачу на следующий тик event loop — снижает WARN «missed execution» от node-cron при кратковременной блокировке цикла. */
 function runDeferred(fn: () => void | Promise<void>): void {
   setImmediate(() => {
@@ -356,7 +390,21 @@ export function scheduleMapVoteTasks(): void {
     runDeferred(closeExpiredSessions);
   });
 
+  if (isGameServerWipeConfigured()) {
+    cron.schedule(
+      '30 17 * * 5',
+      () => {
+        runDeferred(() => {
+          console.log('🔄 [GameServer] Пт 17:30 МСК — вайп по результату голосования');
+          return fridayGameServerRestart();
+        });
+      },
+      tzOpts
+    );
+  }
+
   console.log(
-    '✅ Cron map-vote: старт Чт 18:00 МСК, конец Пт 15:00 МСК (ends_at + автозакрытие), напоминание Пт 14:00 МСК'
+    '✅ Cron map-vote: старт Чт 18:00 МСК, конец Пт 15:00 МСК (ends_at + автозакрытие), напоминание Пт 14:00 МСК' +
+      (isGameServerWipeConfigured() ? '; перезапуск игры Пт 17:30 МСК' : '')
   );
 }

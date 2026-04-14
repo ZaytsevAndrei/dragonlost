@@ -22,6 +22,8 @@ class RustRconService {
   private connected = false;
   private connecting = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** После `quit` не планировать переподключение (сервер перезапускается панелью). */
+  private intentionalShutdown = false;
 
   private readonly COMMAND_TIMEOUT = 10_000;
   private readonly RECONNECT_DELAY = 5_000;
@@ -34,6 +36,11 @@ class RustRconService {
 
   isConfigured(): boolean {
     return this.password.length > 0;
+  }
+
+  /** Вызвать перед отправкой `quit`, иначе после остановки сервера начнётся цикл переподключений. */
+  markIntentionalShutdown(): void {
+    this.intentionalShutdown = true;
   }
 
   async connect(): Promise<void> {
@@ -184,8 +191,13 @@ class RustRconService {
     }
 
     if (wasConnected) {
-      console.warn('⚠️ RCON: соединение потеряно, переподключение через 5 с...');
-      this.scheduleReconnect();
+      if (this.intentionalShutdown) {
+        this.intentionalShutdown = false;
+        console.log('RCON: отключение после остановки сервера (переподключение не планируется)');
+      } else {
+        console.warn('⚠️ RCON: соединение потеряно, переподключение через 5 с...');
+        this.scheduleReconnect();
+      }
     }
   }
 
