@@ -1,6 +1,22 @@
 import cron from 'node-cron';
 import { webPool } from '../config/database';
-import { RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { generateRandomMaps } from './rustmapsApi';
+
+const MSK_TZ = 'Europe/Moscow';
+
+function isAutoVoteScheduleDisabled(): boolean {
+  return String(process.env.MAP_VOTE_AUTO_SCHEDULE || 'true').toLowerCase() === 'false';
+}
+
+/** Четверг 18:00 МСК → пятница 15:00 МСК (Россия без DST — 21 ч). */
+function voteEndsAtAfterThursdayStartMsk(start: Date): Date {
+  return new Date(start.getTime() + 21 * 60 * 60 * 1000);
+}
+
+function toMysqlDatetime(iso: Date): string {
+  return iso.toISOString().slice(0, 19).replace('T', ' ');
+}
 
 interface ActiveSessionRow extends RowDataPacket {
   id: number;
@@ -64,9 +80,9 @@ async function checkAndNotifyAdmin(): Promise<void> {
 
     if (sessions.length === 0) {
       await sendDiscordNotification(
-        '⚠️ **Напоминание о вайпе**\n' +
-        'До вайпа в 17:00 остался 1 час, но активного голосования за карту нет!\n' +
-        'Создайте голосование или выберите карту вручную.'
+        '⚠️ **Напоминание**\n' +
+        'Через час (в пятницу в 15:00 МСК) закрывается голосование за карту, но активной сессии нет.\n' +
+        'Создайте голосование вручную или проверьте MAP_VOTE_AUTO_SCHEDULE и RUSTMAPS_API_KEY.'
       );
       return;
     }
@@ -92,16 +108,96 @@ async function checkAndNotifyAdmin(): Promise<void> {
       .join('\n');
 
     await sendDiscordNotification(
-      '🗳️ **Напоминание: выберите победившую карту!**\n' +
-      `До вайпа в 17:00 остался 1 час.\n\n` +
+      '🗳️ **Напоминание: скоро закроется голосование**\n' +
+      `До автозакрытия в пятницу в 15:00 МСК остался примерно час.\n\n` +
       `**${session.title}** (всего голосов: ${session.total_votes})\n\n` +
       `${optionsText}\n\n` +
-      'Закройте голосование и подтвердите выбор карты в админ-панели.'
+      'При необходимости закройте голосование вручную в админ-панели до 15:00 МСК.'
     );
 
     console.log(`📬 [MapVote] Уведомление отправлено (сессия #${session.id}, голосов: ${session.total_votes})`);
   } catch (error) {
     console.error('[MapVote] Ошибка при проверке/уведомлении:', error instanceof Error ? error.message : error);
+  }
+}
+
+/**
+ * Каждый четверг в 18:00 МСК: создаёт сессию с 4 картами (как в админке по умолчанию),
+ * ends_at — пятница 15:00 МСК. Не создаёт новую, если уже есть активная сессия.
+ */
+async function autoStartWeeklyMapVote(): Promise<void> {
+  if (isAutoVoteScheduleDisabled()) return;
+
+  try {
+    await closeExpiredSessions();
+
+    const [active] = await webPool.query<RowDataPacket[]>(
+      `SELECT id FROM map_vote_sessions WHERE status = 'active' LIMIT 1`
+    );
+    if (active.length > 0) {
+      console.log(`📅 [MapVote] Автостарт пропущен — уже есть активная сессия #${active[0].id}`);
+      return;
+    }
+
+    const sizeA = parseInt(process.env.MAP_VOTE_AUTO_SIZE_A || '3750', 10);
+    const sizeB = parseInt(process.env.MAP_VOTE_AUTO_SIZE_B || '4250', 10);
+    const countA = parseInt(process.env.MAP_VOTE_AUTO_COUNT_A || '5', 10);
+    const countB = parseInt(process.env.MAP_VOTE_AUTO_COUNT_B || '5', 10);
+
+    const mapsA = await generateRandomMaps(sizeA, Math.min(10, Math.max(1, countA)));
+    const mapsB = await generateRandomMaps(sizeB, Math.min(10, Math.max(1, countB)));
+    const maps = [...mapsA, ...mapsB].filter((m) => m.ready && m.seed > 0 && m.size > 0);
+
+    if (maps.length < 2) {
+      await sendDiscordNotification(
+        '❌ **Автостарт голосования не удался**\n' +
+          `RustMaps вернул мало готовых карт (${maps.length}). Проверьте RUSTMAPS_API_KEY и лимиты API.`
+      );
+      return;
+    }
+
+    const startsAt = new Date();
+    const endsAt = voteEndsAtAfterThursdayStartMsk(startsAt);
+    const title = process.env.MAP_VOTE_AUTO_TITLE || 'Голосование за карту';
+    const createdBy = process.env.MAP_VOTE_AUTO_CREATED_BY || 'system';
+
+    const connection = await webPool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [sessionResult] = await connection.query<ResultSetHeader>(
+        `INSERT INTO map_vote_sessions (title, starts_at, ends_at, created_by)
+         VALUES (?, ?, ?, ?)`,
+        [title, toMysqlDatetime(startsAt), toMysqlDatetime(endsAt), createdBy]
+      );
+      const sessionId = sessionResult.insertId;
+
+      for (const m of maps) {
+        await connection.query<ResultSetHeader>(
+          `INSERT INTO map_vote_options (session_id, map_name, map_seed, map_size, image_url, description)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [sessionId, `Seed ${m.seed}`, m.seed, m.size, m.thumbnailUrl || m.imageUrl || null, m.mapPageUrl]
+        );
+      }
+
+      await connection.commit();
+      console.log(`🗳️ [MapVote] Автостарт: сессия #${sessionId}, ends_at=${endsAt.toISOString()}`);
+
+      await sendDiscordNotification(
+        `✅ **Открыто голосование за карту** (авто)\n` +
+          `Сессия #${sessionId}, вариантов: ${maps.length}. Закрытие: **пятница 15:00 МСК**.`
+      );
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('[MapVote] Ошибка автостарта голосования:', error instanceof Error ? error.message : error);
+    await sendDiscordNotification(
+      `❌ **Автостарт голосования: ошибка**\n\`${error instanceof Error ? error.message : String(error)}\``
+    );
   }
 }
 
@@ -112,7 +208,7 @@ async function checkAndNotifyAdmin(): Promise<void> {
 async function closeExpiredSessions(): Promise<void> {
   try {
     const [expired] = await webPool.query<ActiveSessionRow[]>(
-      `SELECT id FROM map_vote_sessions
+      `SELECT id, title FROM map_vote_sessions
        WHERE status = 'active' AND ends_at <= UTC_TIMESTAMP()`
     );
 
@@ -166,12 +262,6 @@ async function closeExpiredSessions(): Promise<void> {
   }
 }
 
-/**
- * Инициализирует cron-задачи для голосования за карты.
- *
- * - Каждую пятницу в 16:00 МСК (13:00 UTC): уведомление админа
- * - Каждые 5 минут: автозакрытие истёкших сессий
- */
 /**
  * Отправляет уведомление в Discord о закрытии голосования.
  * Вызывается из роута при ручном закрытии.
@@ -233,20 +323,40 @@ function runDeferred(fn: () => void | Promise<void>): void {
   });
 }
 
+/** Cron: автостарт голосования (Чт 18:00 МСК), напоминание (Пт 14:00 МСК), автозакрытие по ends_at (~каждые 5 мин). */
 export function scheduleMapVoteTasks(): void {
-  // Пятница 16:00 МСК = 13:00 UTC (cron работает в UTC на сервере)
-  // Формат: минута час * * день_недели (5 = пятница)
-  cron.schedule('0 13 * * 5', () => {
-    runDeferred(() => {
-      console.log('🔔 [MapVote] Пятничная проверка голосования (16:00 МСК)');
-      return checkAndNotifyAdmin();
-    });
-  });
+  const tzOpts = { timezone: MSK_TZ };
+
+  // Четверг 18:00 МСК — открытие недельного голосования (конец — пятница 15:00 МСК, см. ends_at)
+  cron.schedule(
+    '0 18 * * 4',
+    () => {
+      runDeferred(() => {
+        console.log('📅 [MapVote] Чт 18:00 МСК — автостарт голосования');
+        return autoStartWeeklyMapVote();
+      });
+    },
+    tzOpts
+  );
+
+  // Пятница 14:00 МСК — напоминание за ~1 ч до автозакрытия в 15:00 МСК
+  cron.schedule(
+    '0 14 * * 5',
+    () => {
+      runDeferred(() => {
+        console.log('🔔 [MapVote] Пт 14:00 МСК — напоминание перед закрытием голосования');
+        return checkAndNotifyAdmin();
+      });
+    },
+    tzOpts
+  );
 
   // Каждые ~5 мин, но не в :00 — избегаем одновременного тика с другими задачами на начале часа
   cron.schedule('2,7,12,17,22,27,32,37,42,47,52,57 * * * *', () => {
     runDeferred(closeExpiredSessions);
   });
 
-  console.log('✅ Cron: уведомление о карте (Пт 16:00 МСК), автозакрытие ~каждые 5 мин (:02,:07,…)');
+  console.log(
+    '✅ Cron map-vote: старт Чт 18:00 МСК, конец Пт 15:00 МСК (ends_at + автозакрытие), напоминание Пт 14:00 МСК'
+  );
 }
