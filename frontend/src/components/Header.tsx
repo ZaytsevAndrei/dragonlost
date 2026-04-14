@@ -54,16 +54,6 @@ function Header() {
             <Link to="/vote" className="nav-link">
               Голосование
             </Link>
-            {user ? (
-              <>
-                <Link to="/inventory" className="nav-link">
-                  Инвентарь
-                </Link>
-                <Link to="/rewards" className="nav-link">
-                  Ежедневная награда
-                </Link>
-              </>
-            ) : null}
           </nav>
 
           <div className="header-tools">
@@ -84,6 +74,23 @@ function Header() {
                 
                 {dropdownOpen && (
                   <div className="dropdown-menu">
+                    <Link
+                      to="/inventory"
+                      className="dropdown-item"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <span className="dropdown-icon">🎒</span>
+                      Инвентарь
+                    </Link>
+                    <Link
+                      to="/rewards"
+                      className="dropdown-item"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <span className="dropdown-icon">🎁</span>
+                      Ежедневная награда
+                    </Link>
+                    {user.role === 'admin' ? <div className="dropdown-divider" role="separator" /> : null}
                     {user.role === 'admin' && (
                       <Link
                         to="/admin"
@@ -94,6 +101,7 @@ function Header() {
                         Админка
                       </Link>
                     )}
+                    <div className="dropdown-divider" role="separator" />
                     <button 
                       onClick={handleLogout} 
                       className="dropdown-item logout"
