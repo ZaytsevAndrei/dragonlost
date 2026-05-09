@@ -32,7 +32,8 @@ export interface PlayerStats {
     metalOre: number;
     sulfurOre: number;
   };
-  lastSeen: number;
+  /** Только для ответа админу (список /stats) */
+  lastSeen?: number;
   timePlayed: string;
   firstConnection: number;
 }

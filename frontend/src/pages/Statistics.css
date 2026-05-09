@@ -208,6 +208,21 @@
   color: #4caf50;
 }
 
+/* Иконки ресурсов Rust (Rust Labs, те же shortname, что в игре) */
+.rust-resource-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.stat-column-label-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Пагинация */
 .pagination {
   display: flex;

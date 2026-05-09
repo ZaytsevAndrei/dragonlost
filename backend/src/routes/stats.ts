@@ -19,7 +19,7 @@ function maskSteamId(steamid: string): string {
   return steamid.slice(0, 4) + '****' + steamid.slice(-4);
 }
 
-function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
+function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean, includeLastSeen: boolean) {
   let statisticsDB: Record<string, any> = {};
   try {
     statisticsDB = JSON.parse(row.StatisticsDB || '{}');
@@ -61,7 +61,7 @@ function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean) {
       metalOre: gathered['metal.ore'] || 0,
       sulfurOre: gathered['sulfur.ore'] || 0,
     },
-    lastSeen: parseFloat(row['Last Seen'] || 0),
+    ...(includeLastSeen ? { lastSeen: parseFloat(row['Last Seen'] || 0) } : {}),
     timePlayed: row['Time Played'] || '0',
     firstConnection: parseFloat(row['First Connection'] || 0),
   };
@@ -76,6 +76,8 @@ router.get('/', async (req, res) => {
     const offset = (page - 1) * limit;
 
     const isAuth = req.isAuthenticated();
+    const sessionUser = req.user as { role?: string } | undefined;
+    const isAdmin = Boolean(isAuth && sessionUser?.role === 'admin');
 
     let countQuery = 'SELECT COUNT(*) as total FROM PlayerDatabase';
     let dataQuery = 'SELECT * FROM PlayerDatabase';
@@ -95,7 +97,7 @@ router.get('/', async (req, res) => {
 
     const [rows] = await rustPool.query<RowDataPacket[]>(dataQuery, [...params, limit, offset]);
 
-    const players = rows.map((row) => parsePlayerRow(row, isAuth));
+    const players = rows.map((row) => parsePlayerRow(row, isAuth, isAdmin));
 
     res.json({
       players,
@@ -133,7 +135,7 @@ router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) 
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    const player = parsePlayerRow(rows[0], true);
+    const player = parsePlayerRow(rows[0], true, true);
 
     res.json({ player });
   } catch (error) {

@@ -1,8 +1,41 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { api } from '../services/api';
 import StatePanel from '../components/StatePanel';
+import { useAuthStore } from '../store/authStore';
 import type { PlayerStats } from '../types';
 import './Statistics.css';
+
+/** Иконки предметов Rust (как в игре), через публичные URL Rust Labs */
+const RUST_RESOURCE_ICON = {
+  wood: 'https://rustlabs.com/img/items180/wood.png',
+  stones: 'https://rustlabs.com/img/items180/stones.png',
+  metalOre: 'https://rustlabs.com/img/items180/metal.ore.png',
+  sulfurOre: 'https://rustlabs.com/img/items180/sulfur.ore.png',
+} as const;
+
+function RustResourceIcon({ src }: { src: string }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      className="rust-resource-icon"
+      width={20}
+      height={20}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+    />
+  );
+}
+
+function ResourceColumnTitle({ text, iconSrc }: { text: string; iconSrc: string }): ReactNode {
+  return (
+    <span className="stat-column-label-with-icon">
+      <RustResourceIcon src={iconSrc} />
+      {text}
+    </span>
+  );
+}
 
 interface PaginationInfo {
   page: number;
@@ -46,6 +79,7 @@ const DEFAULT_VISIBLE_COLUMNS: Record<ColumnKey, boolean> = {
 };
 
 function Statistics() {
+  const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
   const [players, setPlayers] = useState<PlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,31 +180,56 @@ function Statistics() {
     return `${formatNumber(hours)} ч ${formatNumber(minutes)} мин`;
   };
 
-  const formatLastSeen = (timestamp: number) => {
-    if (!timestamp) return '-';
+  const formatLastSeen = (timestamp: number | undefined) => {
+    if (timestamp == null || !timestamp) return '-';
     return new Date(timestamp * 1000).toLocaleString('ru-RU');
   };
 
-  const columns: Array<{
+  type StatColumn = {
     key: ColumnKey;
-    label: string;
+    label: ReactNode;
     cellClassName?: string;
     render: (player: PlayerStats) => string | number;
-  }> = [
-    { key: 'kills', label: 'Убийств', render: (player) => player.stats.kills },
-    { key: 'deaths', label: 'Смертей', render: (player) => player.stats.deaths },
-    { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
-    { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
-    { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
-    { key: 'barrelsBroken', label: '🛢️ Бочек', render: (player) => formatNumber(player.stats.barrelsBroken) },
-    { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
-    { key: 'timePlayed', label: 'Время', render: (player) => formatHoursMinutesPlayed(player.timePlayed) },
-    { key: 'lastSeen', label: 'Был в сети', render: (player) => formatLastSeen(player.lastSeen) },
-    { key: 'wood', label: '🪵 Дерево', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.wood) },
-    { key: 'stones', label: '🪨 Камень', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.stones) },
-    { key: 'metalOre', label: '⛏️ Металл', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.metalOre) },
-    { key: 'sulfurOre', label: '💎 Сера', cellClassName: 'resource-stat', render: (player) => formatNumber(player.resources.sulfurOre) },
-  ];
+  };
+
+  const columns: StatColumn[] = useMemo(() => {
+    const all: StatColumn[] = [
+      { key: 'kills', label: 'Убийств', render: (player) => player.stats.kills },
+      { key: 'deaths', label: 'Смертей', render: (player) => player.stats.deaths },
+      { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
+      { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
+      { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
+      { key: 'barrelsBroken', label: '🛢️ Бочек', render: (player) => formatNumber(player.stats.barrelsBroken) },
+      { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
+      { key: 'timePlayed', label: 'Время', render: (player) => formatHoursMinutesPlayed(player.timePlayed) },
+      { key: 'lastSeen', label: 'Был в сети', render: (player) => formatLastSeen(player.lastSeen) },
+      {
+        key: 'wood',
+        label: <ResourceColumnTitle text="Дерево" iconSrc={RUST_RESOURCE_ICON.wood} />,
+        cellClassName: 'resource-stat',
+        render: (player) => formatNumber(player.resources.wood),
+      },
+      {
+        key: 'stones',
+        label: <ResourceColumnTitle text="Камень" iconSrc={RUST_RESOURCE_ICON.stones} />,
+        cellClassName: 'resource-stat',
+        render: (player) => formatNumber(player.resources.stones),
+      },
+      {
+        key: 'metalOre',
+        label: <ResourceColumnTitle text="Железная руда" iconSrc={RUST_RESOURCE_ICON.metalOre} />,
+        cellClassName: 'resource-stat',
+        render: (player) => formatNumber(player.resources.metalOre),
+      },
+      {
+        key: 'sulfurOre',
+        label: <ResourceColumnTitle text="Серная руда" iconSrc={RUST_RESOURCE_ICON.sulfurOre} />,
+        cellClassName: 'resource-stat',
+        render: (player) => formatNumber(player.resources.sulfurOre),
+      },
+    ];
+    return isAdmin ? all : all.filter((c) => c.key !== 'lastSeen');
+  }, [isAdmin]);
   const activeColumns = columns.filter((column) => visibleColumns[column.key]);
   const visibleColumnsCount = activeColumns.length;
   const totalColumnsCount = columns.length;
@@ -194,7 +253,7 @@ function Statistics() {
       barrelsBroken: true,
       joins: true,
       timePlayed: true,
-      lastSeen: true,
+      lastSeen: isAdmin,
       wood: true,
       stones: true,
       metalOre: true,
@@ -203,7 +262,10 @@ function Statistics() {
   };
 
   const resetColumnsToDefault = () => {
-    setVisibleColumns({ ...DEFAULT_VISIBLE_COLUMNS });
+    setVisibleColumns({
+      ...DEFAULT_VISIBLE_COLUMNS,
+      lastSeen: isAdmin,
+    });
   };
 
   if (loading) {
@@ -263,25 +325,29 @@ function Statistics() {
             className={`filter-btn ${sortCategory === 'wood' ? 'active' : ''}`}
             onClick={() => handleCategoryChange('wood')}
           >
-            🪵 Дерево
+            <RustResourceIcon src={RUST_RESOURCE_ICON.wood} />
+            Дерево
           </button>
           <button
             className={`filter-btn ${sortCategory === 'stones' ? 'active' : ''}`}
             onClick={() => handleCategoryChange('stones')}
           >
-            🪨 Камень
+            <RustResourceIcon src={RUST_RESOURCE_ICON.stones} />
+            Камень
           </button>
           <button
             className={`filter-btn ${sortCategory === 'metal' ? 'active' : ''}`}
             onClick={() => handleCategoryChange('metal')}
           >
-            ⛏️ Металл
+            <RustResourceIcon src={RUST_RESOURCE_ICON.metalOre} />
+            Железная руда
           </button>
           <button
             className={`filter-btn ${sortCategory === 'sulfur' ? 'active' : ''}`}
             onClick={() => handleCategoryChange('sulfur')}
           >
-            💎 Сера
+            <RustResourceIcon src={RUST_RESOURCE_ICON.sulfurOre} />
+            Серная руда
           </button>
         </div>
 
