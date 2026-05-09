@@ -191,7 +191,15 @@ router.patch('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
       vals
     );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Промокод не найден' });
+      const [existsRows] = await webPool.query<RowDataPacket[]>(
+        'SELECT 1 AS ok FROM voucher_codes WHERE id = ? LIMIT 1',
+        [id]
+      );
+      if (existsRows.length === 0) {
+        return res.status(404).json({ error: 'Промокод не найден' });
+      }
+      // Строка есть, но значения не изменились (например is_active уже был нужным) — считаем успехом
+      return res.json({ success: true });
     }
     return res.json({ success: true });
   } catch (e: unknown) {

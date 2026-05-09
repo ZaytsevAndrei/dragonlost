@@ -12,9 +12,16 @@ interface Voucher {
   activations_count: number;
   max_activations_per_user: number;
   weekly_repeat: number;
-  is_active: number;
+  /** С API может прийти number | string | boolean */
+  is_active: number | string | boolean;
   redemption_count: number;
   created_at: string;
+}
+
+function voucherIsActive(v: Pick<Voucher, 'is_active'>): boolean {
+  if (v.is_active === true) return true;
+  if (v.is_active === false || v.is_active == null) return false;
+  return Number(v.is_active) === 1;
 }
 
 function formatForInput(iso: string | null): string {
@@ -136,10 +143,13 @@ function VouchersAdmin() {
   const toggleActive = async (v: Voucher) => {
     try {
       setError(null);
-      await api.patch(`/admin/vouchers/${v.id}`, { is_active: v.is_active !== 1 });
+      await api.patch(`/admin/vouchers/${v.id}`, { is_active: !voucherIsActive(v) });
       await load();
-    } catch {
-      setError('Не удалось изменить статус');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Не удалось изменить статус';
+      setError(msg);
     }
   };
 
@@ -263,7 +273,7 @@ function VouchersAdmin() {
               </thead>
               <tbody>
                 {vouchers.map((v) => (
-                  <tr key={v.id} className={v.is_active !== 1 ? 'va-row-inactive' : undefined}>
+                  <tr key={v.id} className={!voucherIsActive(v) ? 'va-row-inactive' : undefined}>
                     <td>
                       <code>{v.code}</code>
                     </td>
@@ -278,13 +288,13 @@ function VouchersAdmin() {
                     </td>
                     <td>{v.max_activations_per_user}</td>
                     <td>{v.weekly_repeat === 1 ? 'да' : 'нет'}</td>
-                    <td>{v.is_active === 1 ? 'вкл' : 'выкл'}</td>
+                    <td>{voucherIsActive(v) ? 'вкл' : 'выкл'}</td>
                     <td className="va-row-actions">
                       <button type="button" className="va-btn-small" onClick={() => startEdit(v)}>
                         Изменить
                       </button>
                       <button type="button" className="va-btn-small" onClick={() => toggleActive(v)}>
-                        {v.is_active === 1 ? 'Выключить' : 'Включить'}
+                        {voucherIsActive(v) ? 'Выключить' : 'Включить'}
                       </button>
                     </td>
                   </tr>
