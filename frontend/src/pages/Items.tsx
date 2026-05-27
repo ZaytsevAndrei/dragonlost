@@ -4,7 +4,14 @@ import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
 import { api, getBackendOrigin, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import type { ShopItem } from '../types';
+import { safeGetItem, safeSetItem } from '../utils/safeLocalStorage';
 import './Items.css';
+
+const SHOP_CATEGORY_STORAGE_KEY = 'shop_category';
+
+function readSavedShopCategory(): string {
+  return safeGetItem(SHOP_CATEGORY_STORAGE_KEY) ?? 'all';
+}
 
 const IGNORED_META_KEYS = new Set([
   'id',
@@ -152,7 +159,7 @@ function Items() {
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(readSavedShopCategory);
   const [balance, setBalance] = useState<PlayerBalance | null>(null);
   const [depositAmount, setDepositAmount] = useState<number>(500);
   const [depositLoading, setDepositLoading] = useState(false);
@@ -191,6 +198,10 @@ function Items() {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  useEffect(() => {
+    safeSetItem(SHOP_CATEGORY_STORAGE_KEY, selectedCategory);
+  }, [selectedCategory]);
 
   useEffect(() => {
     if (!modalItem) return;
@@ -361,6 +372,14 @@ function Items() {
     if (selectedCategory === 'all') return groupedItems;
     return groupedItems.filter((group) => group.key === selectedCategory);
   }, [groupedItems, selectedCategory]);
+
+  useEffect(() => {
+    if (loading || items.length === 0) return;
+    const validKeys = new Set(filters.map((filter) => filter.key));
+    if (!validKeys.has(selectedCategory)) {
+      setSelectedCategory('all');
+    }
+  }, [loading, items.length, filters, selectedCategory]);
 
   if (loading) {
     return (
