@@ -60,11 +60,6 @@
   font-size: var(--font-size-sm);
 }
 
-.status-warning {
-  color: var(--warning-500);
-  font-size: var(--font-size-sm);
-}
-
 .inventory-section h2 {
   margin-bottom: var(--space-4);
 }

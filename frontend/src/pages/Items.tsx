@@ -290,7 +290,6 @@ function Items() {
       if (!user) return;
       const itemId = Number(item.id);
       const itemPrice = Number(item.price ?? 0);
-      const itemName = getItemTitle(item);
       const qty = Math.min(
         MAX_BUY_QUANTITY,
         Math.max(1, Math.floor(Number.isFinite(purchaseQuantity) ? purchaseQuantity : 1))
@@ -326,7 +325,6 @@ function Items() {
                 }
               : prev
           );
-          alert(`Покупка успешна: «${itemName}» × ${qty}. Предметы добавлены в инвентарь.`);
           setModalItem(null);
         }
       } catch (err: unknown) {

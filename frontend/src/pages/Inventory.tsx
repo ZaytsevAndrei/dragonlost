@@ -99,27 +99,16 @@ function Inventory() {
   const deliveredItems = useMemo(() => inventory.filter((item) => item.status === 'delivered'), [inventory]);
 
   const handleUseItem = useCallback(
-    async (itemId: number, itemName: string) => {
-      if (!onlineStatus?.online) {
-        alert('Вы должны быть онлайн на сервере, чтобы получить предмет');
-        return;
-      }
-      if (!window.confirm(`Выдать предмет "${itemName}" на вашего персонажа в игре?`)) {
-        return;
-      }
+    async (itemId: number) => {
+      if (!onlineStatus?.online) return;
 
       try {
         setUsingItemId(itemId);
-        const response = await api.post<{ success: boolean; message: string }>(`/inventory/use/${itemId}`);
+        const response = await api.post<{ success: boolean }>(`/inventory/use/${itemId}`);
         if (response.data.success) {
-          alert(`✅ ${response.data.message}`);
           await fetchInventory();
         }
-      } catch (err: unknown) {
-        const msg =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-          'Ошибка при использовании предмета';
-        alert(`❌ ${msg}`);
+      } catch {
         await checkOnlineStatus();
       } finally {
         setUsingItemId(null);
@@ -167,9 +156,6 @@ function Inventory() {
           <div className="status-info">
             <div className="status-label">{onlineStatus.online ? 'Вы онлайн на сервере' : 'Вы оффлайн'}</div>
             <div className="status-detail">{onlineStatus.message}</div>
-            {!onlineStatus.online ? (
-              <div className="status-warning">⚠️ Войдите на сервер, чтобы получать предметы</div>
-            ) : null}
           </div>
         </div>
       ) : null}
@@ -194,7 +180,7 @@ function Inventory() {
                   <button
                     className="btn-use"
                     type="button"
-                    onClick={() => handleUseItem(item.id, item.item_name)}
+                    onClick={() => handleUseItem(item.id)}
                     disabled={usingItemId === item.id || !onlineStatus?.online}
                   >
                     {usingItemId === item.id ? 'Получение...' : '📦 Получить предмет'}

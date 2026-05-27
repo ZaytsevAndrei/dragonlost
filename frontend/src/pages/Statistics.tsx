@@ -37,6 +37,23 @@ function ResourceColumnTitle({ text, iconSrc }: { text: string; iconSrc: string 
   );
 }
 
+function FilterBtnLabel({
+  iconSrc,
+  emoji,
+  children,
+}: {
+  iconSrc?: string;
+  emoji?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="filter-btn-label-with-icon">
+      {iconSrc ? <RustResourceIcon src={iconSrc} /> : emoji ? <span aria-hidden="true">{emoji}</span> : null}
+      <span>{children}</span>
+    </span>
+  );
+}
+
 interface PaginationInfo {
   page: number;
   limit: number;
@@ -45,6 +62,22 @@ interface PaginationInfo {
 }
 
 type SortCategory = 'all' | 'kills' | 'kd' | 'wood' | 'stones' | 'metal' | 'sulfur';
+
+const SORT_FILTERS: {
+  category: SortCategory;
+  label: string;
+  emoji?: string;
+  iconSrc?: string;
+}[] = [
+  { category: 'all', label: 'Все', emoji: '📊' },
+  { category: 'kills', label: 'Убийства', emoji: '⚔️' },
+  { category: 'kd', label: 'K/D', emoji: '🎯' },
+  { category: 'wood', label: 'Дерево', iconSrc: RUST_RESOURCE_ICON.wood },
+  { category: 'stones', label: 'Камень', iconSrc: RUST_RESOURCE_ICON.stones },
+  { category: 'metal', label: 'Железная руда', iconSrc: RUST_RESOURCE_ICON.metalOre },
+  { category: 'sulfur', label: 'Серная руда', iconSrc: RUST_RESOURCE_ICON.sulfurOre },
+];
+
 type ColumnKey =
   | 'kills'
   | 'deaths'
@@ -303,52 +336,18 @@ function Statistics() {
         </div>
         
         <div className="stats-filters">
-          <button
-            className={`filter-btn ${sortCategory === 'all' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('all')}
-          >
-            📊 Все
-          </button>
-          <button
-            className={`filter-btn ${sortCategory === 'kills' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('kills')}
-          >
-            ⚔️ Убийства
-          </button>
-          <button
-            className={`filter-btn ${sortCategory === 'kd' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('kd')}
-          >
-            🎯 K/D
-          </button>
-          <button
-            className={`filter-btn ${sortCategory === 'wood' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('wood')}
-          >
-            <RustResourceIcon src={RUST_RESOURCE_ICON.wood} />
-            Дерево
-          </button>
-          <button
-            className={`filter-btn ${sortCategory === 'stones' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('stones')}
-          >
-            <RustResourceIcon src={RUST_RESOURCE_ICON.stones} />
-            Камень
-          </button>
-          <button
-            className={`filter-btn ${sortCategory === 'metal' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('metal')}
-          >
-            <RustResourceIcon src={RUST_RESOURCE_ICON.metalOre} />
-            Железная руда
-          </button>
-          <button
-            className={`filter-btn ${sortCategory === 'sulfur' ? 'active' : ''}`}
-            onClick={() => handleCategoryChange('sulfur')}
-          >
-            <RustResourceIcon src={RUST_RESOURCE_ICON.sulfurOre} />
-            Серная руда
-          </button>
+          {SORT_FILTERS.map(({ category, label, emoji, iconSrc }) => (
+            <button
+              key={category}
+              type="button"
+              className={`filter-btn ${sortCategory === category ? 'active' : ''}`}
+              onClick={() => handleCategoryChange(category)}
+            >
+              <FilterBtnLabel iconSrc={iconSrc} emoji={emoji}>
+                {label}
+              </FilterBtnLabel>
+            </button>
+          ))}
         </div>
 
         <div className="stats-controls">

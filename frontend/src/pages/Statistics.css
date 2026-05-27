@@ -217,10 +217,16 @@
   vertical-align: middle;
 }
 
-.stat-column-label-with-icon {
+.stat-column-label-with-icon,
+.filter-btn-label-with-icon {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.filter-btn-label-with-icon > span[aria-hidden='true'] {
+  font-size: 1.1em;
+  line-height: 1;
 }
 
 /* Пагинация */
