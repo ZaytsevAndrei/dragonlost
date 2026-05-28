@@ -94,22 +94,6 @@ type ColumnKey =
   | 'sulfurOre';
 
 const PLAYERS_PER_PAGE = 20;
-const COLUMN_VISIBILITY_STORAGE_KEY = 'statistics-columns-visibility';
-const DEFAULT_VISIBLE_COLUMNS: Record<ColumnKey, boolean> = {
-  kills: true,
-  deaths: true,
-  kd: true,
-  headshots: true,
-  shots: false,
-  barrelsBroken: false,
-  joins: true,
-  timePlayed: true,
-  lastSeen: true,
-  wood: true,
-  stones: true,
-  metalOre: true,
-  sulfurOre: true,
-};
 
 function Statistics() {
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
@@ -120,17 +104,6 @@ function Statistics() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [sortCategory, setSortCategory] = useState<SortCategory>('all');
-  const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(() => {
-    if (typeof window === 'undefined') return DEFAULT_VISIBLE_COLUMNS;
-    try {
-      const raw = window.localStorage.getItem(COLUMN_VISIBILITY_STORAGE_KEY);
-      if (!raw) return DEFAULT_VISIBLE_COLUMNS;
-      const parsed = JSON.parse(raw) as Partial<Record<ColumnKey, boolean>>;
-      return { ...DEFAULT_VISIBLE_COLUMNS, ...parsed };
-    } catch {
-      return DEFAULT_VISIBLE_COLUMNS;
-    }
-  });
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const fetchStats = useCallback(async (page: number, search: string) => {
@@ -156,10 +129,6 @@ function Statistics() {
   useEffect(() => {
     fetchStats(currentPage, searchTerm);
   }, [currentPage, fetchStats]);
-
-  useEffect(() => {
-    window.localStorage.setItem(COLUMN_VISIBILITY_STORAGE_KEY, JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
 
   // Клиентская сортировка текущей страницы
   const sortedPlayers = [...players].sort((a, b) => {
@@ -263,43 +232,7 @@ function Statistics() {
     ];
     return isAdmin ? all : all.filter((c) => c.key !== 'lastSeen');
   }, [isAdmin]);
-  const activeColumns = columns.filter((column) => visibleColumns[column.key]);
-  const visibleColumnsCount = activeColumns.length;
-  const totalColumnsCount = columns.length;
-
-  const toggleColumnVisibility = (columnKey: ColumnKey) => {
-    setVisibleColumns((prev) => {
-      const next = { ...prev, [columnKey]: !prev[columnKey] };
-      const visibleCount = Object.values(next).filter(Boolean).length;
-      if (visibleCount === 0) return prev;
-      return next;
-    });
-  };
-
-  const selectAllColumns = () => {
-    setVisibleColumns({
-      kills: true,
-      deaths: true,
-      kd: true,
-      headshots: true,
-      shots: true,
-      barrelsBroken: true,
-      joins: true,
-      timePlayed: true,
-      lastSeen: isAdmin,
-      wood: true,
-      stones: true,
-      metalOre: true,
-      sulfurOre: true,
-    });
-  };
-
-  const resetColumnsToDefault = () => {
-    setVisibleColumns({
-      ...DEFAULT_VISIBLE_COLUMNS,
-      lastSeen: isAdmin,
-    });
-  };
+  const activeColumns = columns;
 
   if (loading) {
     return (
@@ -330,9 +263,6 @@ function Statistics() {
       <div className="stats-header">
         <div className="stats-title-row">
           <h1>Статистика игроков</h1>
-          <span className="columns-badge">
-            Показано колонок: {visibleColumnsCount}/{totalColumnsCount}
-          </span>
         </div>
         
         <div className="stats-filters">
@@ -363,33 +293,6 @@ function Statistics() {
           </div>
         </div>
 
-        <div className="columns-settings">
-          <span className="columns-settings-title">Колонки:</span>
-          <button
-            type="button"
-            className="columns-action-btn"
-            onClick={selectAllColumns}
-          >
-            Выбрать все
-          </button>
-          <button
-            type="button"
-            className="columns-action-btn"
-            onClick={resetColumnsToDefault}
-          >
-            Сбросить к умолчанию
-          </button>
-          {columns.map((column) => (
-            <label key={column.key} className="column-toggle">
-              <input
-                type="checkbox"
-                checked={visibleColumns[column.key]}
-                onChange={() => toggleColumnVisibility(column.key)}
-              />
-              <span>{column.label}</span>
-            </label>
-          ))}
-        </div>
       </div>
 
       <div className="stats-table-container">
