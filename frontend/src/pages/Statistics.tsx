@@ -81,12 +81,6 @@ type ColumnKey =
   | 'kills'
   | 'deaths'
   | 'kd'
-  | 'headshots'
-  | 'shots'
-  | 'barrelsBroken'
-  | 'joins'
-  | 'timePlayed'
-  | 'lastSeen'
   | 'wood'
   | 'stones'
   | 'metalOre'
@@ -184,8 +178,6 @@ function Statistics() {
       { key: 'kills', label: 'Убийств', render: (player) => player.stats.kills },
       { key: 'deaths', label: 'Смертей', render: (player) => player.stats.deaths },
       { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
-      { key: 'barrelsBroken', label: '🛢️ Бочек', render: (player) => formatNumber(player.stats.barrelsBroken) },
-      { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
       {
         key: 'wood',
         label: <ResourceColumnTitle text="Дерево" iconSrc={RUST_RESOURCE_ICON.wood} />,
