@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
 import { api } from '../services/api';
 import StatePanel from '../components/StatePanel';
-import { useAuthStore } from '../store/authStore';
 import type { PlayerStats } from '../types';
 import './Statistics.css';
 
@@ -96,7 +95,6 @@ type ColumnKey =
 const PLAYERS_PER_PAGE = 20;
 
 function Statistics() {
-  const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
   const [players, setPlayers] = useState<PlayerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,19 +172,6 @@ function Statistics() {
     return num.toLocaleString('ru-RU');
   };
 
-  const formatHoursMinutesPlayed = (timePlayedRaw: string | number) => {
-    const timePlayed = typeof timePlayedRaw === 'number' ? timePlayedRaw : Number.parseFloat(timePlayedRaw);
-    const totalMinutes = Number.isFinite(timePlayed) ? Math.max(0, Math.floor(timePlayed)) : 0;
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${formatNumber(hours)} ч ${formatNumber(minutes)} мин`;
-  };
-
-  const formatLastSeen = (timestamp: number | undefined) => {
-    if (timestamp == null || !timestamp) return '-';
-    return new Date(timestamp * 1000).toLocaleString('ru-RU');
-  };
-
   type StatColumn = {
     key: ColumnKey;
     label: ReactNode;
@@ -199,12 +184,8 @@ function Statistics() {
       { key: 'kills', label: 'Убийств', render: (player) => player.stats.kills },
       { key: 'deaths', label: 'Смертей', render: (player) => player.stats.deaths },
       { key: 'kd', label: 'K/D', cellClassName: 'kd-stat', render: (player) => player.stats.kd.toFixed(2) },
-      { key: 'headshots', label: 'Хедшотов', render: (player) => formatNumber(player.stats.headshots) },
-      { key: 'shots', label: 'Выстрелов', render: (player) => formatNumber(player.stats.shots) },
       { key: 'barrelsBroken', label: '🛢️ Бочек', render: (player) => formatNumber(player.stats.barrelsBroken) },
       { key: 'joins', label: 'Заходов', render: (player) => formatNumber(player.stats.joins) },
-      { key: 'timePlayed', label: 'Время', render: (player) => formatHoursMinutesPlayed(player.timePlayed) },
-      { key: 'lastSeen', label: 'Был в сети', render: (player) => formatLastSeen(player.lastSeen) },
       {
         key: 'wood',
         label: <ResourceColumnTitle text="Дерево" iconSrc={RUST_RESOURCE_ICON.wood} />,
@@ -230,8 +211,8 @@ function Statistics() {
         render: (player) => formatNumber(player.resources.sulfurOre),
       },
     ];
-    return isAdmin ? all : all.filter((c) => c.key !== 'lastSeen');
-  }, [isAdmin]);
+    return all;
+  }, []);
   const activeColumns = columns;
 
   if (loading) {
