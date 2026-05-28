@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
 import { isAdmin } from '../middleware/auth';
@@ -6,6 +6,8 @@ import { sensitiveRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 const CODE_MAX_LEN = 64;
+let voucherColumnsCache: Set<string> | null = null;
+let voucherColumnsCacheTs = 0;
 
 interface VoucherAdminRow extends RowDataPacket {
   id: number;
@@ -38,6 +40,18 @@ function normalizeCode(raw: unknown): string | null {
   const t = raw.trim();
   if (!t || t.length > CODE_MAX_LEN) return null;
   return t;
+}
+
+async function getVoucherColumns(): Promise<Set<string>> {
+  const now = Date.now();
+  if (voucherColumnsCache && now - voucherColumnsCacheTs < 60_000) {
+    return voucherColumnsCache;
+  }
+  const [rows] = await webPool.query<RowDataPacket[]>('SHOW COLUMNS FROM voucher_codes');
+  const cols = new Set<string>(rows.map((r) => String(r.Field)));
+  voucherColumnsCache = cols;
+  voucherColumnsCacheTs = now;
+  return cols;
 }
 
 router.get('/', isAdmin, async (_req, res) => {
@@ -92,12 +106,41 @@ router.post('/', sensitiveRateLimiter, isAdmin, async (req, res) => {
   const weeklyRepeat = Boolean(req.body.weekly_repeat);
 
   try {
+    const cols = await getVoucherColumns();
+    const insertCols = ['code', 'amount'];
+    const insertVals: unknown[] = [code, amount];
+    if (cols.has('valid_from')) {
+      insertCols.push('valid_from');
+      insertVals.push(validFrom);
+    }
+    if (cols.has('valid_until')) {
+      insertCols.push('valid_until');
+      insertVals.push(validUntil);
+    }
+    if (cols.has('max_activations_total')) {
+      insertCols.push('max_activations_total');
+      insertVals.push(maxTotal);
+    }
+    if (cols.has('activations_count')) {
+      insertCols.push('activations_count');
+      insertVals.push(0);
+    }
+    if (cols.has('max_activations_per_user')) {
+      insertCols.push('max_activations_per_user');
+      insertVals.push(perUser);
+    }
+    if (cols.has('weekly_repeat')) {
+      insertCols.push('weekly_repeat');
+      insertVals.push(weeklyRepeat ? 1 : 0);
+    }
+    if (cols.has('is_active')) {
+      insertCols.push('is_active');
+      insertVals.push(1);
+    }
+    const placeholders = insertCols.map(() => '?').join(', ');
     const [result] = await webPool.query<ResultSetHeader>(
-      `INSERT INTO voucher_codes (
-        code, amount, valid_from, valid_until, max_activations_total,
-        activations_count, max_activations_per_user, weekly_repeat, is_active
-      ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, 1)`,
-      [code, amount, validFrom, validUntil, maxTotal, perUser, weeklyRepeat ? 1 : 0]
+      `INSERT INTO voucher_codes (${insertCols.join(', ')}) VALUES (${placeholders})`,
+      insertVals
     );
     return res.status(201).json({ id: result.insertId, success: true });
   } catch (e: unknown) {
@@ -110,7 +153,7 @@ router.post('/', sensitiveRateLimiter, isAdmin, async (req, res) => {
   }
 });
 
-router.patch('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
+const updateVoucherHandler = async (req: Request, res: Response) => {
   const id = Number.parseInt(String(req.params.id), 10);
   if (!Number.isFinite(id) || id < 1) {
     return res.status(400).json({ error: 'Некорректный id' });
@@ -118,6 +161,7 @@ router.patch('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
 
   const updates: string[] = [];
   const vals: unknown[] = [];
+  const cols = await getVoucherColumns();
 
   if (req.body.code !== undefined) {
     const c = normalizeCode(req.body.code);
@@ -140,27 +184,33 @@ router.patch('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
     if (d === undefined) {
       return res.status(400).json({ error: 'Некорректная valid_from' });
     }
-    updates.push('valid_from = ?');
-    vals.push(d);
+    if (cols.has('valid_from')) {
+      updates.push('valid_from = ?');
+      vals.push(d);
+    }
   }
   if (req.body.valid_until !== undefined) {
     const d = parseOptionalDate(req.body.valid_until);
     if (d === undefined) {
       return res.status(400).json({ error: 'Некорректная valid_until' });
     }
-    updates.push('valid_until = ?');
-    vals.push(d);
+    if (cols.has('valid_until')) {
+      updates.push('valid_until = ?');
+      vals.push(d);
+    }
   }
   if (req.body.max_activations_total !== undefined) {
-    if (req.body.max_activations_total === null || req.body.max_activations_total === '') {
-      updates.push('max_activations_total = NULL');
-    } else {
-      const n = Number.parseInt(String(req.body.max_activations_total), 10);
-      if (!Number.isFinite(n) || n < 1) {
-        return res.status(400).json({ error: 'Некорректный max_activations_total' });
+    if (cols.has('max_activations_total')) {
+      if (req.body.max_activations_total === null || req.body.max_activations_total === '') {
+        updates.push('max_activations_total = NULL');
+      } else {
+        const n = Number.parseInt(String(req.body.max_activations_total), 10);
+        if (!Number.isFinite(n) || n < 1) {
+          return res.status(400).json({ error: 'Некорректный max_activations_total' });
+        }
+        updates.push('max_activations_total = ?');
+        vals.push(n);
       }
-      updates.push('max_activations_total = ?');
-      vals.push(n);
     }
   }
   if (req.body.max_activations_per_user !== undefined) {
@@ -168,16 +218,22 @@ router.patch('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
     if (!Number.isFinite(n) || n < 1) {
       return res.status(400).json({ error: 'Некорректный max_activations_per_user' });
     }
-    updates.push('max_activations_per_user = ?');
-    vals.push(n);
+    if (cols.has('max_activations_per_user')) {
+      updates.push('max_activations_per_user = ?');
+      vals.push(n);
+    }
   }
   if (req.body.weekly_repeat !== undefined) {
-    updates.push('weekly_repeat = ?');
-    vals.push(Boolean(req.body.weekly_repeat) ? 1 : 0);
+    if (cols.has('weekly_repeat')) {
+      updates.push('weekly_repeat = ?');
+      vals.push(Boolean(req.body.weekly_repeat) ? 1 : 0);
+    }
   }
   if (req.body.is_active !== undefined) {
-    updates.push('is_active = ?');
-    vals.push(Boolean(req.body.is_active) ? 1 : 0);
+    if (cols.has('is_active')) {
+      updates.push('is_active = ?');
+      vals.push(Boolean(req.body.is_active) ? 1 : 0);
+    }
   }
 
   if (updates.length === 0) {
@@ -210,7 +266,10 @@ router.patch('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
     console.error('adminVouchers patch:', e);
     return res.status(500).json({ error: 'Не удалось обновить промокод' });
   }
-});
+};
+
+router.patch('/:id', sensitiveRateLimiter, isAdmin, updateVoucherHandler);
+router.put('/:id', sensitiveRateLimiter, isAdmin, updateVoucherHandler);
 
 router.delete('/:id', sensitiveRateLimiter, isAdmin, async (req, res) => {
   const id = Number.parseInt(String(req.params.id), 10);
