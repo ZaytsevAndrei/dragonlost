@@ -5,12 +5,12 @@ import { useAuthStore } from '../store/authStore';
 import type { PlayerStats } from '../types';
 import './Statistics.css';
 
-/** Иконки предметов Rust (как в игре), через публичные URL Rust Labs */
+/** Иконки ресурсов из локальной папки backend/uploads/stats */
 const RUST_RESOURCE_ICON = {
-  wood: 'https://rustlabs.com/img/items180/wood.png',
-  stones: 'https://rustlabs.com/img/items180/stones.png',
-  metalOre: 'https://rustlabs.com/img/items180/metal.ore.png',
-  sulfurOre: 'https://rustlabs.com/img/items180/sulfur.ore.png',
+  wood: '/uploads/stats/wood.png',
+  stones: '/uploads/stats/stones.png',
+  metalOre: '/uploads/stats/metal.ore.png',
+  sulfurOre: '/uploads/stats/sulfur.ore.png',
 } as const;
 
 function RustResourceIcon({ src }: { src: string }) {
