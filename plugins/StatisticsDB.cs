@@ -367,6 +367,57 @@ internal class StatisticsDB : CovalencePlugin
         stats.Update();
     }
 
+    private static void ResetPlayerStats(PlayerStats stats)
+    {
+        stats.Joins = 0;
+        stats.Leaves = 0;
+        stats.Kills = 0;
+        stats.Deaths = 0;
+        stats.Suicides = 0;
+        stats.Shots = 0;
+        stats.Headshots = 0;
+        stats.Experiments = 0;
+        stats.Recoveries = 0;
+        stats.VoiceBytes = 0;
+        stats.WoundedTimes = 0;
+        stats.CraftedItems = 0;
+        stats.RepairedItems = 0;
+        stats.LiftUsages = 0;
+        stats.WheelSpins = 0;
+        stats.HammerHits = 0;
+        stats.ExplosivesThrown = 0;
+        stats.WeaponReloads = 0;
+        stats.RocketsLaunched = 0;
+        stats.SecondsPlayed = 0;
+        stats.BarrelsDestroyed = 0;
+        stats.CollectiblePickups.Clear();
+        stats.PlantPickups.Clear();
+        stats.Gathered.Clear();
+        stats.TimeStamps = new List<uint> { Time.GetUnixTimestamp() };
+        stats.Update();
+    }
+
+    private void WipeAllStatistics()
+    {
+        foreach (var kvp in _data.Statistics.ToList())
+        {
+            if (kvp.Value == null)
+                continue;
+            ResetPlayerStats(kvp.Value);
+            SaveData(kvp.Key);
+        }
+    }
+
+    [Command("statistics.wipe")]
+    private void WipeCommand(IPlayer player, string command, string[] args)
+    {
+        if (!player.IsAdmin)
+            return;
+
+        WipeAllStatistics();
+        player.Reply("Статистика сброшена для всех загруженных игроков (вайп).");
+    }
+
     [Command("statistics.migrate")]
     private void MigrateCommand(IPlayer player, string command, string[] args)
     {

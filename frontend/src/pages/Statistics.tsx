@@ -96,6 +96,8 @@ function Statistics() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [sortCategory, setSortCategory] = useState<SortCategory>('all');
+  const [wipedAt, setWipedAt] = useState<string | null>(null);
+  const [wipeStatsActive, setWipeStatsActive] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const fetchStats = useCallback(async (page: number, search: string) => {
@@ -110,6 +112,8 @@ function Statistics() {
       const response = await api.get('/stats', { params });
       setPlayers(response.data.players);
       setPagination(response.data.pagination);
+      setWipeStatsActive(Boolean(response.data.wipeStats));
+      setWipedAt(typeof response.data.wipedAt === 'string' ? response.data.wipedAt : null);
       setError(null);
     } catch {
       setError('Не удалось загрузить статистику');
@@ -165,6 +169,19 @@ function Statistics() {
   const formatNumber = (num: number) => {
     return num.toLocaleString('ru-RU');
   };
+
+  const wipePeriodLabel = useMemo(() => {
+    if (!wipeStatsActive || !wipedAt) return null;
+    const d = new Date(wipedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }, [wipeStatsActive, wipedAt]);
 
   type StatColumn = {
     key: ColumnKey;
@@ -235,7 +252,12 @@ function Statistics() {
     <div className="statistics">
       <div className="stats-header">
         <div className="stats-title-row">
-          <h1>Статистика игроков</h1>
+          <div>
+            <h1>Статистика игроков</h1>
+            {wipePeriodLabel && (
+              <p className="stats-wipe-hint">Показатели за текущий вайп с {wipePeriodLabel} (МСК)</p>
+            )}
+          </div>
         </div>
         
         <div className="stats-filters">

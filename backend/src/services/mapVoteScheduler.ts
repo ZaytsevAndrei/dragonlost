@@ -3,6 +3,10 @@ import { webPool } from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { generateRandomMaps } from './rustmapsApi';
 import { isGameServerWipeConfigured, runGameServerWipeFromLatestVote } from './gameServerPanel';
+import {
+  snapshotWipeBaselines,
+  fetchLatestClosedMapVoteSessionId,
+} from './statsWipeService';
 
 const MSK_TZ = 'Europe/Moscow';
 
@@ -318,6 +322,21 @@ export async function notifyVoteClosed(sessionId: number, winnerId: number | nul
 /** Среда 18:00 МСК: seed/size победителя → панель (вебхук / Pterodactyl) или RCON (SurvivalHost и др.). */
 async function fridayGameServerRestart(): Promise<void> {
   try {
+    try {
+      const sessionId = await fetchLatestClosedMapVoteSessionId();
+      const snap = await snapshotWipeBaselines(sessionId);
+      console.log(
+        `[Stats] Снимок статистики перед вайпом: ${snap.playersCount} игроков (${snap.wipedAt.toISOString()})`
+      );
+    } catch (snapErr) {
+      const msg = snapErr instanceof Error ? snapErr.message : String(snapErr);
+      console.error('[Stats] Не удалось сохранить снимок статистики вайпа:', msg);
+      await sendDiscordNotification(
+        `⚠️ **Статистика вайпа**\nНе удалось сохранить снимок для сайта: \`${msg}\`\n` +
+          'Вызовите вручную `POST /api/stats/admin/snapshot-wipe` (admin) после вайпа.'
+      );
+    }
+
     const r = await runGameServerWipeFromLatestVote();
     if (!r.ok) {
       if (r.reason === 'no_winner') {

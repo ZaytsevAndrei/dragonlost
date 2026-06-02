@@ -1,8 +1,16 @@
 import { Router } from 'express';
 import { rustPool } from '../config/database';
 import { RowDataPacket } from 'mysql2';
-import { isAuthenticated } from '../middleware/auth';
+import { isAuthenticated, isAdmin } from '../middleware/auth';
 import { sensitiveRateLimiter } from '../middleware/rateLimiter';
+import {
+  subtractWipeBaseline,
+  getBaselinesForSteamIds,
+  getWipeMeta,
+  hasWipeBaselines,
+  snapshotWipeBaselines,
+  fetchLatestClosedMapVoteSessionId,
+} from '../services/statsWipeService';
 
 const router = Router();
 
@@ -19,12 +27,20 @@ function maskSteamId(steamid: string): string {
   return steamid.slice(0, 4) + '****' + steamid.slice(-4);
 }
 
-function parsePlayerRow(row: RowDataPacket, showFullSteamId: boolean, includeLastSeen: boolean) {
+function parsePlayerRow(
+  row: RowDataPacket,
+  showFullSteamId: boolean,
+  includeLastSeen: boolean,
+  baseline?: Record<string, unknown>
+) {
   let statisticsDB: Record<string, any> = {};
   try {
     statisticsDB = JSON.parse(row.StatisticsDB || '{}');
   } catch {
     // невалидный JSON — используем пустой объект
+  }
+  if (baseline !== undefined) {
+    statisticsDB = subtractWipeBaseline(statisticsDB, baseline);
   }
   const kills = statisticsDB.Kills || 0;
   const deaths = statisticsDB.Deaths || 0;
@@ -97,10 +113,23 @@ router.get('/', async (req, res) => {
 
     const [rows] = await rustPool.query<RowDataPacket[]>(dataQuery, [...params, limit, offset]);
 
-    const players = rows.map((row) => parsePlayerRow(row, isAuth, isAdmin));
+    const useWipeStats = await hasWipeBaselines();
+    const baselines = useWipeStats
+      ? await getBaselinesForSteamIds(rows.map((r) => String(r.steamid || '')))
+      : new Map<string, Record<string, unknown>>();
+
+    const wipeMeta = useWipeStats ? await getWipeMeta() : { wipedAt: null, mapVoteSessionId: null };
+
+    const players = rows.map((row) => {
+      const steamid = String(row.steamid || '');
+      const baseline = useWipeStats ? baselines.get(steamid) ?? {} : undefined;
+      return parsePlayerRow(row, isAuth, isAdmin, baseline);
+    });
 
     res.json({
       players,
+      wipeStats: useWipeStats,
+      wipedAt: wipeMeta.wipedAt ? wipeMeta.wipedAt.toISOString() : null,
       pagination: {
         page,
         limit,
@@ -135,12 +164,42 @@ router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) 
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    const player = parsePlayerRow(rows[0], true, true);
+    const useWipeStats = await hasWipeBaselines();
+    const baselines = useWipeStats
+      ? await getBaselinesForSteamIds([steamid])
+      : new Map<string, Record<string, unknown>>();
+    const wipeMeta = useWipeStats ? await getWipeMeta() : { wipedAt: null, mapVoteSessionId: null };
 
-    res.json({ player });
+    const player = parsePlayerRow(rows[0], true, true, useWipeStats ? baselines.get(steamid) ?? {} : undefined);
+
+    res.json({
+      player,
+      wipeStats: useWipeStats,
+      wipedAt: wipeMeta.wipedAt ? wipeMeta.wipedAt.toISOString() : null,
+    });
   } catch (error) {
     console.error('Error fetching player stats:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({ error: 'Failed to fetch player statistics' });
+  }
+});
+
+/**
+ * POST /api/stats/admin/snapshot-wipe — зафиксировать базу статистики на момент вайпа (только admin).
+ * Вызывать сразу после вайпа, если автоматический снимок не сработал.
+ */
+router.post('/admin/snapshot-wipe', sensitiveRateLimiter, isAdmin, async (_req, res) => {
+  try {
+    const sessionId = await fetchLatestClosedMapVoteSessionId();
+    const result = await snapshotWipeBaselines(sessionId);
+    res.json({
+      ok: true,
+      wipedAt: result.wipedAt.toISOString(),
+      playersCount: result.playersCount,
+      mapVoteSessionId: sessionId,
+    });
+  } catch (error) {
+    console.error('Error snapshotting wipe stats:', error instanceof Error ? error.message : 'Unknown error');
+    res.status(500).json({ error: 'Не удалось сохранить снимок статистики вайпа' });
   }
 });
 
