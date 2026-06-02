@@ -1,5 +1,6 @@
 import { RowDataPacket } from 'mysql2';
 import { rustPool, webPool } from '../config/database';
+import { formatMysqlDatetimeMsk, parseMysqlDatetimeMsk } from '../utils/mskDateTime';
 
 const NUMERIC_STAT_KEYS = [
   'Joins',
@@ -87,12 +88,14 @@ export function subtractWipeBaseline(current: StatsRecord, baseline: StatsRecord
 export async function getWipeMeta(): Promise<{ wipedAt: Date | null; mapVoteSessionId: number | null }> {
   try {
     const [rows] = await webPool.query<RowDataPacket[]>(
-      'SELECT wiped_at, map_vote_session_id FROM stats_wipe_meta WHERE id = 1 LIMIT 1'
+      `SELECT DATE_FORMAT(wiped_at, '%Y-%m-%d %H:%i:%s') AS wiped_at,
+              map_vote_session_id
+       FROM stats_wipe_meta WHERE id = 1 LIMIT 1`
     );
     if (rows.length === 0) {
       return { wipedAt: null, mapVoteSessionId: null };
     }
-    const wipedAt = rows[0].wiped_at ? new Date(rows[0].wiped_at) : null;
+    const wipedAt = parseMysqlDatetimeMsk(rows[0].wiped_at);
     const sessionId = rows[0].map_vote_session_id;
     return {
       wipedAt: wipedAt && !Number.isNaN(wipedAt.getTime()) ? wipedAt : null,
@@ -160,11 +163,16 @@ export async function getBaselinesForSteamIds(
 }
 
 /** Сохраняет текущие StatisticsDB всех игроков как базу для статистики «с вайпа». */
-export async function snapshotWipeBaselines(mapVoteSessionId?: number | null): Promise<{
+export async function snapshotWipeBaselines(
+  mapVoteSessionId?: number | null,
+  /** Момент вайпа для подписи на сайте (по умолчанию — сейчас, в МСК). */
+  wipedAtOverride?: Date
+): Promise<{
   wipedAt: Date;
   playersCount: number;
 }> {
-  const wipedAt = new Date();
+  const wipedAt = wipedAtOverride ?? new Date();
+  const wipedAtMysql = formatMysqlDatetimeMsk(wipedAt);
 
   const [playerRows] = await rustPool.query<RowDataPacket[]>(
     'SELECT steamid, StatisticsDB FROM PlayerDatabase WHERE steamid IS NOT NULL AND steamid != \'\''
@@ -208,11 +216,12 @@ export async function snapshotWipeBaselines(mapVoteSessionId?: number | null): P
       `INSERT INTO stats_wipe_meta (id, wiped_at, map_vote_session_id)
        VALUES (1, ?, ?)
        ON DUPLICATE KEY UPDATE wiped_at = VALUES(wiped_at), map_vote_session_id = VALUES(map_vote_session_id)`,
-      [wipedAt, mapVoteSessionId ?? null]
+      [wipedAtMysql, mapVoteSessionId ?? null]
     );
 
     await connection.commit();
-    return { wipedAt, playersCount: playerRows.length };
+    const wipedAtParsed = parseMysqlDatetimeMsk(wipedAtMysql) ?? wipedAt;
+    return { wipedAt: wipedAtParsed, playersCount: playerRows.length };
   } catch (err) {
     await connection.rollback();
     throw err;

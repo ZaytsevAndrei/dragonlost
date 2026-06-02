@@ -175,6 +175,7 @@ function Statistics() {
     const d = new Date(wipedAt);
     if (Number.isNaN(d.getTime())) return null;
     return d.toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
