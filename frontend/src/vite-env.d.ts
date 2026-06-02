@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
-  /** Подсказка под календарём вайпов (расписание, Discord и т.д.) */
+  /** Текст расписания вайпов (по умолчанию: среда 18:00 МСК) */
   readonly VITE_WIPE_SCHEDULE_HINT?: string;
 }
 

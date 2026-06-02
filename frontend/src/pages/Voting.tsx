@@ -4,9 +4,11 @@ import { MapVoteCards } from '../components/MapVote';
 import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
 import './Voting.css';
 
-const WIPE_HINT =
+const WIPE_SCHEDULE_TEXT =
   import.meta.env.VITE_WIPE_SCHEDULE_HINT ||
-  'Обычно вайп по расписанию сервера — точное время смотрите в Discord и объявлениях.';
+  'Вайп сервера каждую среду в 18:00 по Москве (МСК).';
+
+const MSK_TZ = 'Europe/Moscow';
 
 export interface HistoryWinner {
   map_name: string;
@@ -74,28 +76,24 @@ function WinnerDescription({ text }: { text: string | null | undefined }) {
   return <p className="wipe-cal-modal-desc">{t}</p>;
 }
 
-function estimateFutureWipeDates(entries: HistoryEntry[], max: number): Date[] {
-  if (entries.length === 0) return [];
-  const sorted = [...entries].sort(
-    (a, b) => new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime()
+function mskHourNow(): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', { timeZone: MSK_TZ, hour: 'numeric', hour12: false }).format(new Date())
   );
-  const last = new Date(sorted[sorted.length - 1].ends_at);
-  let deltaMs = 7 * 86400000;
-  if (sorted.length >= 2) {
-    const deltas: number[] = [];
-    for (let i = 1; i < sorted.length; i++) {
-      deltas.push(new Date(sorted[i].ends_at).getTime() - new Date(sorted[i - 1].ends_at).getTime());
-    }
-    deltaMs = deltas.reduce((a, b) => a + b, 0) / deltas.length;
-    if (!Number.isFinite(deltaMs) || deltaMs < 86400000) deltaMs = 7 * 86400000;
-  }
+}
+
+/** Ближайшие среды с вайпом в 18:00 МСК (до max штук вперёд). */
+function scheduledFutureWipeDates(max: number): Date[] {
   const out: Date[] = [];
-  let cursor = new Date(last.getTime() + deltaMs);
-  const now = Date.now();
-  const yearCap = new Date(last.getTime() + 400 * 86400000).getTime();
-  while (out.length < max && cursor.getTime() < yearCap) {
-    if (cursor.getTime() > now) out.push(new Date(cursor));
-    cursor = new Date(cursor.getTime() + deltaMs);
+  const now = new Date();
+  let d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const wd = d.getDay();
+  let add = (3 - wd + 7) % 7;
+  if (add === 0 && mskHourNow() >= 18) add = 7;
+  d.setDate(d.getDate() + add);
+  while (out.length < max) {
+    out.push(new Date(d));
+    d.setDate(d.getDate() + 7);
   }
   return out;
 }
@@ -225,7 +223,7 @@ function WipeCalendar({
                   key={dayKey}
                   type="button"
                   className="wipe-cal-cell wipe-cal-cell-day wipe-cal-cell-estimate wipe-cal-cell-clickable"
-                  aria-label={`${cell.d}: ориентировочная дата вайпа`}
+                  aria-label={`${cell.d}: запланированный вайп (среда 18:00 МСК)`}
                   onClick={() => setModal({ mode: 'estimate', dayKey })}
                 >
                   {inner}
@@ -244,7 +242,7 @@ function WipeCalendar({
             <span className="wipe-cal-dot wipe-cal-dot-past" /> вайп (нажмите для карты-победителя)
           </span>
           <span>
-            <span className="wipe-cal-dot wipe-cal-dot-estimate" /> ориентировочная дата (нажмите для подсказки)
+            <span className="wipe-cal-dot wipe-cal-dot-estimate" /> запланированный вайп — среда 18:00 МСК
           </span>
         </div>
       </div>
@@ -278,10 +276,7 @@ function WipeCalendar({
             </div>
             <div className="wipe-cal-modal-body">
               {modal.mode === 'estimate' ? (
-                <p className="wipe-cal-modal-estimate-text">
-                  Ориентировочная дата следующего вайпа по среднему интервалу между прошлыми голосованиями. Точное время
-                  смотрите в Discord и объявлениях.
-                </p>
+                <p className="wipe-cal-modal-estimate-text">{WIPE_SCHEDULE_TEXT}</p>
               ) : (
                 modal.entries.map((e) => {
                   const url = e.winner ? rustMapsUrlFromVoteOption(e.winner) : null;
@@ -393,7 +388,7 @@ function Voting() {
 
   const hasActiveVote = Boolean(session && options.length > 0);
 
-  const estimatedFuture = useMemo(() => estimateFutureWipeDates(history, 6), [history]);
+  const estimatedFuture = useMemo(() => scheduledFutureWipeDates(8), []);
 
   return (
     <div className="voting-page">
@@ -436,14 +431,16 @@ function Voting() {
               {hasActiveVote ? 'История победивших карт' : 'Календарь вайпов и победивших карт'}
             </h2>
             <div className="voting-hint">
-              <p className="voting-hint-main">{WIPE_HINT}</p>
+              <p className="voting-hint-main">{WIPE_SCHEDULE_TEXT}</p>
               <p className="voting-hint-cal">
                 Зелёная отметка — состоявшийся вайп: нажмите день, чтобы открыть карту-победителя и описание. Синяя
-                пунктирная — ориентировочная дата следующего вайпа.
+                пунктирная — запланированный вайп по расписанию (среда, 18:00 МСК).
               </p>
             </div>
-            {history.length === 0 && estimatedFuture.length === 0 ? (
-              <p className="voting-empty">Пока нет завершённых голосований — календарь заполнится после первых вайпов.</p>
+            {history.length === 0 ? (
+              <p className="voting-empty">
+                Пока нет завершённых голосований — в календаре отмечены ближайшие среды с вайпом в 18:00 МСК.
+              </p>
             ) : null}
             <WipeCalendar history={history} estimatedFuture={estimatedFuture} />
           </section>

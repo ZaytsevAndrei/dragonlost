@@ -10,9 +10,9 @@ function isAutoVoteScheduleDisabled(): boolean {
   return String(process.env.MAP_VOTE_AUTO_SCHEDULE || 'true').toLowerCase() === 'false';
 }
 
-/** Четверг 18:00 МСК → пятница 15:00 МСК (Россия без DST — 21 ч). */
-function voteEndsAtAfterThursdayStartMsk(start: Date): Date {
-  return new Date(start.getTime() + 21 * 60 * 60 * 1000);
+/** Вторник 15:00 МСК → среда 15:00 МСК (24 ч). */
+function voteEndsAtAfterTuesdayStartMsk(start: Date): Date {
+  return new Date(start.getTime() + 24 * 60 * 60 * 1000);
 }
 
 function toMysqlDatetime(iso: Date): string {
@@ -82,7 +82,7 @@ async function checkAndNotifyAdmin(): Promise<void> {
     if (sessions.length === 0) {
       await sendDiscordNotification(
         '⚠️ **Напоминание**\n' +
-        'Через час (в пятницу в 15:00 МСК) закрывается голосование за карту, но активной сессии нет.\n' +
+        'Через час (в среду в 15:00 МСК) закрывается голосование за карту, но активной сессии нет.\n' +
         'Создайте голосование вручную или проверьте MAP_VOTE_AUTO_SCHEDULE и RUSTMAPS_API_KEY.'
       );
       return;
@@ -110,7 +110,7 @@ async function checkAndNotifyAdmin(): Promise<void> {
 
     await sendDiscordNotification(
       '🗳️ **Напоминание: скоро закроется голосование**\n' +
-      `До автозакрытия в пятницу в 15:00 МСК остался примерно час.\n\n` +
+      `До автозакрытия в среду в 15:00 МСК остался примерно час.\n\n` +
       `**${session.title}** (всего голосов: ${session.total_votes})\n\n` +
       `${optionsText}\n\n` +
       'При необходимости закройте голосование вручную в админ-панели до 15:00 МСК.'
@@ -123,8 +123,8 @@ async function checkAndNotifyAdmin(): Promise<void> {
 }
 
 /**
- * Каждый четверг в 18:00 МСК: создаёт сессию с 4 картами (как в админке по умолчанию),
- * ends_at — пятница 15:00 МСК. Не создаёт новую, если уже есть активная сессия.
+ * Каждый вторник в 15:00 МСК: создаёт сессию с 4 картами (как в админке по умолчанию),
+ * ends_at — среда 15:00 МСК. Не создаёт новую, если уже есть активная сессия.
  */
 async function autoStartWeeklyMapVote(): Promise<void> {
   if (isAutoVoteScheduleDisabled()) return;
@@ -158,7 +158,7 @@ async function autoStartWeeklyMapVote(): Promise<void> {
     }
 
     const startsAt = new Date();
-    const endsAt = voteEndsAtAfterThursdayStartMsk(startsAt);
+    const endsAt = voteEndsAtAfterTuesdayStartMsk(startsAt);
     const title = process.env.MAP_VOTE_AUTO_TITLE || 'Голосование за карту';
     const createdBy = process.env.MAP_VOTE_AUTO_CREATED_BY || 'system';
 
@@ -186,7 +186,7 @@ async function autoStartWeeklyMapVote(): Promise<void> {
 
       await sendDiscordNotification(
         `✅ **Открыто голосование за карту** (авто)\n` +
-          `Сессия #${sessionId}, вариантов: ${maps.length}. Закрытие: **пятница 15:00 МСК**.`
+          `Сессия #${sessionId}, вариантов: ${maps.length}. Закрытие: **среда 15:00 МСК**.`
       );
     } catch (err) {
       await connection.rollback();
@@ -315,17 +315,17 @@ export async function notifyVoteClosed(sessionId: number, winnerId: number | nul
   }
 }
 
-/** Пятница 17:30 МСК: seed/size победителя → панель (вебхук / Pterodactyl) или RCON (SurvivalHost и др.). */
+/** Среда 18:00 МСК: seed/size победителя → панель (вебхук / Pterodactyl) или RCON (SurvivalHost и др.). */
 async function fridayGameServerRestart(): Promise<void> {
   try {
     const r = await runGameServerWipeFromLatestVote();
     if (!r.ok) {
       if (r.reason === 'no_winner') {
         await sendDiscordNotification(
-          '⚠️ **Перезапуск сервера (Пт 17:30 МСК)**\n' +
+          '⚠️ **Перезапуск сервера (Ср 18:00 МСК)**\n' +
             'Нет закрытого голосования с победителем и полями seed/size — действие пропущено.'
         );
-        console.warn('[GameServer] Пт 17:30: нет победителя для seed/size');
+        console.warn('[GameServer] Ср 18:00: нет победителя для seed/size');
       }
       return;
     }
@@ -335,7 +335,7 @@ async function fridayGameServerRestart(): Promise<void> {
         : r.mode === 'pterodactyl'
           ? 'Pterodactyl: переменные панели и restart.'
           : 'вебхук.';
-    console.log(`🔄 [GameServer] Пт 17:30 МСК: ${r.mode}, seed=${r.seed}, size=${r.size}`);
+    console.log(`🔄 [GameServer] Ср 18:00 МСК: ${r.mode}, seed=${r.seed}, size=${r.size}`);
     await sendDiscordNotification(
       `🔄 **Игровой сервер (вайп по голосованию)**\n` +
         `Канал: **${r.mode}** — ${modeHint}\n` +
@@ -344,7 +344,7 @@ async function fridayGameServerRestart(): Promise<void> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[GameServer] Ошибка перезапуска:', msg);
-    await sendDiscordNotification(`❌ **Перезапуск сервера (Пт 17:30 МСК)**\n\`${msg}\``);
+    await sendDiscordNotification(`❌ **Перезапуск сервера (Ср 18:00 МСК)**\n\`${msg}\``);
   }
 }
 
@@ -357,28 +357,28 @@ function runDeferred(fn: () => void | Promise<void>): void {
   });
 }
 
-/** Cron: автостарт голосования (Чт 18:00 МСК), напоминание (Пт 14:00 МСК), автозакрытие по ends_at (~каждые 5 мин). */
+/** Cron: автостарт голосования (Вт 15:00 МСК), напоминание (Ср 14:00 МСК), автозакрытие по ends_at (~каждые 5 мин). */
 export function scheduleMapVoteTasks(): void {
   const tzOpts = { timezone: MSK_TZ };
 
-  // Четверг 18:00 МСК — открытие недельного голосования (конец — пятница 15:00 МСК, см. ends_at)
+  // Вторник 15:00 МСК — открытие недельного голосования (конец — среда 15:00 МСК, см. ends_at)
   cron.schedule(
-    '0 18 * * 4',
+    '0 15 * * 2',
     () => {
       runDeferred(() => {
-        console.log('📅 [MapVote] Чт 18:00 МСК — автостарт голосования');
+        console.log('📅 [MapVote] Вт 15:00 МСК — автостарт голосования');
         return autoStartWeeklyMapVote();
       });
     },
     tzOpts
   );
 
-  // Пятница 14:00 МСК — напоминание за ~1 ч до автозакрытия в 15:00 МСК
+  // Среда 14:00 МСК — напоминание за ~1 ч до автозакрытия в 15:00 МСК
   cron.schedule(
-    '0 14 * * 5',
+    '0 14 * * 3',
     () => {
       runDeferred(() => {
-        console.log('🔔 [MapVote] Пт 14:00 МСК — напоминание перед закрытием голосования');
+        console.log('🔔 [MapVote] Ср 14:00 МСК — напоминание перед закрытием голосования');
         return checkAndNotifyAdmin();
       });
     },
@@ -392,10 +392,10 @@ export function scheduleMapVoteTasks(): void {
 
   if (isGameServerWipeConfigured()) {
     cron.schedule(
-      '30 17 * * 5',
+      '0 18 * * 3',
       () => {
         runDeferred(() => {
-          console.log('🔄 [GameServer] Пт 17:30 МСК — вайп по результату голосования');
+          console.log('🔄 [GameServer] Ср 18:00 МСК — вайп по результату голосования');
           return fridayGameServerRestart();
         });
       },
@@ -404,7 +404,7 @@ export function scheduleMapVoteTasks(): void {
   }
 
   console.log(
-    '✅ Cron map-vote: старт Чт 18:00 МСК, конец Пт 15:00 МСК (ends_at + автозакрытие), напоминание Пт 14:00 МСК' +
-      (isGameServerWipeConfigured() ? '; перезапуск игры Пт 17:30 МСК' : '')
+    '✅ Cron map-vote: старт Вт 15:00 МСК, конец Ср 15:00 МСК (ends_at + автозакрытие), напоминание Ср 14:00 МСК' +
+      (isGameServerWipeConfigured() ? '; перезапуск игры Ср 18:00 МСК' : '')
   );
 }
