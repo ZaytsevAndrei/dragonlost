@@ -7,6 +7,7 @@ import {
   subtractWipeBaseline,
   getBaselinesForSteamIds,
   getWipeMeta,
+  getWipeSinceUnix,
   hasWipeBaselines,
   snapshotWipeBaselines,
   fetchLatestClosedMapVoteSessionId,
@@ -95,15 +96,27 @@ router.get('/', async (req, res) => {
     const sessionUser = req.user as { role?: string } | undefined;
     const isAdmin = Boolean(isAuth && sessionUser?.role === 'admin');
 
+    const wipeSinceUnix = await getWipeSinceUnix();
+
     let countQuery = 'SELECT COUNT(*) as total FROM PlayerDatabase';
     let dataQuery = 'SELECT * FROM PlayerDatabase';
     const params: (string | number)[] = [];
+    const whereParts: string[] = [];
 
     if (search) {
-      const whereClause = ' WHERE name LIKE ? ESCAPE \'\\\\\'';
+      whereParts.push('name LIKE ? ESCAPE \'\\\\\'');
+      params.push(`%${escapeLike(search)}%`);
+    }
+
+    if (wipeSinceUnix != null) {
+      whereParts.push('`Last Seen` >= ?');
+      params.push(wipeSinceUnix);
+    }
+
+    if (whereParts.length > 0) {
+      const whereClause = ` WHERE ${whereParts.join(' AND ')}`;
       countQuery += whereClause;
       dataQuery += whereClause;
-      params.push(`%${escapeLike(search)}%`);
     }
 
     dataQuery += ' ORDER BY `Last Seen` DESC LIMIT ? OFFSET ?';
@@ -155,9 +168,13 @@ router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) 
       return res.status(400).json({ error: 'Invalid Steam ID format' });
     }
 
+    const wipeSinceUnix = await getWipeSinceUnix();
+
     const [rows] = await rustPool.query<RowDataPacket[]>(
-      'SELECT * FROM PlayerDatabase WHERE steamid = ?',
-      [steamid]
+      wipeSinceUnix != null
+        ? 'SELECT * FROM PlayerDatabase WHERE steamid = ? AND `Last Seen` >= ?'
+        : 'SELECT * FROM PlayerDatabase WHERE steamid = ?',
+      wipeSinceUnix != null ? [steamid, wipeSinceUnix] : [steamid]
     );
 
     if (rows.length === 0) {

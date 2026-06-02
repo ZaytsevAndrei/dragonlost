@@ -110,6 +110,15 @@ export async function getWipeMeta(): Promise<{ wipedAt: Date | null; mapVoteSess
   }
 }
 
+/** Unix-секунды начала текущего вайпа (для фильтра «заходил на сервер»), или null. */
+export async function getWipeSinceUnix(): Promise<number | null> {
+  const useWipe = await hasWipeBaselines();
+  if (!useWipe) return null;
+  const { wipedAt } = await getWipeMeta();
+  if (!wipedAt || Number.isNaN(wipedAt.getTime())) return null;
+  return Math.floor(wipedAt.getTime() / 1000);
+}
+
 export async function hasWipeBaselines(): Promise<boolean> {
   try {
     const [rows] = await webPool.query<RowDataPacket[]>(
