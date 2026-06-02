@@ -7,6 +7,7 @@ import {
   snapshotWipeBaselines,
   fetchLatestClosedMapVoteSessionId,
 } from './statsWipeService';
+import { announceWipeFarmTops, isWipeFarmSummaryCronDisabled } from './wipeFarmSummary';
 
 const MSK_TZ = 'Europe/Moscow';
 
@@ -409,6 +410,20 @@ export function scheduleMapVoteTasks(): void {
     runDeferred(closeExpiredSessions);
   });
 
+  // Среда 17:30 МСК — итоги ТОП фарма за цикл (за час до вайпа)
+  if (!isWipeFarmSummaryCronDisabled()) {
+    cron.schedule(
+      '30 17 * * 3',
+      () => {
+        runDeferred(() => {
+          console.log('⛏️ [WipeFarm] Ср 17:30 МСК — итоги фарма перед вайпом');
+          return announceWipeFarmTops();
+        });
+      },
+      tzOpts
+    );
+  }
+
   if (isGameServerWipeConfigured()) {
     cron.schedule(
       '0 18 * * 3',
@@ -424,6 +439,7 @@ export function scheduleMapVoteTasks(): void {
 
   console.log(
     '✅ Cron map-vote: старт Вт 15:00 МСК, конец Ср 15:00 МСК (ends_at + автозакрытие), напоминание Ср 14:00 МСК' +
+      (isWipeFarmSummaryCronDisabled() ? '' : '; итоги фарма Ср 17:30 МСК') +
       (isGameServerWipeConfigured() ? '; перезапуск игры Ср 18:00 МСК' : '')
   );
 }
