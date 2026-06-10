@@ -1,4 +1,5 @@
 import { RowDataPacket } from 'mysql2';
+import type { PoolConnection } from 'mysql2/promise';
 import { rustPool, webPool } from '../config/database';
 import { formatMysqlDatetimeMsk } from '../utils/mskDateTime';
 import {
@@ -8,6 +9,7 @@ import {
   hasWipeBaselines,
   subtractWipeBaseline,
 } from './statsWipeService';
+import { ensureWebUser } from './userProvisioning';
 
 const TOP_PLACES = 3;
 const PRIZE_BY_RANK = [500, 250, 150] as const;
@@ -192,6 +194,43 @@ export async function computeWipeFarmRatingTop(): Promise<WipeFarmRatingResult |
   };
 }
 
+const CREDIT_NOTE_EXISTING = 'начислено на баланс сайта';
+const CREDIT_NOTE_PROVISIONED =
+  'начислено на баланс — войдите через Steam на dragonlost.ru, чтобы потратить';
+
+/** Создаёт профиль при необходимости и начисляет приз на баланс. */
+export async function creditFarmPrizeForLeader(
+  connection: PoolConnection,
+  leader: Pick<RatedFarmLeader, 'rank' | 'steamid' | 'name' | 'ratingScore' | 'prizeAmount'>
+): Promise<{ credited: boolean; creditNote: string }> {
+  const { created } = await ensureWebUser(connection, {
+    steamid: leader.steamid,
+    username: leader.name,
+  });
+
+  const amount = leader.prizeAmount;
+  await connection.query(
+    `INSERT INTO player_balance (steamid, balance, total_earned, total_spent)
+     VALUES (?, ?, ?, 0)
+     ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
+    [leader.steamid, amount, amount, amount, amount]
+  );
+  await connection.query(
+    `INSERT INTO transactions (steamid, type, amount, description)
+     VALUES (?, 'earn', ?, ?)`,
+    [
+      leader.steamid,
+      amount,
+      `ТОП-${leader.rank} фарма перед вайпом (рейтинг ${formatRating(leader.ratingScore)})`,
+    ]
+  );
+
+  return {
+    credited: true,
+    creditNote: created ? CREDIT_NOTE_PROVISIONED : CREDIT_NOTE_EXISTING,
+  };
+}
+
 /** Начисляет призы ТОП-3 (один раз за цикл вайпа). */
 export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<WipeFarmRatingResult> {
   if (result.alreadyProcessed || !result.cycleKey || result.leaders.length === 0) {
@@ -205,37 +244,7 @@ export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<W
     const paidLeaders: RatedFarmLeader[] = [];
 
     for (const leader of result.leaders) {
-      const [users] = await connection.query<RowDataPacket[]>(
-        'SELECT steamid FROM users WHERE steamid = ? LIMIT 1',
-        [leader.steamid]
-      );
-
-      let credited = false;
-      let creditNote: string | null = null;
-
-      if (users.length === 0) {
-        creditNote = 'не начислено — нет входа на сайт через Steam';
-      } else {
-        const amount = leader.prizeAmount;
-        await connection.query(
-          `INSERT INTO player_balance (steamid, balance, total_earned, total_spent)
-           VALUES (?, ?, ?, 0)
-           ON DUPLICATE KEY UPDATE balance = balance + ?, total_earned = total_earned + ?`,
-          [leader.steamid, amount, amount, amount, amount]
-        );
-        await connection.query(
-          `INSERT INTO transactions (steamid, type, amount, description)
-           VALUES (?, 'earn', ?, ?)`,
-          [
-            leader.steamid,
-            amount,
-            `ТОП-${leader.rank} фарма перед вайпом (рейтинг ${formatRating(leader.ratingScore)})`,
-          ]
-        );
-        credited = true;
-        creditNote = 'начислено на баланс сайта';
-      }
-
+      const { credited, creditNote } = await creditFarmPrizeForLeader(connection, leader);
       paidLeaders.push({ ...leader, credited, creditNote });
     }
 

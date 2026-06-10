@@ -202,6 +202,32 @@ pm2 delete all
 1. Создайте файл маршрута в `backend/src/routes/`
 2. Импортируйте и используйте в `backend/src/index.ts`
 
+### Служебные скрипты backend
+
+Запуск из каталога `backend` (нужен настроенный `backend/.env` и доступ к БД):
+
+```powershell
+cd backend
+```
+
+**Снимок статистики вайпа** — сохраняет текущие `StatisticsDB` всех игроков в `stats_wipe_*` (база для `/stats` «с начала вайпа»). Вызывать вручную, если автоснимок перед вайпом (среда 18:00 МСК) не сработал:
+
+```powershell
+npx ts-node src/scripts/snapshotWipeStats.ts
+```
+
+**Итоги ТОП фарма** — считает рейтинг (сера ×1 + железо ×0,5 + камень ×0,3 + дерево ×0,05), начисляет призы 500/250/150 ₽, отправляет сообщение в Discord. Обычно запускается cron в среду 17:30 МСК; скрипт — для ручной проверки или повторной отправки:
+
+```powershell
+npx ts-node src/scripts/announceWipeFarmTops.ts
+```
+
+**Доначисление призов фарма** — находит записи в `wipe_farm_rewards` с `credited = 0`, создаёт профиль на сайте по steamid при необходимости и зачисляет баланс. Одноразово после сбоев или до деплоя авто-provision:
+
+```powershell
+npx ts-node src/scripts/creditPendingWipeFarmRewards.ts
+```
+
 ## 🤝 Вклад в проект
 
 1. Создайте fork проекта
