@@ -3,7 +3,7 @@ import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated, isAdmin } from '../middleware/auth';
 import { generateRandomMaps } from '../services/rustmapsApi';
-import { notifyVoteClosed } from '../services/mapVoteScheduler';
+import { notifyVoteClosed, notifyVoteOpened } from '../services/mapVoteScheduler';
 
 const router = Router();
 
@@ -390,6 +390,15 @@ router.post('/sessions', isAdmin, async (req, res) => {
     }
 
     await connection.commit();
+
+    const sessionTitle = title || 'Голосование за карту';
+    notifyVoteOpened({
+      sessionId,
+      title: sessionTitle,
+      optionsCount: options.length,
+      endsAt: new Date(ends_at),
+      source: 'admin',
+    }).catch(() => {});
 
     res.json({ success: true, session_id: sessionId });
   } catch (error) {

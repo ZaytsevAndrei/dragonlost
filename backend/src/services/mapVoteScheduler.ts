@@ -69,6 +69,36 @@ async function sendDiscordNotification(message: string, embeds?: object[]): Prom
   }
 }
 
+function formatMskDatetime(date: Date): string {
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: MSK_TZ,
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(date);
+}
+
+/** Уведомление в Discord об открытии голосования (авто или из админки). */
+export async function notifyVoteOpened(params: {
+  sessionId: number;
+  title: string;
+  optionsCount: number;
+  endsAt: Date;
+  source: 'auto' | 'admin';
+}): Promise<void> {
+  const { sessionId, title, optionsCount, endsAt, source } = params;
+  const sourceLabel = source === 'auto' ? 'авто' : 'админка';
+  const endsAtLabel = formatMskDatetime(endsAt);
+
+  await sendDiscordNotification(
+    `✅ **Открыто голосование за карту** (${sourceLabel})\n` +
+      `**${title}** — сессия #${sessionId}, вариантов: ${optionsCount}.\n` +
+      `Закрытие: **${endsAtLabel}**.`
+  );
+}
+
 /**
  * Проверяет наличие активного голосования и отправляет
  * уведомление администратору о необходимости выбрать победившую карту.
@@ -189,10 +219,13 @@ async function autoStartWeeklyMapVote(): Promise<void> {
       await connection.commit();
       console.log(`🗳️ [MapVote] Автостарт: сессия #${sessionId}, ends_at=${endsAt.toISOString()}`);
 
-      await sendDiscordNotification(
-        `✅ **Открыто голосование за карту** (авто)\n` +
-          `Сессия #${sessionId}, вариантов: ${maps.length}. Закрытие: **среда 15:00 МСК**.`
-      );
+      await notifyVoteOpened({
+        sessionId,
+        title,
+        optionsCount: maps.length,
+        endsAt,
+        source: 'auto',
+      });
     } catch (err) {
       await connection.rollback();
       throw err;
