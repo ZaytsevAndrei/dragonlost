@@ -1,7 +1,23 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import axios from 'axios';
 import { api, getImageUrl } from '../services/api';
 import StatePanel from '../components/StatePanel';
 import './MapVoteAdmin.css';
+
+const MAP_GEN_TIMEOUT_MS = 120_000;
+
+function mapGenErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const apiError = err.response?.data?.error;
+    if (typeof apiError === 'string' && apiError.trim()) return apiError;
+    if (err.code === 'ECONNABORTED') {
+      return 'Превышено время ожидания генерации карт (до 2 мин). Попробуйте меньше карт или повторите позже.';
+    }
+    if (err.response?.status === 403) return 'Нет доступа. Войдите как администратор.';
+    return err.message || 'Ошибка при генерации карт';
+  }
+  return 'Ошибка при генерации карт. Проверьте настройку RUSTMAPS_API_KEY.';
+}
 
 interface RustMapResult {
   seed: number;
@@ -201,22 +217,32 @@ function MapVoteAdmin() {
       setGenerating(true);
       setError(null);
       const merged: RustMapResult[] = [];
+      const genOpts = { timeout: MAP_GEN_TIMEOUT_MS };
       if (genSizeA === genSizeB) {
-        const res = await api.post('/map-vote/generate-maps', { size: genSizeA, count: genCountA + genCountB });
+        const res = await api.post('/map-vote/generate-maps', { size: genSizeA, count: genCountA + genCountB }, genOpts);
         merged.push(...(res.data.maps || []));
       } else {
         if (genCountA > 0) {
-          const res = await api.post('/map-vote/generate-maps', { size: genSizeA, count: genCountA });
+          const res = await api.post('/map-vote/generate-maps', { size: genSizeA, count: genCountA }, genOpts);
           merged.push(...(res.data.maps || []));
         }
         if (genCountB > 0) {
-          const res = await api.post('/map-vote/generate-maps', { size: genSizeB, count: genCountB });
+          const res = await api.post('/map-vote/generate-maps', { size: genSizeB, count: genCountB }, genOpts);
           merged.push(...(res.data.maps || []));
         }
       }
+      const readyCount = merged.filter((m) => m.ready).length;
+      if (readyCount < 2) {
+        setError(
+          readyCount === 0
+            ? 'RustMaps не вернул готовые карты. Проверьте RUSTMAPS_API_KEY и лимиты API, затем повторите.'
+            : `Готова только ${readyCount} карта из ${merged.length}. Нужно минимум 2 — сгенерируйте ещё раз.`
+        );
+        return;
+      }
       setGeneratedMaps(merged);
-    } catch {
-      setError('Ошибка при генерации карт. Проверьте настройку RUSTMAPS_API_KEY.');
+    } catch (err) {
+      setError(mapGenErrorMessage(err));
     } finally {
       setGenerating(false);
     }

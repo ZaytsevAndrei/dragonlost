@@ -1,9 +1,13 @@
 import { webPool } from '../config/database';
 import { RowDataPacket } from 'mysql2';
 
-const RUSTMAPS_API_KEY = process.env.RUSTMAPS_API_KEY;
 const RUSTMAPS_V2_BASE = 'https://rustmaps.com/api/v2/maps';
 const RUSTMAPS_V4_BASE = 'https://api.rustmaps.com/v4/maps';
+
+/** Читаем ключ при каждом запросе — не при загрузке модуля (dotenv может подключиться позже). */
+function getRustMapsApiKey(): string {
+  return process.env.RUSTMAPS_API_KEY?.trim() || '';
+}
 
 /** Совпадает с телом POST /v4/maps и query staging у GET по seed/size. */
 const RUST_STAGING = false;
@@ -83,7 +87,7 @@ async function fetchV4MapBySeedSize(seed: number, size: number): Promise<RustMap
     url.searchParams.set('staging', String(RUST_STAGING));
 
     const res = await fetch(url.toString(), {
-      headers: { 'X-API-Key': RUSTMAPS_API_KEY || '' },
+      headers: { 'X-API-Key': getRustMapsApiKey() },
     });
 
     if (res.status !== 200) return null;
@@ -102,7 +106,7 @@ async function fetchV4MapBySeedSize(seed: number, size: number): Promise<RustMap
 async function fetchV4MapById(mapId: string): Promise<RustMapResult | null> {
   try {
     const res = await fetch(`${RUSTMAPS_V4_BASE}/${encodeURIComponent(mapId)}`, {
-      headers: { 'X-API-Key': RUSTMAPS_API_KEY || '' },
+      headers: { 'X-API-Key': getRustMapsApiKey() },
     });
 
     if (res.status !== 200) return null;
@@ -130,7 +134,7 @@ async function verifyUrl(url: string): Promise<boolean> {
 async function getMapFromV2Api(seed: number, size: number): Promise<RustMapResult | null> {
   try {
     const res = await fetch(`${RUSTMAPS_V2_BASE}/${seed}/${size}`, {
-      headers: { 'X-API-Key': RUSTMAPS_API_KEY || '' },
+      headers: { 'X-API-Key': getRustMapsApiKey() },
     });
 
     if (!res.ok) return null;
@@ -169,7 +173,7 @@ async function triggerMapGeneration(seed: number, size: number): Promise<string 
   try {
     const res = await fetch(`${RUSTMAPS_V2_BASE}/${seed}/${size}`, {
       method: 'POST',
-      headers: { 'X-API-Key': RUSTMAPS_API_KEY || '' },
+      headers: { 'X-API-Key': getRustMapsApiKey() },
     });
 
     if (res.ok || res.status === 409) {
@@ -181,7 +185,7 @@ async function triggerMapGeneration(seed: number, size: number): Promise<string 
     const v4Res = await fetch(`${RUSTMAPS_V4_BASE}`, {
       method: 'POST',
       headers: {
-        'X-API-Key': RUSTMAPS_API_KEY || '',
+        'X-API-Key': getRustMapsApiKey(),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ seed, size, staging: RUST_STAGING }),
@@ -242,7 +246,7 @@ async function searchMapsPage(page: number, mapSize: number): Promise<MapThumbna
   const res = await fetch(url.toString(), {
     method: 'POST',
     headers: {
-      'X-API-Key': RUSTMAPS_API_KEY || '',
+      'X-API-Key': getRustMapsApiKey(),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -348,7 +352,7 @@ export async function generateRandomMaps(
   size: number,
   count: number = 3
 ): Promise<RustMapResult[]> {
-  if (!RUSTMAPS_API_KEY) {
+  if (!getRustMapsApiKey()) {
     throw new Error('RUSTMAPS_API_KEY не настроен');
   }
 

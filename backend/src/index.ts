@@ -40,6 +40,10 @@ if (!process.env.STEAM_RETURN_URL || !process.env.STEAM_REALM) {
   process.exit(1);
 }
 
+if (!process.env.RUSTMAPS_API_KEY?.trim()) {
+  console.warn('⚠️ RUSTMAPS_API_KEY не задан — генерация карт для голосования недоступна');
+}
+
 // Now import everything else
 import express from 'express';
 import cors from 'cors';
