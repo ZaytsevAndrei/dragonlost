@@ -156,8 +156,6 @@ export function DailyRewardWheel({
         role="group"
         aria-labelledby={labelId}
       >
-        <div className="drw-wood-bg" aria-hidden />
-
         <div className="drw-frame">
           <div className="drw-pointer" aria-hidden>
             <span className="drw-pointer-arrow" />
