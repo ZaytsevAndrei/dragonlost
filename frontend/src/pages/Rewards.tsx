@@ -5,15 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { saveLastPage } from '../utils/safeLocalStorage';
 import StatePanel from '../components/StatePanel';
 import { DailyRewardWheel, type WheelSpinTarget } from '../components/DailyRewardWheel';
-import { DAILY_REWARD_WHEEL_SUMMARY } from '../constants/dailyRewardWheel';
 import './Rewards.css';
-
-interface WheelSummaryEntry {
-  amount: number;
-  count: number;
-  rustMultiplier: number;
-  tier: string;
-}
 
 interface DailyRewardStatus {
   available: boolean;
@@ -22,7 +14,6 @@ interface DailyRewardStatus {
   total_claims: number;
   seconds_until_available: number;
   wheel_sectors: number[];
-  wheel_summary: WheelSummaryEntry[];
 }
 
 interface ClaimResult {
@@ -33,14 +24,6 @@ interface ClaimResult {
   longest_streak: number;
   new_balance: number;
 }
-
-const TIER_LABELS: Record<string, string> = {
-  yellow: '×1 — очень низкая',
-  green: '×3 — низкая',
-  blue: '×5 — средняя',
-  purple: '×10 — высокая',
-  red: '×20 — очень высокая',
-};
 
 function getStreakHue(streak: number): number {
   const step = Math.min(Math.max(streak, 0), 7);
@@ -179,8 +162,6 @@ function Rewards() {
     );
   }
 
-  const wheelSummary = status?.wheel_summary?.length ? status.wheel_summary : DAILY_REWARD_WHEEL_SUMMARY;
-
   return (
     <div className="rewards">
       <div className="rewards-header">
@@ -236,24 +217,6 @@ function Rewards() {
             onSpinRequest={() => void handleSpinRequest()}
             onSpinComplete={handleSpinComplete}
           />
-        </div>
-      </div>
-
-      <div className="reward-schedule">
-        <h2>Секторы колеса (25)</h2>
-        <p className="reward-schedule-desc">
-          Распределение как на большом колесе в Rust: ×1 — 12 секторов, ×3 — 6, ×5 — 4, ×10 — 2, ×20 — 1.
-        </p>
-        <div className="wheel-legend">
-          {wheelSummary.map((entry) => (
-            <div key={entry.amount} className={`wheel-legend-item wheel-legend-${entry.tier}`}>
-              <span className="wheel-legend-mult">×{entry.rustMultiplier}</span>
-              <span className="wheel-legend-amount">{entry.amount} ₽</span>
-              <span className="wheel-legend-meta">
-                {entry.count} сек. · {TIER_LABELS[entry.tier] || entry.tier}
-              </span>
-            </div>
-          ))}
         </div>
       </div>
 

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   DAILY_REWARD_WHEEL_SECTORS,
-  RUST_WHEEL_MULTIPLIER,
   WHEEL_DEGREES_PER_SECTOR,
   WHEEL_TIER_COLORS,
   wheelSpinDelta,
@@ -50,7 +49,7 @@ function sectorLabelPosition(index: number): { x: number; y: number; rotate: num
   return {
     x: WHEEL_R + labelR * Math.cos(rad),
     y: WHEEL_R + labelR * Math.sin(rad),
-    rotate: midAngle + 90,
+    rotate: midAngle,
   };
 }
 
@@ -222,9 +221,8 @@ export function DailyRewardWheel({
                 </g>
 
                 {DAILY_REWARD_WHEEL_SECTORS.map((amount, index) => {
-                  const mult = RUST_WHEEL_MULTIPLIER[amount as DailyRewardWheelAmount];
                   const label = sectorLabelPosition(index);
-                  const fontSize = mult >= 10 ? 22 : mult >= 5 ? 24 : 26;
+                  const fontSize = amount >= 100 ? 15 : amount >= 50 ? 17 : 19;
 
                   return (
                     <text
@@ -237,7 +235,7 @@ export function DailyRewardWheel({
                       dominantBaseline="middle"
                       transform={`rotate(${label.rotate}, ${label.x}, ${label.y})`}
                     >
-                      {mult}
+                      {amount}
                     </text>
                   );
                 })}
