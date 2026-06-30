@@ -20,7 +20,42 @@
 .header-tools {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
   flex-shrink: 0;
+}
+
+.header-social {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.header-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+}
+
+.header-social-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.header-social-discord:hover {
+  color: #5865f2;
+  border-color: rgba(88, 101, 242, 0.45);
+}
+
+.header-social-telegram:hover {
+  color: #2aabee;
+  border-color: rgba(42, 171, 238, 0.45);
 }
 
 .logo h1 {

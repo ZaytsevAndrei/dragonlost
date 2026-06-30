@@ -6,6 +6,7 @@ import Statistics from './pages/Statistics';
 import Rewards from './pages/Rewards';
 import Items from './pages/Items';
 import Inventory from './pages/Inventory';
+import TelegramLink from './pages/TelegramLink';
 import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
 import PersonalInformation from './pages/PersonalInformation';
@@ -68,6 +69,7 @@ function App() {
             <Route path="/vote" element={<Voting />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/inventory" element={<Inventory />} />
+            <Route path="/telegram" element={<TelegramLink />} />
             <Route path="/shop" element={<Items />} />
             <Route path="/items" element={<Navigate to="/shop" replace />} />
             <Route path="/agreement" element={<Agreement />} />

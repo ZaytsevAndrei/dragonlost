@@ -210,6 +210,19 @@
   color: #8ea1ff;
 }
 
+.feature-card-telegram .feature-icon-wrap {
+  background: color-mix(in srgb, #229ed9 25%, transparent);
+  border-color: color-mix(in srgb, #229ed9 55%, transparent);
+}
+
+.feature-card-telegram:hover .feature-icon-wrap {
+  background: color-mix(in srgb, #229ed9 40%, transparent);
+}
+
+.feature-card-telegram .feature-icon-wrap svg {
+  color: #5bc0f8;
+}
+
 .btn-home-claim {
   padding: var(--space-3) var(--space-6);
   background: var(--brand-500);

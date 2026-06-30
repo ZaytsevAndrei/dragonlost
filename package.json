@@ -5,16 +5,19 @@
   "private": true,
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "telegram-bot"
   ],
   "scripts": {
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../telegram-bot && npm install",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
+    "dev:bot": "cd telegram-bot && npm run dev",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build:bot": "cd telegram-bot && npm run build",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:bot",
     "start": "pm2 start ecosystem.config.js"
   },
   "devDependencies": {

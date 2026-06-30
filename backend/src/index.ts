@@ -61,6 +61,8 @@ import mapVoteRoutes from './routes/mapVote';
 import shopRoutes from './routes/shop';
 import inventoryRoutes from './routes/inventory';
 import adminVouchersRoutes from './routes/adminVouchers';
+import telegramRoutes from './routes/telegram';
+import botApiRoutes from './routes/botApi';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
@@ -149,6 +151,9 @@ app.get('/api/csrf-token', (req, res) => {
   res.json({ csrfToken: token });
 });
 
+// Bot API — без CSRF, авторизация через X-Bot-Api-Key
+app.use('/api/bot', botApiRoutes);
+
 // CSRF protection — проверяем токен для POST/PUT/DELETE/PATCH
 app.use('/api/', csrfProtection);
 
@@ -168,6 +173,7 @@ app.use('/api/map-vote', mapVoteRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/admin/vouchers', adminVouchersRoutes);
+app.use('/api/telegram', telegramRoutes);
 
 // Error handling
 app.use(errorHandler);
