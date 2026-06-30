@@ -1,17 +1,7 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import ServerStatus from '../components/ServerStatus';
 import './Home.css';
-
-interface DailyRewardStatus {
-  available: boolean;
-  current_streak: number;
-  next_reward: number | null;
-  is_random: boolean;
-  seconds_until_available: number;
-}
 
 function useAnimateOnScroll() {
   const ref = useRef<HTMLDivElement>(null);
@@ -46,64 +36,8 @@ function AnimatedSection({ children, className = '' }: { children: React.ReactNo
   );
 }
 
-function pluralDays(n: number): string {
-  const abs = Math.abs(n) % 100;
-  const last = abs % 10;
-  if (abs >= 11 && abs <= 19) return 'дней';
-  if (last === 1) return 'день';
-  if (last >= 2 && last <= 4) return 'дня';
-  return 'дней';
-}
-
 function Home() {
   const { user } = useAuthStore();
-  const [rewardStatus, setRewardStatus] = useState<DailyRewardStatus | null>(null);
-  const [claiming, setClaiming] = useState(false);
-  const [claimAmount, setClaimAmount] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    api.get('/rewards/daily').then(res => {
-      setRewardStatus(res.data);
-      setCountdown(res.data.seconds_until_available || 0);
-    }).catch(() => {});
-  }, [user]);
-
-  useEffect(() => {
-    if (countdown <= 0) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
-    timerRef.current = setInterval(() => {
-      setCountdown(prev => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [countdown > 0]);
-
-  const handleClaim = useCallback(async () => {
-    if (claiming) return;
-    try {
-      setClaiming(true);
-      const res = await api.post('/rewards/daily/claim');
-      setClaimAmount(res.data.reward);
-      const statusRes = await api.get('/rewards/daily');
-      setRewardStatus(statusRes.data);
-      setCountdown(statusRes.data.seconds_until_available || 0);
-    } catch {
-      // ignore
-    } finally {
-      setClaiming(false);
-    }
-  }, [claiming]);
-
-  const formatCountdown = (s: number) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className="home">
@@ -118,35 +52,18 @@ function Home() {
             <p>Подробная статистика игроков: убийства, смерти, K/D и многое другое</p>
           </Link>
 
-          {user && rewardStatus ? (
-            <div className="feature-card feature-card-reward">
-              <div className="feature-icon-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v10H4V12" /><path d="M2 7h20v5H2z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
-              </div>
-              <h3>Ежедневная награда</h3>
-              <p className="feature-reward-meta">
-                Серия: <strong>{rewardStatus.current_streak}</strong> {pluralDays(rewardStatus.current_streak)}
-              </p>
-              {claimAmount !== null ? (
-                <div className="feature-reward-claimed">+{claimAmount} рублей</div>
-              ) : rewardStatus.available ? (
-                <button className="btn-home-claim" onClick={handleClaim} disabled={claiming}>
-                  {claiming ? 'Получение...' : rewardStatus.is_random ? 'Испытать удачу' : `Забрать ${rewardStatus.next_reward} рублей`}
-                </button>
-              ) : (
-                <div className="feature-reward-timer">{formatCountdown(countdown)}</div>
-              )}
-              <Link to="/rewards" className="feature-card-inline-link">Подробнее →</Link>
+          <Link to="/rewards" className="feature-card feature-card-link feature-card-reward">
+            <div className="feature-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="3" /></svg>
             </div>
-          ) : (
-            <Link to="/rewards" className="feature-card feature-card-link">
-              <div className="feature-icon-wrap">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v10H4V12" /><path d="M2 7h20v5H2z" /><path d="M12 22V7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
-              </div>
-              <h3>Ежедневная награда</h3>
-              <p>Авторизуйтесь и получайте награду каждый день за серию входов</p>
-            </Link>
-          )}
+            <h3>Ежедневная награда</h3>
+            <p>
+              {user
+                ? 'Крутите колесо на 25 секторов — как в казино Rust. Награда до 200 рублей в день.'
+                : 'Авторизуйтесь и крутите колесо раз в день — награда на баланс сайта.'}
+            </p>
+            <span className="feature-card-inline-link">Перейти к колесу →</span>
+          </Link>
 
           <a
             href="https://discord.gg/NSPuBH4mZJ"
@@ -163,11 +80,6 @@ function Home() {
             <p>Общайся с игроками, следи за новостями и будь в курсе событий</p>
           </a>
         </div>
-      </AnimatedSection>
-
-      {/* ===== SERVER STATUS ===== */}
-      <AnimatedSection>
-        <ServerStatus />
       </AnimatedSection>
 
     </div>

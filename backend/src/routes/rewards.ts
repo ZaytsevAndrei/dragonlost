@@ -3,46 +3,13 @@ import { webPool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isAuthenticated } from '../middleware/auth';
 import { sensitiveRateLimiter } from '../middleware/rateLimiter';
+import {
+  DAILY_REWARD_WHEEL_SECTORS,
+  DAILY_REWARD_WHEEL_SUMMARY,
+  rollDailyRewardWheel,
+} from '../constants/dailyRewardWheel';
 
 const router = Router();
-
-/**
- * Шкала наград по дням серии (streak).
- * Дни 1-7: фиксированные суммы.
- * С 8-го дня: случайный выбор из REWARD_RANDOM_POOL (взвешенная вероятность).
- */
-const REWARD_FIRST_WEEK = [5, 10, 15, 20, 30, 40, 50];
-
-/** Пул случайных наград с 8-го дня. Сумма chance = 100. */
-const REWARD_RANDOM_POOL = [
-  { amount: 20, chance: 40 },
-  { amount: 30, chance: 30 },
-  { amount: 40, chance: 20 },
-  { amount: 50, chance: 10 },
-];
-
-/**
- * Для дней 1-7 возвращает фиксированную награду.
- * С 8-го дня — случайную по весам из REWARD_RANDOM_POOL.
- * Рандом генерируется на сервере (crypto.getRandomValues), клиент не влияет.
- */
-function getRewardAmount(streak: number): number {
-  if (streak <= 0) return REWARD_FIRST_WEEK[0];
-  if (streak <= REWARD_FIRST_WEEK.length) return REWARD_FIRST_WEEK[streak - 1];
-  return rollRandomReward();
-}
-
-function rollRandomReward(): number {
-  const arr = new Uint32Array(1);
-  crypto.getRandomValues(arr);
-  const roll = arr[0] % 100;
-  let cumulative = 0;
-  for (const entry of REWARD_RANDOM_POOL) {
-    cumulative += entry.chance;
-    if (roll < cumulative) return entry.amount;
-  }
-  return REWARD_RANDOM_POOL[REWARD_RANDOM_POOL.length - 1].amount;
-}
 
 interface DailyRewardRow extends RowDataPacket {
   last_claimed_at: Date | null;
@@ -57,17 +24,6 @@ interface BalanceRow extends RowDataPacket {
   balance: number;
 }
 
-/**
- * Отсчёт дня — по московскому времени (UTC+3, без DST).
- * Вся арифметика дат ведётся через UTC_TIMESTAMP(), чтобы не зависеть
- * от настройки time_zone на сервере MySQL.
- *
- * SQL-выражения:
- *   moscow_today   = DATE(UTC_TIMESTAMP() + INTERVAL 3 HOUR)
- *   claim_msk_date = DATE(last_claimed_at + INTERVAL 3 HOUR)
- *   days_diff      = DATEDIFF(moscow_today, claim_msk_date)
- *   seconds_until_reset = секунд до следующей полуночи МСК
- */
 const DAILY_REWARD_SELECT = `
   SELECT last_claimed_at, current_streak, longest_streak, total_claims,
          DATEDIFF(
@@ -79,18 +35,21 @@ const DAILY_REWARD_SELECT = `
          ) AS seconds_until_reset
   FROM daily_rewards WHERE steamid = ?`;
 
+function wheelPayload() {
+  return {
+    wheel_sectors: [...DAILY_REWARD_WHEEL_SECTORS],
+    wheel_summary: DAILY_REWARD_WHEEL_SUMMARY,
+  };
+}
+
 /**
- * GET /api/rewards/daily — статус ежедневной награды.
- * Отсчёт дня начинается в 00:00 по московскому времени.
+ * GET /api/rewards/daily — статус ежедневной награды (колесо 25 секторов).
  */
 router.get('/daily', isAuthenticated, async (req, res) => {
   try {
     const steamid = req.user!.steamid;
 
-    const [rows] = await webPool.query<DailyRewardRow[]>(
-      DAILY_REWARD_SELECT,
-      [steamid]
-    );
+    const [rows] = await webPool.query<DailyRewardRow[]>(DAILY_REWARD_SELECT, [steamid]);
 
     if (rows.length === 0) {
       return res.json({
@@ -98,25 +57,16 @@ router.get('/daily', isAuthenticated, async (req, res) => {
         current_streak: 0,
         longest_streak: 0,
         total_claims: 0,
-        next_reward: REWARD_FIRST_WEEK[0],
-        is_random: false,
         seconds_until_available: 0,
-        reward_first_week: REWARD_FIRST_WEEK,
-        reward_random_pool: REWARD_RANDOM_POOL,
+        ...wheelPayload(),
       });
     }
 
     const row = rows[0];
     const daysDiff = row.days_diff;
-
     const available = daysDiff === null || daysDiff >= 1;
-
     const wouldResetStreak = daysDiff === null || daysDiff >= 2;
     const effectiveStreak = wouldResetStreak ? 0 : row.current_streak;
-
-    const nextDay = effectiveStreak + 1;
-    const isRandom = nextDay > REWARD_FIRST_WEEK.length;
-    const nextReward = isRandom ? null : REWARD_FIRST_WEEK[nextDay - 1];
 
     const secondsUntilAvailable = available
       ? 0
@@ -127,11 +77,8 @@ router.get('/daily', isAuthenticated, async (req, res) => {
       current_streak: effectiveStreak,
       longest_streak: row.longest_streak,
       total_claims: row.total_claims,
-      next_reward: nextReward,
-      is_random: isRandom,
       seconds_until_available: secondsUntilAvailable,
-      reward_first_week: REWARD_FIRST_WEEK,
-      reward_random_pool: REWARD_RANDOM_POOL,
+      ...wheelPayload(),
     });
   } catch (error) {
     console.error('Error fetching daily reward status:', error instanceof Error ? error.message : 'Unknown error');
@@ -140,15 +87,7 @@ router.get('/daily', isAuthenticated, async (req, res) => {
 });
 
 /**
- * POST /api/rewards/daily/claim — забрать ежедневную награду.
- *
- * Безопасность:
- * - isAuthenticated: проверка сессии
- * - sensitiveRateLimiter: 30 req / 15 min (защита от скриптов)
- * - CSRF: глобальный middleware (X-CSRF-Token)
- * - FOR UPDATE: блокировка строки в транзакции (anti-double-claim)
- * - Серверное время: UTC_TIMESTAMP() на стороне MySQL
- * - Нет пользовательского ввода: нечего инъектировать
+ * POST /api/rewards/daily/claim — крутить колесо и забрать награду.
  */
 router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
@@ -204,7 +143,7 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
       );
     }
 
-    const rewardAmount = getRewardAmount(currentStreak);
+    const { sectorIndex, amount: rewardAmount } = rollDailyRewardWheel();
 
     await connection.query(
       `INSERT INTO player_balance (steamid, balance, total_earned, total_spent)
@@ -216,7 +155,7 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
     await connection.query(
       `INSERT INTO transactions (steamid, type, amount, description)
        VALUES (?, 'earn', ?, ?)`,
-      [steamid, rewardAmount, `Ежедневная награда (день ${currentStreak})`]
+      [steamid, rewardAmount, `Ежедневная награда — колесо (день ${currentStreak}, сектор ${sectorIndex + 1})`]
     );
 
     await connection.commit();
@@ -230,6 +169,7 @@ router.post('/daily/claim', sensitiveRateLimiter, isAuthenticated, async (req, r
     res.json({
       success: true,
       reward: rewardAmount,
+      wheel_sector_index: sectorIndex,
       current_streak: currentStreak,
       longest_streak: longestStreak,
       new_balance: newBalance,

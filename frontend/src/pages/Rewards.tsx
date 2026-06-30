@@ -4,11 +4,15 @@ import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { saveLastPage } from '../utils/safeLocalStorage';
 import StatePanel from '../components/StatePanel';
+import { DailyRewardWheel, type WheelSpinTarget } from '../components/DailyRewardWheel';
+import { DAILY_REWARD_WHEEL_SUMMARY } from '../constants/dailyRewardWheel';
 import './Rewards.css';
 
-interface RandomPoolEntry {
+interface WheelSummaryEntry {
   amount: number;
-  chance: number;
+  count: number;
+  rustMultiplier: number;
+  tier: string;
 }
 
 interface DailyRewardStatus {
@@ -16,20 +20,27 @@ interface DailyRewardStatus {
   current_streak: number;
   longest_streak: number;
   total_claims: number;
-  next_reward: number | null;
-  is_random: boolean;
   seconds_until_available: number;
-  reward_first_week: number[];
-  reward_random_pool: RandomPoolEntry[];
+  wheel_sectors: number[];
+  wheel_summary: WheelSummaryEntry[];
 }
 
 interface ClaimResult {
   success: boolean;
   reward: number;
+  wheel_sector_index: number;
   current_streak: number;
   longest_streak: number;
   new_balance: number;
 }
+
+const TIER_LABELS: Record<string, string> = {
+  yellow: '×1 — очень низкая',
+  green: '×3 — низкая',
+  blue: '×5 — средняя',
+  purple: '×10 — высокая',
+  red: '×20 — очень высокая',
+};
 
 function getStreakHue(streak: number): number {
   const step = Math.min(Math.max(streak, 0), 7);
@@ -52,6 +63,7 @@ function Rewards() {
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
   const [claimResult, setClaimResult] = useState<ClaimResult | null>(null);
+  const [spinTarget, setSpinTarget] = useState<WheelSpinTarget | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -66,14 +78,12 @@ function Rewards() {
     fetchStatus();
   }, [user, authLoading, navigate]);
 
-  // Таймер обратного отсчёта
   useEffect(() => {
     if (countdown <= 0) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      // Когда таймер дошёл до нуля — обновляем статус
       if (status && !status.available) {
         fetchStatus();
       }
@@ -81,10 +91,7 @@ function Rewards() {
     }
 
     timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) return 0;
-        return prev - 1;
-      });
+      setCountdown((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
     return () => {
@@ -107,23 +114,30 @@ function Rewards() {
     }
   }, []);
 
-  const handleClaim = async () => {
-    if (claiming) return;
+  const handleSpinRequest = async () => {
+    if (claiming || !status?.available) return;
     try {
       setClaiming(true);
       setClaimResult(null);
+      setError(null);
       const response = await api.post('/rewards/daily/claim');
       const result: ClaimResult = response.data;
+      setSpinTarget({ sectorIndex: result.wheel_sector_index, reward: result.reward });
       setClaimResult(result);
-      // Обновляем статус после получения
-      fetchStatus();
-    } catch (err: any) {
-      const msg = err.response?.data?.error || 'Ошибка при получении награды';
-      setError(msg);
-    } finally {
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+          : null;
+      setError(msg || 'Ошибка при вращении колеса');
       setClaiming(false);
     }
   };
+
+  const handleSpinComplete = useCallback(() => {
+    setClaiming(false);
+    void fetchStatus();
+  }, [fetchStatus]);
 
   const formatCountdown = (seconds: number): string => {
     const h = Math.floor(seconds / 3600);
@@ -154,44 +168,45 @@ function Rewards() {
     return (
       <div className="rewards">
         <h1>Ежедневная награда</h1>
-        <StatePanel type="error" title="Не удалось загрузить ежедневную награду" message={error} actionLabel="Попробовать снова" onAction={fetchStatus} />
+        <StatePanel
+          type="error"
+          title="Не удалось загрузить ежедневную награду"
+          message={error}
+          actionLabel="Попробовать снова"
+          onAction={fetchStatus}
+        />
       </div>
     );
   }
 
-  const firstWeek = status?.reward_first_week || [];
-  const randomPool = status?.reward_random_pool || [];
-  const isRandom = status?.is_random ?? false;
+  const wheelSummary = status?.wheel_summary?.length ? status.wheel_summary : DAILY_REWARD_WHEEL_SUMMARY;
 
   return (
     <div className="rewards">
       <div className="rewards-header">
-        <h1>🎁 Ежедневная награда</h1>
+        <h1>Ежедневная награда</h1>
         <p className="rewards-subtitle">
-          Заходите каждый день и получайте бонусные рубли! Чем длиннее серия — тем больше награда.
+          Крутите колесо раз в день — как в казино Bandit Camp в Rust. 25 секторов, награда в рублях на баланс.
         </p>
       </div>
 
-      {/* Результат получения */}
-      {claimResult && (
-        <div className="claim-result">
+      {claimResult && !claiming && (
+        <div className="claim-result" role="status" aria-live="polite">
           <div className="claim-result-icon">🎉</div>
           <div className="claim-result-text">
-            <div className="claim-result-title">Награда получена!</div>
+            <div className="claim-result-title">Выпало!</div>
             <div className="claim-result-amount">+{claimResult.reward} рублей</div>
             <div className="claim-result-balance">
-              Ваш баланс: {claimResult.new_balance.toFixed(2)} рублей
+              Баланс: {claimResult.new_balance.toFixed(2)} рублей · серия {claimResult.current_streak}{' '}
+              {pluralDays(claimResult.current_streak)}
             </div>
           </div>
         </div>
       )}
 
-      {error && status && (
-        <div className="reward-error">{error}</div>
-      )}
+      {error && status && <div className="reward-error">{error}</div>}
 
-      {/* Основная карточка */}
-      <div className="reward-main-card">
+      <div className="reward-main-card reward-main-card-wheel">
         <div className="reward-streak-info">
           <div
             className="streak-badge"
@@ -207,94 +222,48 @@ function Rewards() {
             </div>
             <div className="stat-item">
               <span className="stat-value">{status?.total_claims || 0}</span>
-              <span className="stat-label">всего наград</span>
+              <span className="stat-label">всего спинов</span>
             </div>
           </div>
         </div>
 
-        <div className="reward-action">
-          {status?.available ? (
-            <>
-              <div className="next-reward-label">Ваша награда сегодня:</div>
-              {isRandom ? (
-                <div className="next-reward-amount random">🎲 ???</div>
-              ) : (
-                <div className="next-reward-amount">{status.next_reward} рублей</div>
-              )}
-              <button
-                className="btn-claim"
-                onClick={handleClaim}
-                disabled={claiming}
-              >
-                {claiming ? 'Получение...' : isRandom ? '🎲 Испытать удачу' : '🎁 Забрать награду'}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="next-reward-label">Следующая награда через:</div>
-              <div className="countdown-timer">{formatCountdown(countdown)}</div>
-              <div className="next-reward-preview">
-                {isRandom ? 'Награда: случайная' : `Награда: ${status?.next_reward} рублей`}
-              </div>
-            </>
-          )}
+        <div className="reward-wheel-wrap">
+          <DailyRewardWheel
+            available={!!status?.available}
+            countdownLabel={formatCountdown(countdown)}
+            spinTarget={spinTarget}
+            disabled={claiming}
+            onSpinRequest={() => void handleSpinRequest()}
+            onSpinComplete={handleSpinComplete}
+          />
         </div>
       </div>
 
-      {/* Шкала наград по дням */}
       <div className="reward-schedule">
-        <h2>Шкала наград</h2>
-
-        <h3 className="schedule-section-title">Первая неделя</h3>
-        <div className="schedule-grid schedule-grid-week">
-          {firstWeek.map((amount, index) => {
-            const day = index + 1;
-            const isCurrent = status ? day === (status.current_streak + 1) && status.available && !isRandom : false;
-            const isCompleted = status ? day <= status.current_streak : false;
-
-            return (
-              <div
-                key={day}
-                className={`schedule-day ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
-              >
-                <div className="day-number">День {day}</div>
-                <div className="day-icon">
-                  {isCompleted ? '✅' : isCurrent ? '🎁' : '🔒'}
-                </div>
-                <div className="day-amount">{amount}</div>
-                <div className="day-currency">рублей</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <h3 className="schedule-section-title">
-          С 8-го дня — случайная награда 🎲
-        </h3>
-        <div className="schedule-grid">
-          {randomPool.map((entry) => (
-            <div
-              key={entry.amount}
-              className={`schedule-day random-day ${isRandom && status?.available ? 'current' : ''}`}
-            >
-              <div className="day-chance">{entry.chance}%</div>
-              <div className="day-icon">🎲</div>
-              <div className="day-amount">{entry.amount}</div>
-              <div className="day-currency">рублей</div>
+        <h2>Секторы колеса (25)</h2>
+        <p className="reward-schedule-desc">
+          Распределение как на большом колесе в Rust: ×1 — 12 секторов, ×3 — 6, ×5 — 4, ×10 — 2, ×20 — 1.
+        </p>
+        <div className="wheel-legend">
+          {wheelSummary.map((entry) => (
+            <div key={entry.amount} className={`wheel-legend-item wheel-legend-${entry.tier}`}>
+              <span className="wheel-legend-mult">×{entry.rustMultiplier}</span>
+              <span className="wheel-legend-amount">{entry.amount} ₽</span>
+              <span className="wheel-legend-meta">
+                {entry.count} сек. · {TIER_LABELS[entry.tier] || entry.tier}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Правила */}
       <div className="reward-rules">
         <h3>Как это работает</h3>
         <ul>
-          <li>Награда обновляется каждый день в 00:00 по московскому времени</li>
-          <li>Первые 7 дней — награда растёт каждый день</li>
-          <li>С 8-го дня — случайная награда от {Math.min(...randomPool.map(e => e.amount))} до {Math.max(...randomPool.map(e => e.amount))} рублей</li>
-          <li>Пропуск дня сбрасывает серию на начало</li>
-          <li>Рубли начисляются на ваш баланс мгновенно</li>
+          <li>Одно вращение в сутки — отсчёт с 00:00 по Москве</li>
+          <li>Нажмите на колесо, дождитесь остановки — рубли зачисляются сразу</li>
+          <li>Серия дней сохраняется при ежедневном входе; пропуск сбрасывает счётчик</li>
+          <li>Результат определяет сервер — анимация совпадает с выпавшим сектором</li>
         </ul>
       </div>
     </div>
