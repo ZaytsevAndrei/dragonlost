@@ -82,9 +82,10 @@ function Rewards() {
     };
   }, [countdown > 0]);
 
-  const fetchStatus = useCallback(async () => {
+  const fetchStatus = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await api.get('/rewards/daily');
       const data: DailyRewardStatus = response.data;
       setStatus(data);
@@ -93,7 +94,7 @@ function Rewards() {
     } catch {
       setError('Не удалось загрузить статус награды');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -118,8 +119,9 @@ function Rewards() {
   };
 
   const handleSpinComplete = useCallback(() => {
+    setSpinTarget(null);
     setClaiming(false);
-    void fetchStatus();
+    void fetchStatus({ silent: true });
   }, [fetchStatus]);
 
   const formatCountdown = (seconds: number): string => {

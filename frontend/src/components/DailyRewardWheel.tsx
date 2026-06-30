@@ -83,6 +83,9 @@ export function DailyRewardWheel({
   const [litSector, setLitSector] = useState<number | null>(null);
   const stopSoundRef = useRef<(() => void) | null>(null);
   const lastSpinKeyRef = useRef<string | null>(null);
+  const isAnimatingRef = useRef(false);
+  const onSpinCompleteRef = useRef(onSpinComplete);
+  onSpinCompleteRef.current = onSpinComplete;
 
   const runSpinAnimation = useCallback(
     (sectorIndex: number) => {
@@ -96,10 +99,11 @@ export function DailyRewardWheel({
         setRotation(next);
         setLitSector(sectorIndex);
         playWheelWinChime();
-        onSpinComplete();
+        onSpinCompleteRef.current();
         return;
       }
 
+      isAnimatingRef.current = true;
       setIsAnimating(true);
       setLitSector(null);
       stopSoundRef.current?.();
@@ -109,11 +113,14 @@ export function DailyRewardWheel({
         setRotation(next);
       });
     },
-    [onSpinComplete]
+    []
   );
 
   useEffect(() => {
-    if (!spinTarget) return;
+    if (!spinTarget) {
+      lastSpinKeyRef.current = null;
+      return;
+    }
     const key = `${spinTarget.sectorIndex}:${spinTarget.reward}`;
     if (key === lastSpinKeyRef.current) return;
     lastSpinKeyRef.current = key;
@@ -126,7 +133,8 @@ export function DailyRewardWheel({
 
     const onEnd = (e: TransitionEvent) => {
       if (e.propertyName !== 'transform') return;
-      if (!isAnimating) return;
+      if (!isAnimatingRef.current) return;
+      isAnimatingRef.current = false;
       setIsAnimating(false);
       stopSoundRef.current?.();
       stopSoundRef.current = null;
@@ -134,12 +142,12 @@ export function DailyRewardWheel({
         setLitSector(spinTarget.sectorIndex);
         playWheelWinChime();
       }
-      onSpinComplete();
+      onSpinCompleteRef.current();
     };
 
     el.addEventListener('transitionend', onEnd);
     return () => el.removeEventListener('transitionend', onEnd);
-  }, [isAnimating, spinTarget, onSpinComplete]);
+  }, [spinTarget]);
 
   const handleActivate = () => {
     if (!available || disabled || isAnimating) return;
