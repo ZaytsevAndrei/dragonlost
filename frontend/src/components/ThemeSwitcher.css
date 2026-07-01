@@ -6,14 +6,14 @@
 .theme-switcher__trigger {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--bg-tertiary) 70%, transparent);
   color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
 }
 
 .theme-switcher__trigger:hover {
@@ -22,30 +22,14 @@
 }
 
 .theme-switcher--compact .theme-switcher__trigger {
-  padding: var(--space-2);
+  width: 32px;
+  height: 32px;
 }
 
 .theme-switcher__icon {
   font-size: 1.1rem;
   line-height: 1;
   opacity: 0.9;
-}
-
-.theme-switcher__label {
-  max-width: 9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.theme-switcher__caret {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  transition: transform 0.2s ease;
-}
-
-.theme-switcher__caret--open {
-  transform: rotate(180deg);
 }
 
 .theme-switcher__menu {

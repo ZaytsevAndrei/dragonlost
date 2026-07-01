@@ -21,8 +21,6 @@ function ThemeSwitcher({ compact = false }: ThemeSwitcherProps) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const current = options.find((o) => o.id === theme)?.label ?? theme;
-
   const select = (id: ThemeId) => {
     setTheme(id);
     setOpen(false);
@@ -41,10 +39,6 @@ function ThemeSwitcher({ compact = false }: ThemeSwitcherProps) {
       >
         <span className="theme-switcher__icon" aria-hidden>
           ◐
-        </span>
-        {!compact && <span className="theme-switcher__label">{current}</span>}
-        <span className={`theme-switcher__caret ${open ? 'theme-switcher__caret--open' : ''}`} aria-hidden>
-          ▾
         </span>
       </button>
       {open && (
