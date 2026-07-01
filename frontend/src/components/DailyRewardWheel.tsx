@@ -12,8 +12,16 @@ import './DailyRewardWheel.css';
 const SPIN_DURATION_MS = 4800;
 const WHEEL_SIZE = 400;
 const WHEEL_R = WHEEL_SIZE / 2;
-const INNER_R = 62;
-const OUTER_R = WHEEL_R - 6;
+const INNER_R = 58;
+const OUTER_R = WHEEL_R - 14;
+
+const TIER_GRADIENT_STOPS: Record<DailyRewardWheelAmount, [string, string, string]> = {
+  10: ['#ffe08a', '#f0c040', '#c89618'],
+  30: ['#7ed99a', '#4caf6a', '#2a7a42'],
+  50: ['#7eb8f0', '#4a8fd4', '#2a5a98'],
+  100: ['#d4a8f8', '#a86cd8', '#6a3898'],
+  200: ['#ff8a7a', '#e04538', '#9a2018'],
+};
 
 function polarToCartesian(angleDeg: number, radius: number): { x: number; y: number } {
   const rad = (angleDeg * Math.PI) / 180;
@@ -45,11 +53,11 @@ function describeSector(index: number): string {
 function sectorLabelPosition(index: number): { x: number; y: number; rotate: number } {
   const midAngle = index * WHEEL_DEGREES_PER_SECTOR + WHEEL_DEGREES_PER_SECTOR / 2 - 90;
   const rad = (midAngle * Math.PI) / 180;
-  const labelR = (INNER_R + OUTER_R) / 2 + 8;
+  const labelR = (INNER_R + OUTER_R) / 2 + 6;
   return {
     x: WHEEL_R + labelR * Math.cos(rad),
     y: WHEEL_R + labelR * Math.sin(rad),
-    rotate: midAngle,
+    rotate: midAngle + 90,
   };
 }
 
@@ -76,6 +84,7 @@ export function DailyRewardWheel({
   onSpinComplete,
 }: DailyRewardWheelProps) {
   const labelId = useId();
+  const gradPrefix = labelId.replace(/:/g, '');
   const wheelRef = useRef<HTMLDivElement>(null);
   const rotationRef = useRef(0);
   const [rotation, setRotation] = useState(0);
@@ -87,34 +96,33 @@ export function DailyRewardWheel({
   const onSpinCompleteRef = useRef(onSpinComplete);
   onSpinCompleteRef.current = onSpinComplete;
 
-  const runSpinAnimation = useCallback(
-    (sectorIndex: number) => {
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const base = rotationRef.current;
-      const delta = wheelSpinDelta(base, sectorIndex, 6);
-      const next = base + delta;
-      rotationRef.current = next;
+  const uniqueTiers = [...new Set(DAILY_REWARD_WHEEL_SECTORS)] as DailyRewardWheelAmount[];
 
-      if (reducedMotion) {
-        setRotation(next);
-        setLitSector(sectorIndex);
-        playWheelWinChime();
-        onSpinCompleteRef.current();
-        return;
-      }
+  const runSpinAnimation = useCallback((sectorIndex: number) => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const base = rotationRef.current;
+    const delta = wheelSpinDelta(base, sectorIndex, 6);
+    const next = base + delta;
+    rotationRef.current = next;
 
-      isAnimatingRef.current = true;
-      setIsAnimating(true);
-      setLitSector(null);
-      stopSoundRef.current?.();
-      stopSoundRef.current = playWheelSpinSound(SPIN_DURATION_MS);
+    if (reducedMotion) {
+      setRotation(next);
+      setLitSector(sectorIndex);
+      playWheelWinChime();
+      onSpinCompleteRef.current();
+      return;
+    }
 
-      requestAnimationFrame(() => {
-        setRotation(next);
-      });
-    },
-    []
-  );
+    isAnimatingRef.current = true;
+    setIsAnimating(true);
+    setLitSector(null);
+    stopSoundRef.current?.();
+    stopSoundRef.current = playWheelSpinSound(SPIN_DURATION_MS);
+
+    requestAnimationFrame(() => {
+      setRotation(next);
+    });
+  }, []);
 
   useEffect(() => {
     if (!spinTarget) {
@@ -164,119 +172,188 @@ export function DailyRewardWheel({
         role="group"
         aria-labelledby={labelId}
       >
-        <div className="drw-frame">
-          <div className="drw-pointer" aria-hidden>
-            <span className="drw-pointer-arrow" />
-          </div>
-
-          <button
-            type="button"
-            className="drw-wheel-hit"
-            disabled={!interactive}
-            onClick={handleActivate}
-            aria-label={
-              available ? 'Крутить колесо ежедневной награды' : `Следующее вращение через ${countdownLabel}`
-            }
-          >
-            <div
-              ref={wheelRef}
-              className="drw-wheel-rotor"
-              style={{
-                transform: `rotate(${rotation}deg)`,
-                transition: isAnimating
-                  ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.12, 0.75, 0.1, 1)`
-                  : 'none',
-              }}
-            >
-              <svg
-                className="drw-wheel-svg"
-                viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}
-                width={WHEEL_SIZE}
-                height={WHEEL_SIZE}
-                aria-hidden
-              >
+        <div className="drw-stage">
+          <div className="drw-aura" aria-hidden />
+          <div className="drw-frame">
+            <div className="drw-pointer" aria-hidden>
+              <svg className="drw-pointer-svg" viewBox="0 0 40 48" width="40" height="48">
                 <defs>
-                  <filter id="drw-rust-grunge" x="-10%" y="-10%" width="120%" height="120%">
-                    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="noise" />
-                    <feColorMatrix type="saturate" values="0" in="noise" result="gray" />
-                    <feBlend in="SourceGraphic" in2="gray" mode="multiply" />
-                  </filter>
-                  <radialGradient id="drw-hub-rust" cx="45%" cy="40%" r="65%">
-                    <stop offset="0%" stopColor="#e8dfd0" />
-                    <stop offset="45%" stopColor="#c9b89a" />
-                    <stop offset="100%" stopColor="#8b5a3c" />
-                  </radialGradient>
+                  <linearGradient id={`${gradPrefix}-ptr`} x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#ffd080" />
+                    <stop offset="45%" stopColor="#e87d3e" />
+                    <stop offset="100%" stopColor="#a84a18" />
+                  </linearGradient>
                 </defs>
+                <path
+                  d="M20 44 L6 14 Q6 8 20 4 Q34 8 34 14 Z"
+                  fill={`url(#${gradPrefix}-ptr)`}
+                  stroke="#5c3010"
+                  strokeWidth="1.5"
+                />
+                <circle cx="20" cy="12" r="4" fill="#2a1810" stroke="#1a1008" strokeWidth="1" />
+              </svg>
+            </div>
 
-                <g filter="url(#drw-rust-grunge)">
+            <button
+              type="button"
+              className="drw-wheel-hit"
+              disabled={!interactive}
+              onClick={handleActivate}
+              aria-label={
+                available ? 'Крутить колесо ежедневной награды' : `Следующее вращение через ${countdownLabel}`
+              }
+            >
+              <div
+                ref={wheelRef}
+                className="drw-wheel-rotor"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: isAnimating
+                    ? `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.12, 0.75, 0.1, 1)`
+                    : 'none',
+                }}
+              >
+                <svg
+                  className="drw-wheel-svg"
+                  viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}
+                  width={WHEEL_SIZE}
+                  height={WHEEL_SIZE}
+                  aria-hidden
+                >
+                  <defs>
+                    {uniqueTiers.map((tier) => {
+                      const [light, mid, dark] = TIER_GRADIENT_STOPS[tier];
+                      return (
+                        <radialGradient
+                          key={tier}
+                          id={`${gradPrefix}-tier-${tier}`}
+                          cx="50%"
+                          cy="50%"
+                          r="75%"
+                          gradientUnits="userSpaceOnUse"
+                          gradientTransform={`translate(${WHEEL_R} ${WHEEL_R})`}
+                        >
+                          <stop offset="0%" stopColor={light} />
+                          <stop offset="55%" stopColor={mid} />
+                          <stop offset="100%" stopColor={dark} />
+                        </radialGradient>
+                      );
+                    })}
+                    <radialGradient id={`${gradPrefix}-hub`} cx="38%" cy="32%" r="68%">
+                      <stop offset="0%" stopColor="#f5ead8" />
+                      <stop offset="50%" stopColor="#c9a87a" />
+                      <stop offset="100%" stopColor="#6b4428" />
+                    </radialGradient>
+                    <filter id={`${gradPrefix}-glow`} x="-40%" y="-40%" width="180%" height="180%">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <circle cx={WHEEL_R} cy={WHEEL_R} r={OUTER_R + 10} className="drw-rim-shadow" />
+
                   {DAILY_REWARD_WHEEL_SECTORS.map((amount, index) => {
                     const colors = WHEEL_TIER_COLORS[amount as DailyRewardWheelAmount];
                     const isWinner = litSector === index;
+                    const isJackpot = amount === 200;
 
                     return (
                       <path
                         key={`seg-${index}`}
                         d={describeSector(index)}
-                        fill={colors.fill}
+                        fill={`url(#${gradPrefix}-tier-${amount})`}
                         stroke={colors.stroke}
-                        strokeWidth={1.2}
-                        className={isWinner ? 'drw-sector-winner' : 'drw-sector'}
+                        strokeWidth={1}
+                        className={`drw-sector ${isWinner ? 'drw-sector-winner' : ''} ${isJackpot ? 'drw-sector-jackpot' : ''}`}
+                        style={isWinner ? { filter: `drop-shadow(0 0 10px ${colors.glow})` } : undefined}
                       />
                     );
                   })}
-                </g>
 
-                {DAILY_REWARD_WHEEL_SECTORS.map((amount, index) => {
-                  const label = sectorLabelPosition(index);
-                  const fontSize = amount >= 100 ? 15 : amount >= 50 ? 17 : 19;
+                  {DAILY_REWARD_WHEEL_SECTORS.map((_, index) => {
+                    const angle = index * WHEEL_DEGREES_PER_SECTOR - 90;
+                    const inner = polarToCartesian(angle, INNER_R);
+                    const outer = polarToCartesian(angle, OUTER_R);
+                    return (
+                      <line
+                        key={`div-${index}`}
+                        x1={inner.x}
+                        y1={inner.y}
+                        x2={outer.x}
+                        y2={outer.y}
+                        className="drw-divider"
+                      />
+                    );
+                  })}
 
-                  return (
-                    <text
-                      key={`lbl-${index}`}
-                      x={label.x}
-                      y={label.y}
-                      className="drw-sector-num"
-                      fontSize={fontSize}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      transform={`rotate(${label.rotate}, ${label.x}, ${label.y})`}
-                    >
-                      {amount}
-                    </text>
-                  );
-                })}
+                  {DAILY_REWARD_WHEEL_SECTORS.map((amount, index) => {
+                    const label = sectorLabelPosition(index);
+                    const fontSize = amount >= 100 ? 13 : amount >= 50 ? 14 : 15;
+                    const isJackpot = amount === 200;
 
-                {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
-                  const inner = polarToCartesian(deg - 90, INNER_R - 4);
-                  const outer = polarToCartesian(deg - 90, OUTER_R + 2);
-                  return (
-                    <line
-                      key={`spoke-${deg}`}
-                      x1={inner.x}
-                      y1={inner.y}
-                      x2={outer.x}
-                      y2={outer.y}
-                      className="drw-spoke"
-                    />
-                  );
-                })}
+                    return (
+                      <text
+                        key={`lbl-${index}`}
+                        x={label.x}
+                        y={label.y}
+                        className={`drw-sector-num ${isJackpot ? 'drw-sector-num-jackpot' : ''}`}
+                        fontSize={fontSize}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${label.rotate}, ${label.x}, ${label.y})`}
+                      >
+                        {amount}₽
+                      </text>
+                    );
+                  })}
 
-                <circle cx={WHEEL_R} cy={WHEEL_R} r={INNER_R - 3} fill="url(#drw-hub-rust)" className="drw-hub" />
-                <circle cx={WHEEL_R} cy={WHEEL_R} r={INNER_R - 3} className="drw-hub-ring" fill="none" />
-                <circle cx={WHEEL_R} cy={WHEEL_R} r={10} className="drw-hub-axle" />
+                  <circle cx={WHEEL_R} cy={WHEEL_R} r={OUTER_R + 8} className="drw-outer-rim" fill="none" />
+                  <circle cx={WHEEL_R} cy={WHEEL_R} r={OUTER_R + 4} className="drw-outer-rim-inner" fill="none" />
 
-                <circle cx={WHEEL_R} cy={WHEEL_R} r={OUTER_R + 1} className="drw-outer-rim" fill="none" />
-              </svg>
-            </div>
-          </button>
+                  <circle cx={WHEEL_R} cy={WHEEL_R} r={INNER_R} fill={`url(#${gradPrefix}-hub)`} className="drw-hub" />
+                  <circle cx={WHEEL_R} cy={WHEEL_R} r={INNER_R} className="drw-hub-ring" fill="none" />
+                  <text
+                    x={WHEEL_R}
+                    y={WHEEL_R}
+                    className="drw-hub-label"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    SPIN
+                  </text>
+                  <circle cx={WHEEL_R} cy={WHEEL_R} r={8} className="drw-hub-axle" />
+                </svg>
+              </div>
+            </button>
+          </div>
         </div>
 
-        <p id={labelId} className="drw-hint">
-          {isAnimating
-            ? 'Крутим…'
-            : available
-              ? 'Нажмите на колесо'
-              : `До следующего вращения: ${countdownLabel}`}
+        <p id={labelId} className={`drw-hint ${available ? 'drw-hint-ready' : 'drw-hint-wait'}`}>
+          {isAnimating ? (
+            <>
+              <span className="drw-hint-icon" aria-hidden>
+                ◌
+              </span>
+              Крутим…
+            </>
+          ) : available ? (
+            <>
+              <span className="drw-hint-icon" aria-hidden>
+                ↻
+              </span>
+              Нажмите на колесо
+            </>
+          ) : (
+            <>
+              <span className="drw-hint-icon" aria-hidden>
+                ⏱
+              </span>
+              До следующего вращения: <strong>{countdownLabel}</strong>
+            </>
+          )}
         </p>
       </div>
     </div>

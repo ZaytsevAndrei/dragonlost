@@ -25,19 +25,29 @@ export const DAILY_REWARD_WHEEL_SUMMARY = [
 export const WHEEL_SECTOR_COUNT = DAILY_REWARD_WHEEL_SECTORS.length;
 export const WHEEL_DEGREES_PER_SECTOR = 360 / WHEEL_SECTOR_COUNT;
 
+/**
+ * Угол поворота (по часовой), при котором сектор sectorIndex оказывается под указателем (12 ч).
+ * Сектор 0 в покое уже под стрелкой; при вращении колесо крутится по часовой.
+ */
+export function wheelRotationForSector(sectorIndex: number): number {
+  const normalized =
+    ((360 - sectorIndex * WHEEL_DEGREES_PER_SECTOR) % 360) + 360;
+  return normalized % 360;
+}
+
 export function wheelSpinDelta(currentRotation: number, sectorIndex: number, extraSpins = 6): number {
   const currentMod = ((currentRotation % 360) + 360) % 360;
-  const targetMod = sectorIndex * WHEEL_DEGREES_PER_SECTOR;
+  const targetMod = wheelRotationForSector(sectorIndex);
   let delta = (targetMod - currentMod + 360) % 360;
   if (delta < 0.5) delta = 360;
   return extraSpins * 360 + delta;
 }
 
-/** Цвета сегментов как на колесе Rust (Bandit Camp). */
-export const WHEEL_TIER_COLORS: Record<DailyRewardWheelAmount, { fill: string; stroke: string }> = {
-  10: { fill: '#e8c84a', stroke: '#9a7a18' },
-  30: { fill: '#5da34e', stroke: '#2f6b28' },
-  50: { fill: '#4a7eb8', stroke: '#2a5080' },
-  100: { fill: '#9b5fbf', stroke: '#5f3880' },
-  200: { fill: '#d63830', stroke: '#8a221c' },
+/** Цвета сегментов — насыщенные градиенты в духе Bandit Camp / Rust. */
+export const WHEEL_TIER_COLORS: Record<DailyRewardWheelAmount, { fill: string; stroke: string; glow: string }> = {
+  10: { fill: '#f0c040', stroke: '#8a6a10', glow: 'rgba(240, 192, 64, 0.35)' },
+  30: { fill: '#4caf6a', stroke: '#1f6b38', glow: 'rgba(76, 175, 106, 0.35)' },
+  50: { fill: '#4a8fd4', stroke: '#1e5080', glow: 'rgba(74, 143, 212, 0.35)' },
+  100: { fill: '#a86cd8', stroke: '#5c2e88', glow: 'rgba(168, 108, 216, 0.4)' },
+  200: { fill: '#e04538', stroke: '#8a1a12', glow: 'rgba(224, 69, 56, 0.55)' },
 };

@@ -6,8 +6,48 @@
 
 .drw-scene {
   position: relative;
-  width: min(100%, 440px);
-  padding: var(--space-5) var(--space-5) var(--space-4);
+  width: min(100%, 460px);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+.drw-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 45%, rgba(232, 125, 62, 0.12) 0%, transparent 65%),
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-elevated) 92%, #1a1410) 0%, var(--bg-secondary) 100%);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 80%, #e87d3e 20%);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.drw-aura {
+  position: absolute;
+  inset: 12% 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 125, 62, 0.14) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.drw-scene-ready .drw-aura {
+  animation: drw-aura-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes drw-aura-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
 }
 
 .drw-frame {
@@ -21,17 +61,12 @@
 .drw-pointer {
   position: relative;
   z-index: 4;
-  margin-bottom: -10px;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+  margin-bottom: -6px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.65));
 }
 
-.drw-pointer-arrow {
+.drw-pointer-svg {
   display: block;
-  width: 0;
-  height: 0;
-  border-left: 16px solid transparent;
-  border-right: 16px solid transparent;
-  border-top: 28px solid #e87d3e;
 }
 
 .drw-wheel-hit {
@@ -50,7 +85,7 @@
 }
 
 .drw-scene-ready .drw-wheel-hit:hover .drw-wheel-rotor {
-  filter: brightness(1.04);
+  filter: brightness(1.06) drop-shadow(0 10px 28px rgba(232, 125, 62, 0.25));
 }
 
 .drw-scene-spinning .drw-wheel-hit {
@@ -65,7 +100,8 @@
   transform-origin: center center;
   width: 400px;
   height: 400px;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.65));
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.55));
+  transition: filter 0.25s ease;
 }
 
 .drw-wheel-svg {
@@ -73,74 +109,141 @@
   overflow: visible;
 }
 
+.drw-rim-shadow {
+  fill: rgba(0, 0, 0, 0.35);
+  filter: blur(6px);
+}
+
 .drw-outer-rim {
-  stroke: #2a2218;
-  stroke-width: 12;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+  stroke: #3d2e1e;
+  stroke-width: 10;
+}
+
+.drw-outer-rim-inner {
+  stroke: rgba(255, 220, 160, 0.25);
+  stroke-width: 2;
 }
 
 .drw-sector {
   paint-order: stroke fill;
+  transition: filter 0.3s ease;
+}
+
+.drw-sector-jackpot {
+  stroke-width: 1.5;
 }
 
 .drw-sector-winner {
-  filter: drop-shadow(0 0 8px rgba(255, 220, 100, 0.95));
-  stroke: #fff8e0 !important;
+  stroke: #fff8e8 !important;
   stroke-width: 2.5 !important;
 }
 
+.drw-divider {
+  stroke: rgba(20, 14, 10, 0.35);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
 .drw-sector-num {
-  fill: #1a1410;
-  font-family: 'Arial Black', 'Impact', 'Haettenschweiler', sans-serif;
-  font-weight: 900;
-  letter-spacing: -0.04em;
+  fill: #fff;
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   paint-order: stroke fill;
-  stroke: rgba(255, 255, 255, 0.15);
-  stroke-width: 0.4px;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 2.5px;
   pointer-events: none;
   user-select: none;
 }
 
-.drw-spoke {
-  stroke: rgba(30, 24, 18, 0.45);
-  stroke-width: 2;
-  pointer-events: none;
+.drw-sector-num-jackpot {
+  font-size: 14px !important;
+  stroke: rgba(80, 10, 5, 0.7);
 }
 
 .drw-hub {
-  stroke: #5c4030;
-  stroke-width: 2;
+  stroke: #4a3020;
+  stroke-width: 2.5;
 }
 
 .drw-hub-ring {
-  stroke: rgba(0, 0, 0, 0.25);
-  stroke-width: 4;
+  stroke: rgba(255, 240, 210, 0.2);
+  stroke-width: 3;
+}
+
+.drw-hub-label {
+  fill: #2a1810;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  pointer-events: none;
+  user-select: none;
 }
 
 .drw-hub-axle {
-  fill: #2a2218;
-  stroke: #1a1410;
-  stroke-width: 1.5;
+  fill: #1a1008;
+  stroke: #0a0604;
+  stroke-width: 1;
 }
 
 .drw-hint {
-  position: relative;
-  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
   margin: var(--space-4) 0 0;
+  padding: var(--space-3) var(--space-5);
   text-align: center;
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
   font-weight: 500;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-elevated) 85%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+}
+
+.drw-hint-ready {
+  color: var(--brand-400);
+  border-color: color-mix(in srgb, var(--brand-500) 35%, var(--border));
+  background: color-mix(in srgb, var(--brand-500) 8%, var(--bg-elevated));
+}
+
+.drw-hint-wait strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.drw-hint-icon {
+  font-size: 1rem;
+  opacity: 0.85;
 }
 
 @media (max-width: 768px) {
   .drw-scene {
-    padding: var(--space-4) var(--space-3) var(--space-3);
+    padding: var(--space-3) var(--space-2) var(--space-2);
+  }
+
+  .drw-stage {
+    padding: var(--space-5) var(--space-3) var(--space-4);
   }
 
   .drw-wheel-rotor,
   .drw-wheel-svg {
-    width: min(92vw, 340px);
-    height: min(92vw, 340px);
+    width: min(88vw, 340px);
+    height: min(88vw, 340px);
+  }
+
+  .drw-pointer-svg {
+    width: 34px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drw-scene-ready .drw-aura {
+    animation: none;
   }
 }
