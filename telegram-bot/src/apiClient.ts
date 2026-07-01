@@ -1,7 +1,5 @@
 import fetch from 'node-fetch';
-
-const API_URL = (process.env.API_URL || 'http://127.0.0.1:5000/api').replace(/\/$/, '');
-const BOT_API_KEY = process.env.BOT_API_KEY?.trim() || '';
+import { getApiUrl, getBotApiKey } from './env';
 
 export class BotApiError extends Error {
   constructor(
@@ -15,15 +13,16 @@ export class BotApiError extends Error {
 }
 
 async function request<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  if (!BOT_API_KEY) {
+  const botApiKey = getBotApiKey();
+  if (!botApiKey) {
     throw new BotApiError('BOT_API_KEY не настроен на сервере бота', 503);
   }
 
-  const response = await fetch(`${API_URL}/bot${path}`, {
+  const response = await fetch(`${getApiUrl()}/bot${path}`, {
     method: init?.method ?? 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'X-Bot-Api-Key': BOT_API_KEY,
+      'X-Bot-Api-Key': botApiKey,
     },
     body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
   });

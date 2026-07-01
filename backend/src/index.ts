@@ -1,7 +1,18 @@
 // IMPORTANT: Load environment variables FIRST before any other imports
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+const envCandidates = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../.env'),
+];
+
+for (const envPath of envCandidates) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
 
 // Verify critical environment variables are loaded
 if (!process.env.DB_USER || !process.env.DB_PASSWORD) {

@@ -1,20 +1,17 @@
-import dotenv from 'dotenv';
-import path from 'path';
 import { Bot } from 'grammy';
 import { BotApiError, claimBonus, getBotStatus, linkAccount } from './apiClient';
 import { formatDuration } from './format';
+import { getSiteUrl, getTelegramBotToken, getBotApiKey } from './env';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-
-const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
-const siteUrl = (process.env.SITE_URL || 'https://dragonlost.ru').replace(/\/$/, '');
+const token = getTelegramBotToken();
+const siteUrl = getSiteUrl();
 
 if (!token) {
   console.error('❌ TELEGRAM_BOT_TOKEN не задан в .env');
   process.exit(1);
 }
 
-if (!process.env.BOT_API_KEY?.trim()) {
+if (!getBotApiKey()) {
   console.error('❌ BOT_API_KEY не задан в .env');
   process.exit(1);
 }
