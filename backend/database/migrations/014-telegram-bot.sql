@@ -1,7 +1,7 @@
 -- Миграция: Telegram-бот (привязка аккаунтов, бонус в инвентарь)
 -- Дата: 2026-06-30
-
-USE dragonlost_web;
+-- Запуск: mysql -u ... -p dragonlost_web < backend/database/migrations/014-telegram-bot.sql
+-- В DBeaver: выберите БД dragonlost_web в подключении, затем «Выполнить SQL-скрипт» (Alt+X), не Ctrl+Enter.
 
 CREATE TABLE IF NOT EXISTS telegram_links (
   telegram_id BIGINT NOT NULL PRIMARY KEY,
