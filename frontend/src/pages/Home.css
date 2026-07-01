@@ -245,6 +245,11 @@
   cursor: default;
 }
 
+/* ===================== SERVER STATUS ===================== */
+.home-server-section {
+  margin-top: var(--space-2);
+}
+
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 768px) {
   .home {

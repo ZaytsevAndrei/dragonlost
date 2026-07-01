@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import ServerStatus from '../components/ServerStatus';
 import { useAuthStore } from '../store/authStore';
 import './Home.css';
 
@@ -102,6 +103,10 @@ function Home() {
             <span className="feature-card-inline-link">Открыть бота →</span>
           </a>
         </div>
+      </AnimatedSection>
+
+      <AnimatedSection className="home-server-section">
+        <ServerStatus />
       </AnimatedSection>
 
     </div>
