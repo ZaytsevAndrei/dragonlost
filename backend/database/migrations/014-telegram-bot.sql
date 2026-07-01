@@ -1,7 +1,14 @@
 -- Миграция: Telegram-бот (привязка аккаунтов, бонус в инвентарь)
 -- Дата: 2026-06-30
--- Запуск: mysql -u ... -p dragonlost_web < backend/database/migrations/014-telegram-bot.sql
--- В DBeaver: выберите БД dragonlost_web в подключении, затем «Выполнить SQL-скрипт» (Alt+X), не Ctrl+Enter.
+--
+-- Рекомендуемый запуск (из папки backend/):
+--   npm run migrate:014
+--
+-- Альтернатива: mysql -u ... -p dragonlost_web < backend/database/migrations/014-telegram-bot.sql
+--
+-- DBeaver: ошибка 1064 near 'CREATE TABLE' = несколько операторов в одном запросе.
+--   Вариант A: Alt+X («Выполнить SQL-скрипт»), не Ctrl+Enter.
+--   Вариант B: выделять и выполнять по одному CREATE TABLE / INSERT за раз.
 
 CREATE TABLE IF NOT EXISTS telegram_links (
   telegram_id BIGINT NOT NULL PRIMARY KEY,
@@ -32,39 +39,40 @@ CREATE TABLE IF NOT EXISTS telegram_bonus_claims (
   INDEX idx_steamid (steamid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Скрытые предметы для loot table (только если rust_item_code ещё нет в каталоге)
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Камень', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'stones', 1, 0, 9990
+-- Скрытые предметы для loot table (только если rust_item_code ещё нет в каталоге).
+-- category — ENUM из shop_items; is_available = 0 скрывает из витрины магазина.
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Камень', 'Бонус Telegram-бота DragonLost', 'resource', 0, 'stones', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'stones' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Дерево', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'wood', 1, 0, 9991
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Дерево', 'Бонус Telegram-бота DragonLost', 'resource', 0, 'wood', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'wood' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Металлолом', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'metal.fragments', 1, 0, 9992
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Металлолом', 'Бонус Telegram-бота DragonLost', 'resource', 0, 'metal.fragments', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'metal.fragments' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Скрап', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'scrap', 1, 0, 9993
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Скрап', 'Бонус Telegram-бота DragonLost', 'resource', 0, 'scrap', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'scrap' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Ткань', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'cloth', 1, 0, 9994
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Ткань', 'Бонус Telegram-бота DragonLost', 'component', 0, 'cloth', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'cloth' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Низкосортное топливо', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'lowgradefuel', 1, 0, 9995
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Низкосортное топливо', 'Бонус Telegram-бота DragonLost', 'resource', 0, 'lowgradefuel', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'lowgradefuel' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Уголь', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'charcoal', 1, 0, 9996
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Уголь', 'Бонус Telegram-бота DragonLost', 'resource', 0, 'charcoal', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'charcoal' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Составной лук', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'bow.compound', 1, 0, 9997
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Составной лук', 'Бонус Telegram-бота DragonLost', 'weapon', 0, 'bow.compound', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'bow.compound' LIMIT 1);
 
-INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available, sort_order)
-SELECT 'Шкаф', 'Бонус Telegram-бота DragonLost', 'telegram_bonus', 0, 'cupboard.tool', 1, 0, 9998
+INSERT INTO shop_items (name, description, category, price, rust_item_code, quantity, is_available)
+SELECT 'Шкаф', 'Бонус Telegram-бота DragonLost', 'construction', 0, 'cupboard.tool', 1, 0
 WHERE NOT EXISTS (SELECT 1 FROM shop_items WHERE rust_item_code = 'cupboard.tool' LIMIT 1);
