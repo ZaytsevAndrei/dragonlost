@@ -26,6 +26,17 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Интервал и число попыток ожидания генерации карты (как в админке — до 2 мин по умолчанию). */
+function getGenerationPollConfig(mapSize: number): { intervalMs: number; maxAttempts: number; timeoutMs: number } {
+  const intervalMs = Math.max(1000, parseInt(process.env.RUSTMAPS_POLL_INTERVAL_MS || '3000', 10));
+  const baseTimeoutMs = Math.max(intervalMs, parseInt(process.env.RUSTMAPS_GENERATION_TIMEOUT_MS || '120000', 10));
+  // Крупные карты (4750+) генерируются дольше — увеличиваем бюджет ожидания.
+  const sizeMultiplier = mapSize >= 4500 ? 1.5 : 1;
+  const timeoutMs = Math.round(baseTimeoutMs * sizeMultiplier);
+  const maxAttempts = Math.max(1, Math.ceil(timeoutMs / intervalMs));
+  return { intervalMs, maxAttempts, timeoutMs };
+}
+
 function generateRandomSeed(): number {
   return Math.floor(Math.random() * 2147483647) + 1;
 }
@@ -207,9 +218,10 @@ async function getOrGenerateMap(seed: number, size: number): Promise<RustMapResu
   if (existing) return existing;
 
   const triggeredId = await triggerMapGeneration(seed, size);
+  const { intervalMs, maxAttempts, timeoutMs } = getGenerationPollConfig(size);
 
-  for (let attempt = 0; attempt < 10; attempt++) {
-    await sleep(3000);
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await sleep(intervalMs);
     if (triggeredId) {
       const byId = await fetchV4MapById(triggeredId);
       if (byId && byId.seed === seed && byId.size === size) return byId;
@@ -217,6 +229,10 @@ async function getOrGenerateMap(seed: number, size: number): Promise<RustMapResu
     const result = await getMapFromApi(seed, size);
     if (result) return result;
   }
+
+  console.warn(
+    `[RustMaps] Таймаут генерации ${seed}/${size}: ${maxAttempts} попыток (~${Math.round(timeoutMs / 1000)} с)`,
+  );
 
   return {
     seed,
@@ -372,7 +388,9 @@ export async function generateRandomMaps(
   }
 
   const generated =
-    seeds.length > 0 ? await Promise.all(seeds.map((seed) => getOrGenerateMap(seed, size))) : [];
+    seeds.length > 0
+      ? await Promise.all(seeds.map((seed) => getOrGenerateMap(seed, size)))
+      : [];
 
   const results = [...fromSearch, ...generated];
 
@@ -389,7 +407,10 @@ export async function generateRandomMaps(
   }
 
   const readyCount = results.filter((r) => r.ready).length;
-  console.log(`[RustMaps] Готово: ${readyCount}/${count} (каталог: ${fromSearch.length}, генерация: ${generated.length})`);
+  const pollCfg = getGenerationPollConfig(size);
+  console.log(
+    `[RustMaps] Готово: ${readyCount}/${count} size=${size} (каталог: ${fromSearch.length}, генерация: ${generated.length}, таймаут до ${Math.round(pollCfg.timeoutMs / 1000)} с)`,
+  );
 
   return results;
 }

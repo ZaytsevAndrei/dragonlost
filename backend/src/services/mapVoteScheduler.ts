@@ -187,7 +187,8 @@ async function autoStartWeeklyMapVote(): Promise<void> {
     if (maps.length < 2) {
       await sendDiscordNotification(
         '❌ **Автостарт голосования не удался**\n' +
-          `RustMaps вернул мало готовых карт (${maps.length}). Проверьте RUSTMAPS_API_KEY и лимиты API.`
+          `RustMaps вернул мало готовых карт (${maps.length}). ` +
+          'Проверьте RUSTMAPS_API_KEY, лимиты API и RUSTMAPS_GENERATION_TIMEOUT_MS (для карт 4750+ генерация дольше).'
       );
       return;
     }

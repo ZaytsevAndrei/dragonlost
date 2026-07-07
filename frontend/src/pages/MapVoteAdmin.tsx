@@ -4,14 +4,14 @@ import { api, getImageUrl } from '../services/api';
 import StatePanel from '../components/StatePanel';
 import './MapVoteAdmin.css';
 
-const MAP_GEN_TIMEOUT_MS = 120_000;
+const MAP_GEN_TIMEOUT_MS = 180_000;
 
 function mapGenErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const apiError = err.response?.data?.error;
     if (typeof apiError === 'string' && apiError.trim()) return apiError;
     if (err.code === 'ECONNABORTED') {
-      return 'Превышено время ожидания генерации карт (до 2 мин). Попробуйте меньше карт или повторите позже.';
+      return 'Превышено время ожидания генерации карт (до 3 мин). Попробуйте меньше карт или повторите позже.';
     }
     if (err.response?.status === 403) return 'Нет доступа. Войдите как администратор.';
     return err.message || 'Ошибка при генерации карт';
@@ -544,7 +544,7 @@ function MapVoteAdmin() {
           {generating && (
             <div className="mva-generating">
               <div className="mva-spinner" />
-              <span>Генерация через RustMaps API... до 30 сек.</span>
+              <span>Генерация через RustMaps API... до 3 мин.</span>
             </div>
           )}
 
