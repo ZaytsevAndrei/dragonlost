@@ -6,6 +6,7 @@ import {
   wheelSpinDelta,
   type DailyRewardWheelAmount,
 } from '../constants/dailyRewardWheel';
+import { COIN_VIEW_BOX, coinBgGradientId } from './coinIconMarkup';
 import { playWheelSpinSound, playWheelWinChime, resumeWheelAudio } from '../utils/wheelSpinSound';
 import './DailyRewardWheel.css';
 
@@ -52,8 +53,8 @@ function describeSector(index: number): string {
 
 function sectorCoinMarkOffset(amount: number): { textX: number; coinX: number; coinY: number; coinSize: number } {
   const digits = String(amount).length;
-  const textX = digits >= 3 ? -10 : digits === 2 ? -7 : -5;
-  return { textX, coinX: 3, coinY: -4.5, coinSize: amount >= 100 ? 8 : 9 };
+  const textX = digits >= 3 ? -9 : digits === 2 ? -6 : -4;
+  return { textX, coinX: 2, coinY: -5, coinSize: amount >= 100 ? 9 : 10 };
 }
 
 function sectorLabelPosition(index: number): { x: number; y: number; rotate: number } {
@@ -257,12 +258,25 @@ export function DailyRewardWheel({
                         <feMergeNode in="SourceGraphic" />
                       </feMerge>
                     </filter>
-                    <symbol id={`${gradPrefix}-coin`} viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10.5" fill="#c62828" stroke="#6b0e0e" strokeWidth="1" />
-                      <circle cx="12" cy="12" r="8.25" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="0.75" />
+                    <symbol id={`${gradPrefix}-coin`} viewBox={COIN_VIEW_BOX}>
+                      <defs>
+                        <radialGradient id={coinBgGradientId(`${gradPrefix}-wheel`)} cx="35%" cy="30%" r="70%">
+                          <stop offset="0%" stopColor="#ef5350" />
+                          <stop offset="100%" stopColor="#b71c1c" />
+                        </radialGradient>
+                      </defs>
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="11"
+                        fill={`url(#${coinBgGradientId(`${gradPrefix}-wheel`)})`}
+                        stroke="#7a0c0c"
+                        strokeWidth="1"
+                      />
+                      <circle cx="9.5" cy="9" r="2.8" fill="rgba(255,255,255,0.22)" />
                       <path
-                        d="M10.4 5.8 9.1 4.2l1.35-.45.75 1.35-.8-.3zM10.15 6.4c-.25 1.1-.45 2.35-.7 3.85l-.95 5.9c-.12.95.45 1.75 1.55 1.75h2.85c3.05 0 5.15-2.35 5.15-5.95C18.15 8.35 16.05 6 13 6H10.15z"
-                        fill="#f5d998"
+                        fill="#fff"
+                        d="M8.25 6.75h2.85c3.55 0 5.9 2.35 5.9 5.85s-2.35 5.85-5.9 5.85H8.25V6.75Z"
                       />
                     </symbol>
                   </defs>
