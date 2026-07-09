@@ -1,0 +1,19 @@
+.coin-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  white-space: nowrap;
+}
+
+.coin-amount__value {
+  font-variant-numeric: tabular-nums;
+}
+
+.coin-amount__label {
+  margin-left: 0.15em;
+  color: inherit;
+}
+
+.coin-amount--lg {
+  gap: 0.35em;
+}

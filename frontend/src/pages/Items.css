@@ -58,6 +58,9 @@
 
 .wallet-balance-value {
   margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: clamp(26px, 3vw, 34px);
   line-height: 1;
   font-weight: 700;

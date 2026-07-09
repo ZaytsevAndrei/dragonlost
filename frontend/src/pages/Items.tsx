@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import CoinAmount from '../components/CoinAmount';
+import { formatCoinsWithLabel } from '../utils/currency';
 import StatePanel from '../components/StatePanel';
 import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
 import { api, getBackendOrigin, getImageUrl } from '../services/api';
@@ -273,7 +275,7 @@ function Items() {
             ? { ...prev, balance: Number(res.data.new_balance) || prev.balance }
             : { balance: Number(res.data.new_balance) || 0, total_earned: 0, total_spent: 0 }
         );
-        alert(`Промокод активирован, начислено ${res.data.amount} ₽`);
+        alert(`Промокод активирован, начислено ${formatCoinsWithLabel(res.data.amount)}`);
       }
     } catch (err: unknown) {
       const msg =
@@ -423,7 +425,9 @@ function Items() {
         <section className={`wallet-panel ${hasWalletControls ? '' : 'wallet-panel--compact'}`.trim()}>
           <div className="wallet-balance">
             <div className="wallet-balance-title">Баланс</div>
-            <div className="wallet-balance-value">{(balance?.balance || 0).toFixed(2)} ₽</div>
+            <div className="wallet-balance-value">
+              <CoinAmount value={balance?.balance || 0} size="lg" decimals={0} />
+            </div>
           </div>
           {hasWalletControls ? (
             <div className="wallet-controls">
@@ -523,7 +527,9 @@ function Items() {
                       ) : null}
                     </div>
                     <footer className="item-card-footer">
-                      <span className="item-price">Цена: {toDisplayText(item.price)} ₽</span>
+                      <span className="item-price">
+                        Цена: <CoinAmount value={Number(item.price) || 0} size="xs" decimals={0} />
+                      </span>
                       {item.is_active !== undefined ? (
                         <span className={`item-status ${Number(item.is_active) ? 'active' : 'inactive'}`}>
                           {Number(item.is_active) ? 'Активен' : 'Неактивен'}
@@ -575,7 +581,12 @@ function Items() {
                     <p className="item-modal-description">{toDisplayText(mi.description)}</p>
                     <div className="item-modal-price-row">
                       <span className="item-modal-unit-price">
-                        Цена: {Number.isFinite(unitPrice) ? unitPrice.toFixed(2) : '—'} ₽
+                        Цена:{' '}
+                        {Number.isFinite(unitPrice) ? (
+                          <CoinAmount value={unitPrice} size="sm" decimals={0} />
+                        ) : (
+                          '—'
+                        )}
                       </span>
                       {Number.isFinite(perPack) && perPack > 1 ? (
                         <span className="item-modal-pack-hint">За покупку в инвентарь: {perPack} шт.</span>
@@ -623,7 +634,11 @@ function Items() {
                         <div className="item-modal-total">
                           Итого:{' '}
                           <strong>
-                            {Number.isFinite(totalPrice) ? totalPrice.toFixed(2) : '—'} ₽
+                            {Number.isFinite(totalPrice) ? (
+                              <CoinAmount value={totalPrice} size="sm" decimals={0} />
+                            ) : (
+                              '—'
+                            )}
                           </strong>
                           {!canAfford ? (
                             <span className="item-modal-total-warn">Недостаточно средств</span>

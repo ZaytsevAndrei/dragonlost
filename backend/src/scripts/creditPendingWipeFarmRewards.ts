@@ -10,6 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 import { RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
 import { creditFarmPrizeForLeader } from '../services/wipeFarmSummary';
+import { formatCoinsWithLabel } from '../constants/currency';
 
 interface PendingRewardRow extends RowDataPacket {
   id: number;
@@ -59,7 +60,7 @@ async function main(): Promise<void> {
       );
 
       console.log(
-        `OK: #${row.id} ТОП-${leader.rank} ${leader.name} (${leader.steamid}) +${leader.prizeAmount} ₽ — ${creditNote}`
+        `OK: #${row.id} ТОП-${leader.rank} ${leader.name} (${leader.steamid}) +${formatCoinsWithLabel(leader.prizeAmount)} — ${creditNote}`
       );
     }
 

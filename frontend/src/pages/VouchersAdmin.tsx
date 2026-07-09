@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import CoinAmount from '../components/CoinAmount';
+import CoinIcon from '../components/CoinIcon';
 import { api } from '../services/api';
 import './VouchersAdmin.css';
 
@@ -185,7 +187,9 @@ function VouchersAdmin() {
             />
           </label>
           <label className="va-field">
-            <span>Сумма, ₽</span>
+            <span>
+              Сумма, <CoinIcon size="xs" title="" />
+            </span>
             <input
               type="number"
               min={0.01}
@@ -262,7 +266,9 @@ function VouchersAdmin() {
               <thead>
                 <tr>
                   <th>Код</th>
-                  <th>₽</th>
+                  <th>
+                    <CoinIcon size="xs" title="монеты" />
+                  </th>
                   <th>Срок</th>
                   <th>Всего / лимит</th>
                   <th>На юзера</th>
@@ -277,7 +283,9 @@ function VouchersAdmin() {
                     <td>
                       <code>{v.code}</code>
                     </td>
-                    <td>{Number(v.amount).toFixed(2)}</td>
+                    <td>
+                      <CoinAmount value={Number(v.amount)} size="xs" decimals={0} />
+                    </td>
                     <td className="va-dates">
                       <div>{formatDisplay(v.valid_from)}</div>
                       <div>{formatDisplay(v.valid_until)}</div>

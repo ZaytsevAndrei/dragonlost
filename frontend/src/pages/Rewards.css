@@ -59,12 +59,21 @@
 .claim-result-amount {
   font-size: 1.8rem;
   font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
 }
 
 .claim-result-balance {
   font-size: 0.95rem;
   opacity: 0.9;
   margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
 .reward-error {

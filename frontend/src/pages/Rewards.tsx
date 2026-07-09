@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { saveLastPage } from '../utils/safeLocalStorage';
 import StatePanel from '../components/StatePanel';
 import { DailyRewardWheel, type WheelSpinTarget } from '../components/DailyRewardWheel';
+import CoinAmount from '../components/CoinAmount';
 import './Rewards.css';
 
 interface DailyRewardStatus {
@@ -169,7 +170,7 @@ function Rewards() {
       <div className="rewards-header">
         <h1>Ежедневная награда</h1>
         <p className="rewards-subtitle">
-          Крутите колесо раз в день — как в казино Bandit Camp в Rust. 25 секторов, награда в рублях на баланс.
+          Крутите колесо раз в день — как в казино Bandit Camp в Rust. 25 секторов, награда в монетах на баланс.
         </p>
       </div>
 
@@ -178,10 +179,12 @@ function Rewards() {
           <div className="claim-result-icon">🎉</div>
           <div className="claim-result-text">
             <div className="claim-result-title">Выпало!</div>
-            <div className="claim-result-amount">+{claimResult.reward} рублей</div>
+            <div className="claim-result-amount">
+              <CoinAmount value={claimResult.reward} size="lg" signed decimals={0} />
+            </div>
             <div className="claim-result-balance">
-              Баланс: {claimResult.new_balance.toFixed(2)} рублей · серия {claimResult.current_streak}{' '}
-              {pluralDays(claimResult.current_streak)}
+              Баланс: <CoinAmount value={claimResult.new_balance} size="sm" decimals={0} /> · серия{' '}
+              {claimResult.current_streak} {pluralDays(claimResult.current_streak)}
             </div>
           </div>
         </div>
@@ -226,7 +229,7 @@ function Rewards() {
         <h3>Как это работает</h3>
         <ul>
           <li>Одно вращение в сутки — отсчёт с 00:00 по Москве</li>
-          <li>Нажмите на колесо, дождитесь остановки — рубли зачисляются сразу</li>
+          <li>Нажмите на колесо, дождитесь остановки — монеты зачисляются сразу</li>
           <li>Серия дней сохраняется при ежедневном входе; пропуск сбрасывает счётчик</li>
           <li>Результат определяет сервер — анимация совпадает с выпавшим сектором</li>
         </ul>

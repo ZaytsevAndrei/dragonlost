@@ -10,6 +10,7 @@ import {
   subtractWipeBaseline,
 } from './statsWipeService';
 import { ensureWebUser } from './userProvisioning';
+import { formatCoinsWithLabel } from '../constants/currency';
 
 const TOP_PLACES = 3;
 const PRIZE_BY_RANK = [500, 250, 150] as const;
@@ -81,10 +82,6 @@ export function computeRatingScore(breakdown: FarmBreakdown): number {
     breakdown.stones * FARM_WEIGHTS.stones.weight +
     breakdown.wood * FARM_WEIGHTS.wood.weight
   );
-}
-
-function formatAmount(n: number): string {
-  return n.toLocaleString('ru-RU');
 }
 
 function formatRating(n: number): string {
@@ -296,7 +293,7 @@ export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult)
       const medal = MEDALS[leader.rank - 1] ?? `${leader.rank}.`;
       const place = PLACE_LABELS[leader.rank - 1] ?? `${leader.rank} место`;
       lines.push(
-        `${medal} **${place}** — **${leader.name}** (рейтинг **${formatRating(leader.ratingScore)}**) — **${formatAmount(leader.prizeAmount)} ₽**`
+        `${medal} **${place}** — **${leader.name}** (рейтинг **${formatRating(leader.ratingScore)}**) — **${formatCoinsWithLabel(leader.prizeAmount)}**`
       );
       if (leader.creditNote) {
         lines.push(`↳ ${leader.creditNote}`);
