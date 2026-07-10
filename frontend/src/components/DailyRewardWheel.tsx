@@ -6,7 +6,7 @@ import {
   wheelSpinDelta,
   type DailyRewardWheelAmount,
 } from '../constants/dailyRewardWheel';
-import { COIN_D_PATH, COIN_VIEW_BOX, coinBgGradientId } from './coinIconMarkup';
+import { COIN_VIEW_BOX, CoinSvgLayers } from './coinIconMarkup';
 import { playWheelSpinSound, playWheelWinChime, resumeWheelAudio } from '../utils/wheelSpinSound';
 import './DailyRewardWheel.css';
 
@@ -259,22 +259,7 @@ export function DailyRewardWheel({
                       </feMerge>
                     </filter>
                     <symbol id={`${gradPrefix}-coin`} viewBox={COIN_VIEW_BOX}>
-                      <defs>
-                        <linearGradient id={coinBgGradientId(`${gradPrefix}-wheel`)} x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#d32f2f" />
-                          <stop offset="50%" stopColor="#607d8b" />
-                          <stop offset="100%" stopColor="#3949ab" />
-                        </linearGradient>
-                      </defs>
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="11"
-                        fill={`url(#${coinBgGradientId(`${gradPrefix}-wheel`)})`}
-                        stroke="#455a64"
-                        strokeWidth="0.75"
-                      />
-                      <path fill="#fff" d={COIN_D_PATH} />
+                      <CoinSvgLayers gradPrefix={`${gradPrefix}-wheel`} />
                     </symbol>
                   </defs>
 

@@ -18,7 +18,7 @@ interface CoinIconProps {
   title?: string;
 }
 
-/** Монета DragonLost — красно-сине-серый фон и белая буква D. */
+/** Золотая монета DragonLost с буквой D. */
 function CoinIcon({ size = 'sm', className = '', title = 'монеты DragonLost' }: CoinIconProps) {
   const px = SIZE_PX[size];
   const gradPrefix = useId().replace(/:/g, '');
