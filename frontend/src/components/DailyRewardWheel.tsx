@@ -6,7 +6,7 @@ import {
   wheelSpinDelta,
   type DailyRewardWheelAmount,
 } from '../constants/dailyRewardWheel';
-import { COIN_VIEW_BOX, coinBgGradientId } from './coinIconMarkup';
+import { COIN_D_PATH, COIN_VIEW_BOX } from './coinIconMarkup';
 import { playWheelSpinSound, playWheelWinChime, resumeWheelAudio } from '../utils/wheelSpinSound';
 import './DailyRewardWheel.css';
 
@@ -54,7 +54,7 @@ function describeSector(index: number): string {
 function sectorCoinMarkOffset(amount: number): { textX: number; coinX: number; coinY: number; coinSize: number } {
   const digits = String(amount).length;
   const textX = digits >= 3 ? -9 : digits === 2 ? -6 : -4;
-  return { textX, coinX: 2, coinY: -5, coinSize: amount >= 100 ? 9 : 10 };
+  return { textX, coinX: 2, coinY: -6, coinSize: amount >= 100 ? 13 : 14 };
 }
 
 function sectorLabelPosition(index: number): { x: number; y: number; rotate: number } {
@@ -259,25 +259,7 @@ export function DailyRewardWheel({
                       </feMerge>
                     </filter>
                     <symbol id={`${gradPrefix}-coin`} viewBox={COIN_VIEW_BOX}>
-                      <defs>
-                        <radialGradient id={coinBgGradientId(`${gradPrefix}-wheel`)} cx="35%" cy="30%" r="70%">
-                          <stop offset="0%" stopColor="#ef5350" />
-                          <stop offset="100%" stopColor="#b71c1c" />
-                        </radialGradient>
-                      </defs>
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="11"
-                        fill={`url(#${coinBgGradientId(`${gradPrefix}-wheel`)})`}
-                        stroke="#7a0c0c"
-                        strokeWidth="1"
-                      />
-                      <circle cx="9.5" cy="9" r="2.8" fill="rgba(255,255,255,0.22)" />
-                      <path
-                        fill="#fff"
-                        d="M8.25 6.75h2.85c3.55 0 5.9 2.35 5.9 5.85s-2.35 5.85-5.9 5.85H8.25V6.75Z"
-                      />
+                      <path fill="#fff" d={COIN_D_PATH} />
                     </symbol>
                   </defs>
 
