@@ -6,7 +6,6 @@ import {
   wheelSpinDelta,
   type DailyRewardWheelAmount,
 } from '../constants/dailyRewardWheel';
-import { COIN_VIEW_BOX, CoinSvgLayers } from './coinIconMarkup';
 import { playWheelSpinSound, playWheelWinChime, resumeWheelAudio } from '../utils/wheelSpinSound';
 import './DailyRewardWheel.css';
 
@@ -49,12 +48,6 @@ function describeSector(index: number): string {
     `A ${INNER_R} ${INNER_R} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
     'Z',
   ].join(' ');
-}
-
-function sectorCoinMarkOffset(amount: number): { textX: number; coinX: number; coinY: number; coinSize: number } {
-  const digits = String(amount).length;
-  const textX = digits >= 3 ? -9 : digits === 2 ? -6 : -4;
-  return { textX, coinX: 2, coinY: -6, coinSize: amount >= 100 ? 13 : 14 };
 }
 
 function sectorLabelPosition(index: number): { x: number; y: number; rotate: number } {
@@ -258,9 +251,6 @@ export function DailyRewardWheel({
                         <feMergeNode in="SourceGraphic" />
                       </feMerge>
                     </filter>
-                    <symbol id={`${gradPrefix}-coin`} viewBox={COIN_VIEW_BOX}>
-                      <CoinSvgLayers gradPrefix={`${gradPrefix}-wheel`} />
-                    </symbol>
                   </defs>
 
                   <circle cx={WHEEL_R} cy={WHEEL_R} r={OUTER_R + 10} className="drw-rim-shadow" />
@@ -303,31 +293,20 @@ export function DailyRewardWheel({
                     const label = sectorLabelPosition(index);
                     const fontSize = amount >= 100 ? 13 : amount >= 50 ? 14 : 15;
                     const isJackpot = amount === 200;
-                    const coinMark = sectorCoinMarkOffset(amount);
 
                     return (
-                      <g
+                      <text
                         key={`lbl-${index}`}
-                        transform={`translate(${label.x}, ${label.y}) rotate(${label.rotate})`}
+                        x={label.x}
+                        y={label.y}
+                        className={`drw-sector-num ${isJackpot ? 'drw-sector-num-jackpot' : ''}`}
+                        fontSize={fontSize}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${label.rotate}, ${label.x}, ${label.y})`}
                       >
-                        <text
-                          x={coinMark.textX}
-                          y={0}
-                          className={`drw-sector-num ${isJackpot ? 'drw-sector-num-jackpot' : ''}`}
-                          fontSize={fontSize}
-                          textAnchor="end"
-                          dominantBaseline="middle"
-                        >
-                          {amount}
-                        </text>
-                        <use
-                          href={`#${gradPrefix}-coin`}
-                          x={coinMark.coinX}
-                          y={coinMark.coinY}
-                          width={coinMark.coinSize}
-                          height={coinMark.coinSize}
-                        />
-                      </g>
+                        {amount}
+                      </text>
                     );
                   })}
 
