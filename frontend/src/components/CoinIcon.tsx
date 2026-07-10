@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { COIN_VIEW_BOX, CoinSvgBody } from './coinIconMarkup';
 import './CoinIcon.css';
 
@@ -17,9 +18,10 @@ interface CoinIconProps {
   title?: string;
 }
 
-/** Знак монеты DragonLost — буква D без фона. */
+/** Монета DragonLost — красно-сине-серый фон и белая буква D. */
 function CoinIcon({ size = 'sm', className = '', title = 'монеты DragonLost' }: CoinIconProps) {
   const px = SIZE_PX[size];
+  const gradPrefix = useId().replace(/:/g, '');
   const decorative = title === '';
 
   return (
@@ -32,7 +34,7 @@ function CoinIcon({ size = 'sm', className = '', title = 'монеты DragonLos
       role={decorative ? undefined : 'img'}
       aria-label={decorative ? undefined : title}
     >
-      <CoinSvgBody />
+      <CoinSvgBody gradPrefix={gradPrefix} />
     </svg>
   );
 }
