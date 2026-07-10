@@ -1,0 +1,13 @@
+{
+  "Применять настройки при старте сервера": true,
+  "Задержка перед spawn.fill_populations (сек)": 30.0,
+  "Вызвать spawn.fill_populations после применения": true,
+  "Сохранить в server.cfg (server.writecfg)": false,
+  "spawn.min_rate": 0.8,
+  "spawn.max_rate": 1.3,
+  "spawn.min_density": 0.7,
+  "spawn.max_density": 1.2,
+  "spawn.player_base": 50,
+  "spawn.player_scale": 2.0,
+  "Дополнительные convars (имя = значение, необязательно)": {}
+}
