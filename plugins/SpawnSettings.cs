@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
-using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
+using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
     [Info("SpawnSettings", "DragonLost.ru", "1.0.0")]
     [Description("Выставляет spawn convars при старте сервера (руда, бочки, респавн)")]
-    public class SpawnSettings : CovalencePlugin
+    public class SpawnSettings : RustPlugin
     {
         private const string PermissionAdmin = "spawnsettings.admin";
 
