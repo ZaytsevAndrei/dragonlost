@@ -175,8 +175,8 @@ async function autoStartWeeklyMapVote(): Promise<void> {
       return;
     }
 
-    const sizeA = parseInt(process.env.MAP_VOTE_AUTO_SIZE_A || '4750', 10);
-    const sizeB = parseInt(process.env.MAP_VOTE_AUTO_SIZE_B || '4750', 10);
+    const sizeA = parseInt(process.env.MAP_VOTE_AUTO_SIZE_A || '3250', 10);
+    const sizeB = parseInt(process.env.MAP_VOTE_AUTO_SIZE_B || '3250', 10);
     const countA = parseInt(process.env.MAP_VOTE_AUTO_COUNT_A || '5', 10);
     const countB = parseInt(process.env.MAP_VOTE_AUTO_COUNT_B || '5', 10);
 

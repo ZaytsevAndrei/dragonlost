@@ -155,8 +155,8 @@ function MapVoteAdmin() {
   const [creating, setCreating] = useState(false);
 
   const [totalVoteMaps, setTotalVoteMaps] = useState(4);
-  const [genSizeA, setGenSizeA] = useState(4750);
-  const [genSizeB, setGenSizeB] = useState(4750);
+  const [genSizeA, setGenSizeA] = useState(3250);
+  const [genSizeB, setGenSizeB] = useState(3250);
   const [genCountA, setGenCountA] = useState(2);
   const [genCountB, setGenCountB] = useState(2);
   const [generatedMaps, setGeneratedMaps] = useState<RustMapResult[]>([]);
