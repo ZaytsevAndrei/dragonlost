@@ -63,6 +63,20 @@ function HomeHero() {
           <p className="home-hero-brand">DragonLost</p>
           <h1 className="home-hero-title">Сервер, на котором хочется играть</h1>
           <p className="home-hero-text">Классический вайп, магазин предметов и награды — всё в одном месте.</p>
+
+          <button
+            type="button"
+            className={`home-hero-promo ${copied ? 'home-hero-promo--copied' : ''}`.trim()}
+            onClick={copyPromo}
+            aria-label={`Скопировать промокод ${PROMO_CODE}`}
+          >
+            <span className="home-hero-promo-label">Промокод для тебя!</span>
+            <span className="home-hero-promo-hint">
+              {copied ? 'Скопировано в буфер' : 'Нажми на него, чтобы скопировать'}
+            </span>
+            <span className="home-hero-promo-code">{PROMO_CODE}</span>
+          </button>
+
           <div className="home-hero-actions">
             <button type="button" className="home-hero-cta" onClick={scrollToServer}>
               Начать играть
@@ -72,19 +86,6 @@ function HomeHero() {
             </a>
           </div>
         </div>
-
-        <button
-          type="button"
-          className={`home-hero-promo ${copied ? 'home-hero-promo--copied' : ''}`.trim()}
-          onClick={copyPromo}
-          aria-label={`Скопировать промокод ${PROMO_CODE}`}
-        >
-          <span className="home-hero-promo-label">Промокод для тебя!</span>
-          <span className="home-hero-promo-hint">
-            {copied ? 'Скопировано в буфер' : 'Нажми на него, чтобы скопировать'}
-          </span>
-          <span className="home-hero-promo-code">{PROMO_CODE}</span>
-        </button>
       </div>
     </section>
   );

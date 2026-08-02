@@ -13,27 +13,30 @@
 
 .home-hero-stage {
   position: relative;
+  z-index: 2;
   max-width: 1400px;
   margin: 0 auto;
   min-height: inherit;
   padding: clamp(1.5rem, 4vw, 3rem) var(--space-5);
   display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 420px);
   align-items: center;
+  gap: var(--space-5);
 }
 
 .home-hero-visual {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 .home-hero-character-frame {
   position: absolute;
-  left: clamp(-8%, -2vw, 0%);
+  left: clamp(-6%, 0vw, 2%);
   bottom: 0;
   height: 100%;
-  width: min(920px, 78%);
+  width: min(720px, 52%);
   opacity: 0;
   transform: translate3d(-28px, 18px, 0);
   transition:
@@ -54,19 +57,20 @@
   object-fit: cover;
   object-position: left bottom;
   filter: saturate(1.05) contrast(1.05);
+  mask-image: linear-gradient(90deg, #000 62%, transparent 100%);
 }
 
 .home-hero-glitch {
   position: absolute;
   top: 8%;
   bottom: 12%;
-  left: 22%;
-  width: 72px;
+  left: 28%;
+  width: 64px;
   background: linear-gradient(
     90deg,
     transparent,
     rgba(255, 255, 255, 0.08) 20%,
-    rgba(224, 86, 59, 0.22) 48%,
+    color-mix(in srgb, var(--brand-500) 35%, transparent) 48%,
     rgba(255, 255, 255, 0.1) 72%,
     transparent
   );
@@ -88,9 +92,13 @@
 .home-hero-copy {
   position: relative;
   z-index: 3;
-  max-width: min(100%, 460px);
-  margin-left: auto;
-  margin-right: clamp(0px, 4vw, 48px);
+  grid-column: 2;
+  width: 100%;
+  max-width: 420px;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   opacity: 0;
   transform: translateY(24px);
   transition:
@@ -104,7 +112,7 @@
 }
 
 .home-hero-brand {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   font-size: clamp(2rem, 5vw, 3.25rem);
   font-weight: 900;
   letter-spacing: -0.04em;
@@ -114,7 +122,7 @@
 }
 
 .home-hero-title {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   font-size: clamp(1.15rem, 2.4vw, 1.55rem);
   font-weight: 700;
   line-height: 1.25;
@@ -122,11 +130,11 @@
 }
 
 .home-hero-text {
-  margin: 0 0 var(--space-5);
+  margin: 0;
   color: rgba(255, 255, 255, 0.72);
   font-size: var(--font-size-sm);
   line-height: 1.6;
-  max-width: 34ch;
+  max-width: 36ch;
 }
 
 .home-hero-actions {
@@ -173,11 +181,10 @@
 }
 
 .home-hero-promo {
-  position: absolute;
-  z-index: 4;
-  right: clamp(1rem, 8vw, 7rem);
-  top: 42%;
-  width: min(100%, 250px);
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 280px;
   padding: 1rem 1.1rem 1.15rem;
   border: 1px solid var(--border-strong);
   border-radius: 14px;
@@ -186,10 +193,10 @@
   color: #fff;
   cursor: pointer;
   opacity: 0;
-  transform: translateY(-50%);
+  transform: translateY(16px);
   animation:
-    home-hero-promo-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards,
-    home-hero-promo-float 3.6s ease-in-out 1.3s infinite;
+    home-hero-promo-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.45s forwards,
+    home-hero-promo-float 3.6s ease-in-out 1.2s infinite;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -271,72 +278,75 @@
   }
   28% {
     opacity: 0.35;
-    transform: translateX(180px) skewX(-12deg);
+    transform: translateX(160px) skewX(-12deg);
   }
   36% {
     opacity: 0;
-    transform: translateX(260px) skewX(-12deg);
+    transform: translateX(220px) skewX(-12deg);
   }
 }
 
 @keyframes home-hero-promo-in {
   from {
     opacity: 0;
-    transform: translateY(calc(-50% + 28px));
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%);
+    transform: translateY(0);
   }
 }
 
 @keyframes home-hero-promo-float {
   0%,
   100% {
-    transform: translateY(-50%);
+    transform: translateY(0);
   }
   50% {
-    transform: translateY(calc(-50% - 10px));
+    transform: translateY(-8px);
   }
 }
 
 @media (max-width: 960px) {
   .home-hero {
-    min-height: clamp(520px, 78vh, 680px);
+    min-height: clamp(560px, 82vh, 720px);
+  }
+
+  .home-hero-stage {
+    grid-template-columns: 1fr;
+    align-items: end;
+    padding-bottom: clamp(1.5rem, 4vw, 2.5rem);
   }
 
   .home-hero-character-frame {
     left: 50%;
-    width: min(640px, 120%);
-    height: 78%;
+    width: min(640px, 110%);
+    height: 72%;
     transform: translate3d(-50%, 18px, 0);
-    opacity: 0.55;
+    opacity: 0.45;
   }
 
   .home-hero--ready .home-hero-character-frame {
-    opacity: 0.72;
+    opacity: 0.55;
     transform: translate3d(-50%, 0, 0);
     animation: home-hero-float-mobile 5.5s ease-in-out 1.1s infinite;
   }
 
   .home-hero-character {
     object-position: center bottom;
+    mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 70%, transparent 100%);
   }
 
   .home-hero-copy {
-    margin: 0;
+    grid-column: 1;
+    justify-self: stretch;
     max-width: 100%;
-    padding-bottom: 7.5rem;
+    background: linear-gradient(to top, var(--bg-primary) 55%, transparent);
+    padding-top: 3rem;
   }
 
   .home-hero-promo {
-    right: 50%;
-    top: auto;
-    bottom: 1.25rem;
-    transform: translateX(50%);
-    animation:
-      home-hero-promo-in-mobile 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards,
-      home-hero-promo-float-mobile 3.6s ease-in-out 1.3s infinite;
+    max-width: 100%;
   }
 }
 
@@ -350,35 +360,10 @@
   }
 }
 
-@keyframes home-hero-promo-in-mobile {
-  from {
-    opacity: 0;
-    transform: translate(50%, 24px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(50%, 0);
-  }
-}
-
-@keyframes home-hero-promo-float-mobile {
-  0%,
-  100% {
-    transform: translate(50%, 0);
-  }
-  50% {
-    transform: translate(50%, -8px);
-  }
-}
-
 @media (max-width: 560px) {
   .home-hero-actions {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .home-hero-promo {
-    width: min(100% - 2rem, 280px);
   }
 }
 
@@ -397,17 +382,9 @@
     transition: none;
   }
 
-  .home-hero-promo {
-    transform: translateY(-50%);
-  }
-
   @media (max-width: 960px) {
     .home-hero-character-frame {
       transform: translate3d(-50%, 0, 0);
-    }
-
-    .home-hero-promo {
-      transform: translate(50%, 0);
     }
   }
 }
