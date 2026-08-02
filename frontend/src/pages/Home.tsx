@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import HomeHero from '../components/HomeHero';
 import ServerStatus from '../components/ServerStatus';
 import { useAuthStore } from '../store/authStore';
 import Items from './Items';
@@ -63,6 +64,8 @@ function Home() {
 
   return (
     <div className="home">
+      <HomeHero />
+
       <AnimatedSection className="home-section--features" id="features">
         <header className="home-section-header">
           <h2 className="home-section-title">Играй с пользой</h2>

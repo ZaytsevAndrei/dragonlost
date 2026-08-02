@@ -223,7 +223,7 @@ function Inventory() {
           <div className="empty-icon">📭</div>
           <h3>Ваш инвентарь пуст</h3>
           <p>Посетите магазин, чтобы приобрести предметы</p>
-          <button type="button" className="btn-shop" onClick={() => navigate('/shop')}>
+          <button type="button" className="btn-shop" onClick={() => navigate('/#shop')}>
             Перейти в магазин
           </button>
         </div>

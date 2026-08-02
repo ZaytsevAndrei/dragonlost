@@ -52,9 +52,6 @@ function Header() {
             <Link to="/stats" className="nav-link">
               Статистика
             </Link>
-            <Link to="/#shop" className="nav-link">
-              Предметы
-            </Link>
             <Link to="/vote" className="nav-link">
               Голосование
             </Link>
