@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -46,15 +46,15 @@ function Header() {
           </Link>
 
           <nav className="nav">
-            <Link to="/" className="nav-link">
+            <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Главная
-            </Link>
-            <Link to="/stats" className="nav-link">
+            </NavLink>
+            <NavLink to="/stats" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Статистика
-            </Link>
-            <Link to="/vote" className="nav-link">
+            </NavLink>
+            <NavLink to="/vote" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Голосование
-            </Link>
+            </NavLink>
           </nav>
 
           <div className="header-tools">

@@ -79,7 +79,7 @@ function Home() {
             </div>
             <h3>Статистика</h3>
             <p>Подробная статистика игроков: убийства, смерти, K/D и многое другое</p>
-            <span className="feature-card-inline-link">Открыть рейтинг →</span>
+            <span className="feature-card-inline-link">Смотреть рейтинг</span>
           </Link>
 
           <Link to="/rewards" className="feature-card feature-card-link feature-card-reward">
@@ -92,7 +92,7 @@ function Home() {
                 ? 'Крутите колесо на 25 секторов — как в казино Rust. Награда до 200 монет в день.'
                 : 'Авторизуйтесь и крутите колесо раз в день — награда на баланс сайта.'}
             </p>
-            <span className="feature-card-inline-link">Перейти к колесу →</span>
+            <span className="feature-card-inline-link">Перейти к колесу</span>
           </Link>
         </div>
       </AnimatedSection>

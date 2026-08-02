@@ -163,15 +163,18 @@
 
 .btn-shop {
   margin-top: var(--space-2);
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-md);
+  min-height: 44px;
+  padding: 0 1.15rem;
+  border-radius: 10px;
   border: 1px solid var(--brand-500);
   background: var(--brand-500);
   color: #fff;
+  font-weight: 700;
 }
 
 .btn-shop:hover {
   background: var(--brand-600);
+  border-color: var(--brand-600);
 }
 
 @media (max-width: 768px) {

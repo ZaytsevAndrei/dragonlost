@@ -42,12 +42,11 @@ body {
   font-family: Inter, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(var(--body-bg-overlay-a), var(--body-bg-overlay-b)),
-    url('/dragon-lost-bg.jpg') no-repeat center center fixed;
-  background-size: cover;
   color: var(--text-primary);
   line-height: 1.5;
   font-size: var(--font-size-md);
+  background-color: var(--bg-primary);
+  background-image: none;
 }
 
 #root {
@@ -95,6 +94,56 @@ button {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 var(--space-5);
+}
+
+/* Flat UI buttons (пример 4) */
+.btn-primary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.15rem;
+  border-radius: 10px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.btn-primary {
+  border: 1px solid var(--brand-500);
+  background: var(--brand-500);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--brand-600);
+  border-color: var(--brand-600);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  border: 1.5px solid var(--brand-500);
+  background: transparent;
+  color: var(--brand-400);
+}
+
+.btn-ghost:hover {
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+  color: var(--brand-400);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled,
+.btn-ghost:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
 }
 
 ::-webkit-scrollbar {

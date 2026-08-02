@@ -211,28 +211,27 @@
 
 .btn-claim {
   padding: var(--space-4) var(--space-7);
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  background: var(--brand-500);
   color: white;
-  border: none;
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--brand-500);
+  border-radius: 10px;
   cursor: pointer;
   font-size: var(--font-size-lg);
   font-weight: 700;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.35);
+  transition: background-color 0.18s ease, border-color 0.18s ease;
   margin-top: var(--space-2);
 }
 
 .btn-claim:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.5);
+  background: var(--brand-600);
+  border-color: var(--brand-600);
 }
 
 .btn-claim:disabled {
-  background: #7f8c8d;
+  background: var(--bg-tertiary);
+  border-color: var(--border);
   cursor: not-allowed;
   opacity: 0.6;
-  box-shadow: none;
 }
 
 .countdown-timer {

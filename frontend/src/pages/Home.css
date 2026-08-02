@@ -46,7 +46,7 @@
   line-height: 1.55;
 }
 
-/* ===================== FEATURE CARDS ===================== */
+/* ===================== FEATURE CARDS (flat, пример 4) ===================== */
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -54,22 +54,19 @@
 }
 
 .features--duo {
-  max-width: 820px;
+  max-width: 900px;
   margin-inline: auto;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .feature-card {
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--brand-500) 8%, transparent), transparent 42%),
-    color-mix(in srgb, var(--bg-secondary) 88%, transparent);
-  backdrop-filter: blur(10px);
-  padding: var(--space-7) var(--space-6);
+  background: var(--bg-secondary);
+  padding: var(--space-7) var(--space-6) var(--space-6);
   min-height: 280px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  border: 1px solid var(--border);
   text-align: center;
-  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  transition: transform 0.25s ease, border-color 0.25s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -85,33 +82,32 @@
 }
 
 .feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(224, 86, 59, 0.15);
-  border-color: color-mix(in srgb, var(--brand-500) 40%, transparent);
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--brand-500) 45%, var(--border));
 }
 
 .feature-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: color-mix(in srgb, var(--brand-500) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-500) 28%, transparent);
-  border-radius: var(--radius-xl);
+  width: 68px;
+  height: 68px;
+  background: var(--brand-500);
+  border: none;
+  border-radius: 50%;
   margin-bottom: var(--space-5);
-  transition: background 0.3s, transform 0.3s;
+  transition: transform 0.25s ease, background-color 0.25s ease;
 }
 
 .feature-card:hover .feature-icon-wrap {
-  background: color-mix(in srgb, var(--brand-500) 24%, transparent);
-  transform: scale(1.08);
+  background: var(--brand-600);
+  transform: scale(1.06);
 }
 
 .feature-icon-wrap svg {
-  width: 30px;
-  height: 30px;
-  color: var(--brand-400);
+  width: 28px;
+  height: 28px;
+  color: #fff;
 }
 
 .feature-card h3 {
@@ -134,15 +130,24 @@
 }
 
 .feature-card-inline-link {
-  margin-top: var(--space-4);
+  margin-top: var(--space-5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--brand-500);
+  background: transparent;
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--brand-400);
   text-decoration: none;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-.feature-card-inline-link:hover {
-  opacity: 0.8;
+.feature-card:hover .feature-card-inline-link {
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
   color: var(--brand-400);
 }
 
@@ -150,12 +155,9 @@
 .home-section--shop {
   position: relative;
   padding: clamp(1.5rem, 3vw, 2.25rem);
-  border-radius: calc(var(--radius-lg) + 4px);
-  border: 1px solid var(--border-strong);
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in srgb, var(--brand-500) 10%, transparent), transparent 70%),
-    color-mix(in srgb, var(--bg-secondary) 72%, transparent);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
 }
 
 .home-section--shop .items--embedded {

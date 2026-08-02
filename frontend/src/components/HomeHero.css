@@ -7,11 +7,8 @@
   margin-bottom: clamp(0.5rem, 2vw, 1.5rem);
   min-height: clamp(420px, 72vh, 720px);
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 55% 70% at 28% 55%, color-mix(in srgb, var(--brand-500) 18%, transparent), transparent 68%),
-    radial-gradient(ellipse 40% 50% at 78% 35%, rgba(80, 20, 12, 0.35), transparent 70%),
-    #050607;
-  border-bottom: 1px solid color-mix(in srgb, var(--brand-500) 22%, transparent);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
 }
 
 .home-hero-stage {
@@ -84,7 +81,7 @@
   position: absolute;
   inset: auto 0 0 0;
   height: 28%;
-  background: linear-gradient(to top, #050607 10%, transparent);
+  background: linear-gradient(to top, var(--bg-primary) 10%, transparent);
   z-index: 2;
 }
 
@@ -143,34 +140,35 @@
   align-items: center;
   justify-content: center;
   min-height: 46px;
-  padding: 0 1.2rem;
-  border-radius: 999px;
+  padding: 0 1.25rem;
+  border-radius: 10px;
   border: 1px solid var(--brand-500);
   background: var(--brand-500);
   color: #fff;
   font-weight: 700;
   font-size: var(--font-size-sm);
+  letter-spacing: 0.02em;
   text-decoration: none;
-  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .home-hero-cta:hover {
   background: var(--brand-600);
   border-color: var(--brand-600);
   color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(224, 86, 59, 0.28);
+  transform: translateY(-1px);
 }
 
 .home-hero-cta--ghost {
-  background: rgba(0, 0, 0, 0.35);
-  border-color: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
+  background: transparent;
+  border: 1.5px solid var(--brand-500);
+  color: var(--brand-400);
 }
 
 .home-hero-cta--ghost:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+  border-color: var(--brand-500);
+  color: var(--brand-400);
   box-shadow: none;
 }
 
@@ -181,11 +179,9 @@
   top: 42%;
   width: min(100%, 250px);
   padding: 1rem 1.1rem 1.15rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 18px;
-  background: rgba(18, 10, 10, 0.78);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--bg-secondary);
   text-align: center;
   color: #fff;
   cursor: pointer;
@@ -194,13 +190,12 @@
   animation:
     home-hero-promo-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards,
     home-hero-promo-float 3.6s ease-in-out 1.3s infinite;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .home-hero-promo:hover {
-  border-color: color-mix(in srgb, var(--brand-500) 55%, transparent);
-  box-shadow: 0 20px 48px rgba(224, 86, 59, 0.22);
-  background: rgba(28, 12, 12, 0.88);
+  border-color: var(--brand-500);
+  background: var(--bg-elevated);
 }
 
 .home-hero-promo--copied {
@@ -218,7 +213,7 @@
   display: block;
   margin-bottom: 0.85rem;
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--text-secondary);
   line-height: 1.35;
 }
 
@@ -228,23 +223,24 @@
   justify-content: center;
   min-height: 48px;
   padding: 0 1rem;
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--brand-500), var(--brand-600));
+  border-radius: 10px;
+  background: var(--brand-500);
   color: #fff;
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  box-shadow: 0 8px 20px rgba(224, 86, 59, 0.35);
-  transition: transform 0.18s ease, filter 0.18s ease;
+  transition: background-color 0.18s ease, transform 0.18s ease;
 }
 
 .home-hero-promo:hover .home-hero-promo-code {
-  transform: translateY(-1px) scale(1.02);
+  background: var(--brand-600);
+  transform: translateY(-1px);
 }
 
 .home-hero-promo--copied .home-hero-promo-code {
-  filter: saturate(0.85) brightness(1.05);
+  filter: none;
+  background: color-mix(in srgb, var(--success-500) 80%, var(--brand-500));
 }
 
 .home-hero-promo:focus-visible,

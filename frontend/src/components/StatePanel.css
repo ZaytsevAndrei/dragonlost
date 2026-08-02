@@ -29,17 +29,18 @@
 
 .ui-state-action {
   margin-top: var(--space-2);
-  min-height: 40px;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--brand-400);
+  min-height: 44px;
+  padding: 0 1.15rem;
+  border-radius: 10px;
+  border: 1px solid var(--brand-500);
   background: var(--brand-500);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .ui-state-action:hover {
   background: var(--brand-600);
+  border-color: var(--brand-600);
 }
 
 .ui-state-loading .ui-state-icon {

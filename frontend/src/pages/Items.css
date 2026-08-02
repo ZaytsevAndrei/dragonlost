@@ -29,18 +29,14 @@
   width: min(100%, 700px);
   margin: 0 auto var(--space-5);
   padding: clamp(14px, 2vw, 20px);
-  background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
-  border: 1px solid var(--border-strong);
-  border-radius: 16px;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(10px);
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: border-color 0.2s ease;
 }
 
 .wallet-panel:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--brand-500) 40%, transparent);
-  box-shadow: 0 12px 30px rgba(224, 86, 59, 0.12);
+  border-color: color-mix(in srgb, var(--brand-500) 40%, var(--border));
 }
 
 .wallet-panel--compact {
@@ -70,7 +66,6 @@
   line-height: 1;
   font-weight: 700;
   color: var(--brand-400);
-  text-shadow: 0 0 16px color-mix(in srgb, var(--brand-500) 36%, transparent);
 }
 
 .wallet-controls {
@@ -86,10 +81,10 @@
 .wallet-input {
   flex: 1;
   min-width: 0;
-  background-color: color-mix(in srgb, var(--bg-tertiary) 88%, transparent);
+  background-color: var(--bg-tertiary);
   color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   padding: 10px 12px;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
@@ -104,16 +99,16 @@
   white-space: nowrap;
   padding: 10px 14px;
   border: 1px solid var(--brand-500);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   background: var(--brand-500);
   color: #fff;
-  font-weight: 600;
-  transition: background-color 0.18s ease, transform 0.18s ease;
+  font-weight: 700;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .wallet-btn:hover:not(:disabled) {
   background: var(--brand-600);
-  transform: translateY(-1px);
+  border-color: var(--brand-600);
 }
 
 .wallet-btn:disabled {
@@ -124,9 +119,9 @@
 .wallet-guest-note {
   margin-bottom: var(--space-5);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border-strong);
-  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: 12px;
   color: var(--text-secondary);
 }
 
@@ -138,17 +133,19 @@
 }
 
 .item-filter-btn {
-  padding: var(--space-2) var(--space-4);
-  background-color: rgba(26, 31, 46, 0.8);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  padding: 0.55rem 1rem;
+  min-height: 40px;
+  background-color: transparent;
+  color: var(--brand-400);
+  border: 1.5px solid var(--brand-500);
+  border-radius: 10px;
   font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 .item-filter-btn:hover {
-  border-color: var(--brand-400);
-  background-color: rgba(37, 43, 59, 0.9);
+  background-color: color-mix(in srgb, var(--brand-500) 12%, transparent);
 }
 
 .item-filter-btn.active {
@@ -173,9 +170,9 @@
 }
 
 .item-card {
-  background-color: rgba(26, 31, 46, 0.85);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: 14px;
   overflow: hidden;
   height: 100%;
   display: flex;
@@ -186,12 +183,11 @@
 .item-card--clickable {
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .item-card--clickable:hover {
   border-color: color-mix(in srgb, var(--brand-500) 45%, var(--border));
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
   transform: translateY(-2px);
 }
 
@@ -515,24 +511,23 @@
   margin-top: var(--space-1);
   width: 100%;
   padding: 12px 16px;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   border: 1px solid var(--brand-500);
   background: var(--brand-500);
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.18s ease, transform 0.18s ease;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .item-modal-buy:hover:not(:disabled) {
   background: var(--brand-600);
-  transform: translateY(-1px);
+  border-color: var(--brand-600);
 }
 
 .item-modal-buy:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
 }
 
 .item-modal-guest {
