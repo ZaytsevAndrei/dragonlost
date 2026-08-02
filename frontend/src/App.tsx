@@ -4,7 +4,6 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Statistics from './pages/Statistics';
 import Rewards from './pages/Rewards';
-import Items from './pages/Items';
 import Inventory from './pages/Inventory';
 import TelegramLink from './pages/TelegramLink';
 import Agreement from './pages/Agreement';
@@ -70,8 +69,8 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/telegram" element={<TelegramLink />} />
-            <Route path="/shop" element={<Items />} />
-            <Route path="/items" element={<Navigate to="/shop" replace />} />
+            <Route path="/shop" element={<Navigate to="/#shop" replace />} />
+            <Route path="/items" element={<Navigate to="/#shop" replace />} />
             <Route path="/agreement" element={<Agreement />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/personal-information" element={<PersonalInformation />} />

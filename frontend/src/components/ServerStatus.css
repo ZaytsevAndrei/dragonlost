@@ -50,6 +50,15 @@
   gap: var(--space-2);
 }
 
+.server-status-header--actions-only {
+  justify-content: flex-end;
+  margin-bottom: var(--space-2);
+}
+
+.server-status-header-spacer {
+  display: none;
+}
+
 .server-status-title-row {
   display: flex;
   align-items: center;

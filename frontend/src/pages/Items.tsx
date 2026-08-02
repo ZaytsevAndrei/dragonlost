@@ -12,7 +12,9 @@ import './Items.css';
 const SHOP_CATEGORY_STORAGE_KEY = 'shop_category';
 
 function readSavedShopCategory(): string {
-  return safeGetItem(SHOP_CATEGORY_STORAGE_KEY) ?? 'all';
+  const saved = safeGetItem(SHOP_CATEGORY_STORAGE_KEY);
+  if (!saved || saved === 'all') return '';
+  return saved;
 }
 
 const IGNORED_META_KEYS = new Set([
@@ -156,7 +158,12 @@ const SHOW_DEPOSIT_ACTIONS = false;
 const SHOW_PROMOCODE_ACTIONS = true;
 const MAX_BUY_QUANTITY = 100;
 
-function Items() {
+interface ItemsProps {
+  /** Встроенный блок на главной (без отдельного page chrome). */
+  embedded?: boolean;
+}
+
+function Items({ embedded = false }: ItemsProps) {
   const { user } = useAuthStore();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -358,33 +365,38 @@ function Items() {
   }, [items]);
 
   const filters = useMemo(() => {
-    return [
-      { key: 'all', label: 'Все', count: items.length },
-      ...groupedItems.map((group) => ({
-        key: group.key,
-        label: group.label,
-        count: group.items.length,
-      })),
-    ];
-  }, [groupedItems, items.length]);
+    return groupedItems.map((group) => ({
+      key: group.key,
+      label: group.label,
+      count: group.items.length,
+    }));
+  }, [groupedItems]);
+
+  const activeCategory = useMemo(() => {
+    if (selectedCategory && filters.some((filter) => filter.key === selectedCategory)) {
+      return selectedCategory;
+    }
+    return filters[0]?.key ?? '';
+  }, [filters, selectedCategory]);
 
   const visibleGroups = useMemo(() => {
-    if (selectedCategory === 'all') return groupedItems;
-    return groupedItems.filter((group) => group.key === selectedCategory);
-  }, [groupedItems, selectedCategory]);
+    if (!activeCategory) return [];
+    return groupedItems.filter((group) => group.key === activeCategory);
+  }, [groupedItems, activeCategory]);
 
   useEffect(() => {
-    if (loading || items.length === 0) return;
-    const validKeys = new Set(filters.map((filter) => filter.key));
-    if (!validKeys.has(selectedCategory)) {
-      setSelectedCategory('all');
+    if (loading || items.length === 0 || filters.length === 0) return;
+    if (!selectedCategory || !filters.some((filter) => filter.key === selectedCategory)) {
+      setSelectedCategory(filters[0].key);
     }
   }, [loading, items.length, filters, selectedCategory]);
 
+  const rootClassName = embedded ? 'items items--embedded' : 'items';
+
   if (loading) {
     return (
-      <div className="items">
-        <h1>Магазин</h1>
+      <div className={rootClassName} id={embedded ? 'shop' : undefined}>
+        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
         <StatePanel type="loading" title="Загрузка товаров" />
       </div>
     );
@@ -392,8 +404,8 @@ function Items() {
 
   if (error) {
     return (
-      <div className="items">
-        <h1>Магазин</h1>
+      <div className={rootClassName} id={embedded ? 'shop' : undefined}>
+        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
         <StatePanel
           type="error"
           title="Не удалось загрузить товары"
@@ -407,18 +419,22 @@ function Items() {
 
   if (items.length === 0) {
     return (
-      <div className="items">
-        <h1>Магазин</h1>
+      <div className={rootClassName} id={embedded ? 'shop' : undefined}>
+        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
         <StatePanel type="empty" title="Список товаров пуст" message="В таблице shop_items пока нет записей." />
       </div>
     );
   }
 
   return (
-    <div className="items">
+    <div className={rootClassName} id={embedded ? 'shop' : undefined}>
       <div className="items-header">
-        <h1>Предметы</h1>
-        <p>Активируйте промокод, выберите предмет и совершайте покупки, всё в одном разделе.</p>
+        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
+        <p>
+          {embedded
+            ? 'Выберите категорию, активируйте промокод и покупайте нужные предметы.'
+            : 'Активируйте промокод, выберите предмет и совершайте покупки, всё в одном разделе.'}
+        </p>
       </div>
 
       {user ? (
@@ -475,7 +491,7 @@ function Items() {
           <button
             key={filter.key}
             type="button"
-            className={`item-filter-btn ${selectedCategory === filter.key ? 'active' : ''}`}
+            className={`item-filter-btn ${activeCategory === filter.key ? 'active' : ''}`}
             onClick={() => setSelectedCategory(filter.key)}
           >
             {filter.label} ({filter.count})
@@ -485,7 +501,6 @@ function Items() {
 
       {visibleGroups.map((group) => (
         <section key={group.key} className="items-category">
-          {selectedCategory === 'all' ? <h2>{group.label}</h2> : null}
           <div className="items-grid">
             {group.items.map((item, index) => {
               const imagePath = item.image_url ?? item.image;

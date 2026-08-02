@@ -44,7 +44,12 @@ function resolveVoteWinnerMap(options: LatestVoteOption[], winnerOptionId: numbe
   return { map_name: winner.map_name, url };
 }
 
-function ServerStatus() {
+interface ServerStatusProps {
+  /** Скрыть заголовок «Сервер» (когда секция уже подписана снаружи). */
+  hideTitle?: boolean;
+}
+
+function ServerStatus({ hideTitle = false }: ServerStatusProps) {
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [voteWinnerMap, setVoteWinnerMap] = useState<{ map_name: string; url: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,15 +118,19 @@ function ServerStatus() {
 
   return (
     <div className="server-status">
-      <div className="server-status-header">
-        <div className="server-status-title-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22" aria-hidden>
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <path d="M8 21h8" />
-            <path d="M12 17v4" />
-          </svg>
-          <h2>Сервер</h2>
-        </div>
+      <div className={`server-status-header ${hideTitle ? 'server-status-header--actions-only' : ''}`.trim()}>
+        {hideTitle ? (
+          <span className="server-status-header-spacer" aria-hidden />
+        ) : (
+          <div className="server-status-title-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22" aria-hidden>
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8" />
+              <path d="M12 17v4" />
+            </svg>
+            <h2>Сервер</h2>
+          </div>
+        )}
         <button
           type="button"
           className="server-status-refresh"
