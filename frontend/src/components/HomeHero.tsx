@@ -41,12 +41,12 @@ function HomeHero() {
   }, []);
 
   return (
-    <section className={`home-hero ${ready ? 'home-hero--ready' : ''}`.trim()} aria-label="DragonLost">
+    <section className={`home-hero ${ready ? 'home-hero--ready' : ''}`.trim()} aria-label="ВОЗДУХАН">
       <div className="home-hero-stage">
         <div className="home-hero-visual" aria-hidden="true">
           <div className="home-hero-character-frame">
             <img
-              src="/images/hero-survivor-female.png?v=whiteout-safe"
+              src="/images/hero-vozduhan.png?v=1"
               alt=""
               className="home-hero-character"
               width={1920}
@@ -60,9 +60,9 @@ function HomeHero() {
         </div>
 
         <div className="home-hero-copy">
-          <p className="home-hero-brand">DragonLost</p>
-          <h1 className="home-hero-title">Сервер, на котором хочется играть</h1>
-          <p className="home-hero-text">Классический вайп, магазин предметов и награды — всё в одном месте.</p>
+          <p className="home-hero-brand">ВОЗДУХАН</p>
+          <h1 className="home-hero-title">x1 Trio — сервер, на котором хочется играть</h1>
+          <p className="home-hero-text">Классический вайп, лимит трио, магазин предметов и награды — всё в одном месте.</p>
 
           <button
             type="button"
