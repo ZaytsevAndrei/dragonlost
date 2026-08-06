@@ -11,7 +11,7 @@ import {
 } from './statsWipeService';
 import { ensureWebUser } from './userProvisioning';
 import { formatCoinsWithLabel } from '../constants/currency';
-import { upcomingWipeInstants, wipeHourMskForInstant } from '../utils/wipeSchedule';
+import { upcomingWipeInstants, wipeRestartLabelMsk } from '../utils/wipeSchedule';
 
 const TOP_PLACES = 3;
 const PRIZE_BY_RANK = [500, 250, 150] as const;
@@ -281,7 +281,7 @@ export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<W
 
 export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult): string {
   const nextWipe = upcomingWipeInstants(new Date(), 1)[0];
-  const hourLabel = nextWipe ? `${wipeHourMskForInstant(nextWipe)}:00 МСК` : 'по расписанию';
+  const hourLabel = nextWipe ? `${wipeRestartLabelMsk(nextWipe)} МСК` : 'по расписанию';
 
   const lines: string[] = [
     '🏆 **Итоги фарма перед вайпом** (за ~30 мин)',

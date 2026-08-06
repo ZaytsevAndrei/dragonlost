@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { api, getImageUrl } from '../services/api';
 import StatePanel from '../components/StatePanel';
+import { nextMapVoteWindow } from '../utils/wipeSchedule';
 import './MapVoteAdmin.css';
 
 const MAP_GEN_TIMEOUT_MS = 180_000;
@@ -136,12 +137,23 @@ function useCountdown(endsAt: string | null): string {
   return timeLeft;
 }
 
-const DATE_PRESETS = [
-  { label: 'Чт 16:00', get: () => getNextDayOfWeek(4, 16, 0) },
-  { label: 'Пт 12:00', get: () => getNextDayOfWeek(5, 12, 0) },
+const DATE_PRESETS: { label: string; get: () => Date }[] = [
+  {
+    label: 'Конец (след. вайп)',
+    get: () => {
+      const win = nextMapVoteWindow(new Date());
+      return win ? win.endsAt : new Date(Date.now() + 24 * 3600000);
+    },
+  },
+  { label: 'Чт 20:00', get: () => getNextDayOfWeek(4, 20, 0) },
+  { label: '17:00 сегодня', get: () => {
+    const d = new Date();
+    d.setHours(17, 0, 0, 0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    return d;
+  }},
   { label: '+24ч', get: () => new Date(Date.now() + 24 * 3600000) },
   { label: '+48ч', get: () => new Date(Date.now() + 48 * 3600000) },
-  { label: '+72ч', get: () => new Date(Date.now() + 72 * 3600000) },
 ];
 
 function MapVoteAdmin() {

@@ -5,12 +5,15 @@ import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
 import {
   upcomingWipeInstants,
   WIPE_SCHEDULE_HINT_DEFAULT,
-  wipeHourMskForInstant,
+  MAP_VOTE_SCHEDULE_HINT_DEFAULT,
+  wipeRestartLabelMsk,
   mskCivilDateFromInstant,
 } from '../utils/wipeSchedule';
 import './Voting.css';
 
 const WIPE_SCHEDULE_TEXT = import.meta.env.VITE_WIPE_SCHEDULE_HINT || WIPE_SCHEDULE_HINT_DEFAULT;
+const MAP_VOTE_SCHEDULE_TEXT =
+  import.meta.env.VITE_MAP_VOTE_SCHEDULE_HINT || MAP_VOTE_SCHEDULE_HINT_DEFAULT;
 
 export interface HistoryWinner {
   map_name: string;
@@ -217,7 +220,7 @@ function WipeCalendar({
                   key={dayKey}
                   type="button"
                   className="wipe-cal-cell wipe-cal-cell-day wipe-cal-cell-estimate wipe-cal-cell-clickable"
-                  aria-label={`${cell.d}: запланированный вайп (${wipeHourMskForInstant(new Date(`${dayKey}T12:00:00+03:00`))}:00 МСК)`}
+                  aria-label={`${cell.d}: запланированный вайп (${wipeRestartLabelMsk(new Date(`${dayKey}T12:00:00+03:00`))} МСК)`}
                   onClick={() => setModal({ mode: 'estimate', dayKey })}
                 >
                   {inner}
@@ -270,7 +273,10 @@ function WipeCalendar({
             </div>
             <div className="wipe-cal-modal-body">
               {modal.mode === 'estimate' ? (
-                <p className="wipe-cal-modal-estimate-text">{WIPE_SCHEDULE_TEXT}</p>
+                <>
+                  <p className="wipe-cal-modal-estimate-text">{WIPE_SCHEDULE_TEXT}</p>
+                  <p className="wipe-cal-modal-estimate-text">{MAP_VOTE_SCHEDULE_TEXT}</p>
+                </>
               ) : (
                 modal.entries.map((e) => {
                   const url = e.winner ? rustMapsUrlFromVoteOption(e.winner) : null;
@@ -426,6 +432,7 @@ function Voting() {
             </h2>
             <div className="voting-hint">
               <p className="voting-hint-main">{WIPE_SCHEDULE_TEXT}</p>
+              <p className="voting-hint-main">{MAP_VOTE_SCHEDULE_TEXT}</p>
               <p className="voting-hint-cal">
                 Зелёная отметка — состоявшийся вайп: нажмите день, чтобы открыть карту-победителя и описание. Синяя
                 пунктирная — запланированный вайп по расписанию (первый четверг + каждые 10 дней).

@@ -11,9 +11,11 @@ import { announceWipeFarmTops, isWipeFarmSummaryCronDisabled } from './wipeFarmS
 import {
   findWipeNear,
   upcomingWipeInstants,
-  wipeHourMskForInstant,
+  nextMapVoteWindow,
+  wipeRestartLabelMsk,
   MSK_TZ,
   WIPE_SCHEDULE_HINT_DEFAULT,
+  MAP_VOTE_SCHEDULE_HINT_DEFAULT,
 } from '../utils/wipeSchedule';
 
 const remindedVoteCloseSessions = new Set<number>();
@@ -163,8 +165,7 @@ async function checkAndNotifyAdmin(): Promise<void> {
 }
 
 /**
- * За 24 ч до вайпа: создаёт сессию с картами, ends_at — за 3 ч до вайпа.
- * Не создаёт новую, если уже есть активная сессия.
+ * Открывает голосование по окну следующего вайпа (с догоном, если пропустили минуту старта).
  */
 async function autoStartMapVoteBeforeWipe(): Promise<void> {
   if (isAutoVoteScheduleDisabled()) return;
@@ -173,11 +174,10 @@ async function autoStartMapVoteBeforeWipe(): Promise<void> {
     await closeExpiredSessions();
 
     const now = Date.now();
-    const nextWipe = upcomingWipeInstants(new Date(), 1)[0];
-    if (!nextWipe) return;
-
-    const openAt = nextWipe.getTime() - 24 * 60 * 60 * 1000;
-    if (now < openAt || now >= openAt + 15 * 60 * 1000) return;
+    const win = nextMapVoteWindow(new Date());
+    if (!win) return;
+    if (now < win.opensAt.getTime()) return;
+    if (now >= win.endsAt.getTime()) return;
 
     const [active] = await webPool.query<RowDataPacket[]>(
       `SELECT id FROM map_vote_sessions WHERE status = 'active' LIMIT 1`
@@ -205,16 +205,18 @@ async function autoStartMapVoteBeforeWipe(): Promise<void> {
       return;
     }
 
-    const startsAt = new Date();
-    const endsAt = new Date(nextWipe.getTime() - 3 * 60 * 60 * 1000);
-    const wipeHour = wipeHourMskForInstant(nextWipe);
+    const startsAt = new Date(Math.max(now, win.opensAt.getTime()));
+    const endsAt = win.endsAt;
+    const restartLabel = wipeRestartLabelMsk(win.wipeAt);
+    const kind = win.isAnchor ? 'первый четверг' : 'промежуточный вайп';
     const title =
       process.env.MAP_VOTE_AUTO_TITLE ||
-      `Голосование за карту (вайп ${formatMskDatetime(nextWipe)})`;
+      `Голосование за карту (${kind}, вайп ${formatMskDatetime(win.wipeAt)})`;
     const createdBy = process.env.MAP_VOTE_AUTO_CREATED_BY || 'system';
 
     console.log(
-      `📅 [MapVote] Автостарт за 24ч до вайпа (${wipeHour}:00 МСК): ends_at=${endsAt.toISOString()}`
+      `📅 [MapVote] Автостарт (${kind}, рестарт ${restartLabel} МСК): ` +
+        `opens=${win.opensAt.toISOString()}, ends=${endsAt.toISOString()}`
     );
     const connection = await webPool.getConnection();
     try {
@@ -483,7 +485,7 @@ async function maybeRunWipeNow(): Promise<void> {
   await runScheduledGameServerWipe();
 }
 
-/** Cron: голосование за 24ч до вайпа, вайп по новому расписанию, фарма за 30 мин. */
+/** Cron: автостарт голосования по окну вайпа, рестарт 17:30/20:30, фарма за 30 мин. */
 export function scheduleMapVoteTasks(): void {
   const tzOpts = { timezone: MSK_TZ };
 
@@ -502,10 +504,10 @@ export function scheduleMapVoteTasks(): void {
     });
   });
 
-  // Точные тики в 21:00 и 22:00 МСК — подстраховать окно вайпа
+  // Точные тики рестарта: 17:30 (промежуточные) и 20:30 (первый четверг)
   if (isGameServerWipeConfigured()) {
     cron.schedule(
-      '0 21,22 * * *',
+      '30 17,20 * * *',
       () => {
         runDeferred(() => maybeRunWipeNow());
       },
@@ -514,9 +516,8 @@ export function scheduleMapVoteTasks(): void {
   }
 
   console.log(
-    `✅ Cron map-vote / wipe: ${WIPE_SCHEDULE_HINT_DEFAULT}` +
+    `✅ Cron map-vote / wipe: ${WIPE_SCHEDULE_HINT_DEFAULT} ${MAP_VOTE_SCHEDULE_HINT_DEFAULT}` +
       (isWipeFarmSummaryCronDisabled() ? '' : '; итоги фарма за 30 мин до вайпа') +
-      (isGameServerWipeConfigured() ? '; перезапуск игры в момент вайпа' : '') +
-      '; голосование открывается за 24 ч до вайпа (конец за 3 ч)'
+      (isGameServerWipeConfigured() ? '; перезапуск в 17:30 / 20:30 МСК' : '')
   );
 }
