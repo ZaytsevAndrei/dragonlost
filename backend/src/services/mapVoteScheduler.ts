@@ -8,16 +8,20 @@ import {
   fetchLatestClosedMapVoteSessionId,
 } from './statsWipeService';
 import { announceWipeFarmTops, isWipeFarmSummaryCronDisabled } from './wipeFarmSummary';
+import {
+  findWipeNear,
+  upcomingWipeInstants,
+  wipeHourMskForInstant,
+  MSK_TZ,
+  WIPE_SCHEDULE_HINT_DEFAULT,
+} from '../utils/wipeSchedule';
 
-const MSK_TZ = 'Europe/Moscow';
+const remindedVoteCloseSessions = new Set<number>();
+const farmAnnouncedForWipeMs = new Set<number>();
+const wipeExecutedForWipeMs = new Set<number>();
 
 function isAutoVoteScheduleDisabled(): boolean {
   return String(process.env.MAP_VOTE_AUTO_SCHEDULE || 'true').toLowerCase() === 'false';
-}
-
-/** Вторник 15:00 МСК → среда 15:00 МСК (24 ч). */
-function voteEndsAtAfterTuesdayStartMsk(start: Date): Date {
-  return new Date(start.getTime() + 24 * 60 * 60 * 1000);
 }
 
 function toMysqlDatetime(iso: Date): string {
@@ -117,7 +121,7 @@ async function checkAndNotifyAdmin(): Promise<void> {
     if (sessions.length === 0) {
       await sendDiscordNotification(
         '⚠️ **Напоминание**\n' +
-        'Через час (в среду в 15:00 МСК) закрывается голосование за карту, но активной сессии нет.\n' +
+        'Скоро закроется голосование за карту, но активной сессии нет.\n' +
         'Создайте голосование вручную или проверьте MAP_VOTE_AUTO_SCHEDULE и RUSTMAPS_API_KEY.'
       );
       return;
@@ -143,12 +147,13 @@ async function checkAndNotifyAdmin(): Promise<void> {
       })
       .join('\n');
 
+    const endsLabel = formatMskDatetime(new Date(session.ends_at));
     await sendDiscordNotification(
       '🗳️ **Напоминание: скоро закроется голосование**\n' +
-      `До автозакрытия в среду в 15:00 МСК остался примерно час.\n\n` +
+      `До автозакрытия (**${endsLabel}**) остался примерно час.\n\n` +
       `**${session.title}** (всего голосов: ${session.total_votes})\n\n` +
       `${optionsText}\n\n` +
-      'При необходимости закройте голосование вручную в админ-панели до 15:00 МСК.'
+      'При необходимости закройте голосование вручную в админ-панели.'
     );
 
     console.log(`📬 [MapVote] Уведомление отправлено (сессия #${session.id}, голосов: ${session.total_votes})`);
@@ -158,14 +163,21 @@ async function checkAndNotifyAdmin(): Promise<void> {
 }
 
 /**
- * Каждый вторник в 15:00 МСК: создаёт сессию с 4 картами (как в админке по умолчанию),
- * ends_at — среда 15:00 МСК. Не создаёт новую, если уже есть активная сессия.
+ * За 24 ч до вайпа: создаёт сессию с картами, ends_at — за 3 ч до вайпа.
+ * Не создаёт новую, если уже есть активная сессия.
  */
-async function autoStartWeeklyMapVote(): Promise<void> {
+async function autoStartMapVoteBeforeWipe(): Promise<void> {
   if (isAutoVoteScheduleDisabled()) return;
 
   try {
     await closeExpiredSessions();
+
+    const now = Date.now();
+    const nextWipe = upcomingWipeInstants(new Date(), 1)[0];
+    if (!nextWipe) return;
+
+    const openAt = nextWipe.getTime() - 24 * 60 * 60 * 1000;
+    if (now < openAt || now >= openAt + 15 * 60 * 1000) return;
 
     const [active] = await webPool.query<RowDataPacket[]>(
       `SELECT id FROM map_vote_sessions WHERE status = 'active' LIMIT 1`
@@ -194,10 +206,16 @@ async function autoStartWeeklyMapVote(): Promise<void> {
     }
 
     const startsAt = new Date();
-    const endsAt = voteEndsAtAfterTuesdayStartMsk(startsAt);
-    const title = process.env.MAP_VOTE_AUTO_TITLE || 'Голосование за карту';
+    const endsAt = new Date(nextWipe.getTime() - 3 * 60 * 60 * 1000);
+    const wipeHour = wipeHourMskForInstant(nextWipe);
+    const title =
+      process.env.MAP_VOTE_AUTO_TITLE ||
+      `Голосование за карту (вайп ${formatMskDatetime(nextWipe)})`;
     const createdBy = process.env.MAP_VOTE_AUTO_CREATED_BY || 'system';
 
+    console.log(
+      `📅 [MapVote] Автостарт за 24ч до вайпа (${wipeHour}:00 МСК): ends_at=${endsAt.toISOString()}`
+    );
     const connection = await webPool.getConnection();
     try {
       await connection.beginTransaction();
@@ -354,8 +372,8 @@ export async function notifyVoteClosed(sessionId: number, winnerId: number | nul
   }
 }
 
-/** Среда 18:00 МСК: seed/size победителя → панель (вебхук / Pterodactyl) или RCON (SurvivalHost и др.). */
-async function fridayGameServerRestart(): Promise<void> {
+/** Вайп по расписанию: seed/size победителя → панель / RCON. */
+async function runScheduledGameServerWipe(): Promise<void> {
   try {
     try {
       const sessionId = await fetchLatestClosedMapVoteSessionId();
@@ -376,10 +394,10 @@ async function fridayGameServerRestart(): Promise<void> {
     if (!r.ok) {
       if (r.reason === 'no_winner') {
         await sendDiscordNotification(
-          '⚠️ **Перезапуск сервера (Ср 18:00 МСК)**\n' +
+          '⚠️ **Перезапуск сервера (вайп по расписанию)**\n' +
             'Нет закрытого голосования с победителем и полями seed/size — действие пропущено.'
         );
-        console.warn('[GameServer] Ср 18:00: нет победителя для seed/size');
+        console.warn('[GameServer] Вайп: нет победителя для seed/size');
       }
       return;
     }
@@ -389,7 +407,7 @@ async function fridayGameServerRestart(): Promise<void> {
         : r.mode === 'pterodactyl'
           ? 'Pterodactyl: переменные панели и restart.'
           : 'вебхук.';
-    console.log(`🔄 [GameServer] Ср 18:00 МСК: ${r.mode}, seed=${r.seed}, size=${r.size}`);
+    console.log(`🔄 [GameServer] Вайп: ${r.mode}, seed=${r.seed}, size=${r.size}`);
     await sendDiscordNotification(
       `🔄 **Игровой сервер (вайп по голосованию)**\n` +
         `Канал: **${r.mode}** — ${modeHint}\n` +
@@ -398,7 +416,7 @@ async function fridayGameServerRestart(): Promise<void> {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[GameServer] Ошибка перезапуска:', msg);
-    await sendDiscordNotification(`❌ **Перезапуск сервера (Ср 18:00 МСК)**\n\`${msg}\``);
+    await sendDiscordNotification(`❌ **Перезапуск сервера (вайп)**\n\`${msg}\``);
   }
 }
 
@@ -411,69 +429,94 @@ function runDeferred(fn: () => void | Promise<void>): void {
   });
 }
 
-/** Cron: автостарт голосования (Вт 15:00 МСК), напоминание (Ср 14:00 МСК), автозакрытие по ends_at (~каждые 5 мин). */
+async function maybeRemindVoteClosingSoon(): Promise<void> {
+  const [sessions] = await webPool.query<ActiveSessionRow[]>(
+    `SELECT s.id, s.title, s.ends_at,
+            (SELECT COUNT(*) FROM map_votes v WHERE v.session_id = s.id) AS total_votes
+     FROM map_vote_sessions s
+     WHERE s.status = 'active'
+     ORDER BY s.ends_at ASC
+     LIMIT 1`
+  );
+  if (sessions.length === 0) return;
+  const session = sessions[0];
+  if (remindedVoteCloseSessions.has(session.id)) return;
+  const ends = new Date(session.ends_at).getTime();
+  const delta = ends - Date.now();
+  if (delta > 67.5 * 60 * 1000 || delta < 52.5 * 60 * 1000) return;
+  remindedVoteCloseSessions.add(session.id);
+  await checkAndNotifyAdmin();
+}
+
+async function maybeAnnounceFarmBeforeWipe(): Promise<void> {
+  const next = upcomingWipeInstants(new Date(), 1)[0];
+  if (!next) return;
+  const key = next.getTime();
+  if (farmAnnouncedForWipeMs.has(key)) return;
+  const delta = next.getTime() - Date.now();
+  if (delta > 33 * 60 * 1000 || delta < 27 * 60 * 1000) return;
+  farmAnnouncedForWipeMs.add(key);
+  console.log('⛏️ [WipeFarm] Итоги фарма за ~30 мин до вайпа');
+  await announceWipeFarmTops();
+}
+
+async function maybeRunWipeNow(): Promise<void> {
+  const now = Date.now();
+  const candidates = upcomingWipeInstants(new Date(now - 10 * 60 * 1000), 4);
+  for (const w of candidates) {
+    const key = w.getTime();
+    if (wipeExecutedForWipeMs.has(key)) continue;
+    const dt = now - key;
+    // окно 0…4 мин после точного момента вайпа
+    if (dt < 0 || dt > 4 * 60 * 1000) continue;
+    wipeExecutedForWipeMs.add(key);
+    console.log(`🔄 [GameServer] Вайп по расписанию ${w.toISOString()}`);
+    await runScheduledGameServerWipe();
+    return;
+  }
+  const near = findWipeNear(new Date(), 90_000);
+  if (!near) return;
+  const key = near.getTime();
+  if (wipeExecutedForWipeMs.has(key)) return;
+  wipeExecutedForWipeMs.add(key);
+  console.log(`🔄 [GameServer] Вайп по расписанию ${near.toISOString()}`);
+  await runScheduledGameServerWipe();
+}
+
+/** Cron: голосование за 24ч до вайпа, вайп по новому расписанию, фарма за 30 мин. */
 export function scheduleMapVoteTasks(): void {
   const tzOpts = { timezone: MSK_TZ };
 
-  // Вторник 15:00 МСК — открытие недельного голосования (конец — среда 15:00 МСК, см. ends_at)
-  cron.schedule(
-    '0 15 * * 2',
-    () => {
-      runDeferred(() => {
-        console.log('📅 [MapVote] Вт 15:00 МСК — автостарт голосования');
-        return autoStartWeeklyMapVote();
-      });
-    },
-    tzOpts
-  );
-
-  // Среда 14:00 МСК — напоминание за ~1 ч до автозакрытия в 15:00 МСК
-  cron.schedule(
-    '0 14 * * 3',
-    () => {
-      runDeferred(() => {
-        console.log('🔔 [MapVote] Ср 14:00 МСК — напоминание перед закрытием голосования');
-        return checkAndNotifyAdmin();
-      });
-    },
-    tzOpts
-  );
-
-  // Каждые ~5 мин, но не в :00 — избегаем одновременного тика с другими задачами на начале часа
+  // Каждые ~5 мин: закрытие истёкших, автостарт голосования, напоминание, фарма, вайп
   cron.schedule('2,7,12,17,22,27,32,37,42,47,52,57 * * * *', () => {
-    runDeferred(closeExpiredSessions);
+    runDeferred(async () => {
+      await closeExpiredSessions();
+      await autoStartMapVoteBeforeWipe();
+      await maybeRemindVoteClosingSoon();
+      if (!isWipeFarmSummaryCronDisabled()) {
+        await maybeAnnounceFarmBeforeWipe();
+      }
+      if (isGameServerWipeConfigured()) {
+        await maybeRunWipeNow();
+      }
+    });
   });
 
-  // Среда 17:30 МСК — итоги ТОП фарма за цикл (за час до вайпа)
-  if (!isWipeFarmSummaryCronDisabled()) {
-    cron.schedule(
-      '30 17 * * 3',
-      () => {
-        runDeferred(() => {
-          console.log('⛏️ [WipeFarm] Ср 17:30 МСК — итоги фарма перед вайпом');
-          return announceWipeFarmTops();
-        });
-      },
-      tzOpts
-    );
-  }
-
+  // Точные тики в 21:00 и 22:00 МСК — подстраховать окно вайпа
   if (isGameServerWipeConfigured()) {
     cron.schedule(
-      '0 18 * * 3',
+      '0 21,22 * * *',
       () => {
-        runDeferred(() => {
-          console.log('🔄 [GameServer] Ср 18:00 МСК — вайп по результату голосования');
-          return fridayGameServerRestart();
-        });
+        runDeferred(() => maybeRunWipeNow());
       },
       tzOpts
     );
   }
 
   console.log(
-    '✅ Cron map-vote: старт Вт 15:00 МСК, конец Ср 15:00 МСК (ends_at + автозакрытие), напоминание Ср 14:00 МСК' +
-      (isWipeFarmSummaryCronDisabled() ? '' : '; итоги фарма Ср 17:30 МСК') +
-      (isGameServerWipeConfigured() ? '; перезапуск игры Ср 18:00 МСК' : '')
+    `✅ Cron map-vote / wipe: ${WIPE_SCHEDULE_HINT_DEFAULT}` +
+      (isWipeFarmSummaryCronDisabled() ? '' : '; итоги фарма за 30 мин до вайпа') +
+      (isGameServerWipeConfigured() ? '; перезапуск игры в момент вайпа' : '') +
+      '; голосование открывается за 24 ч до вайпа (конец за 3 ч)'
   );
 }

@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, getImageUrl } from '../services/api';
 import { MapVoteCards } from '../components/MapVote';
 import { rustMapsUrlFromVoteOption } from '../utils/rustMaps';
+import {
+  upcomingWipeInstants,
+  WIPE_SCHEDULE_HINT_DEFAULT,
+  wipeHourMskForInstant,
+  mskCivilDateFromInstant,
+} from '../utils/wipeSchedule';
 import './Voting.css';
 
-const WIPE_SCHEDULE_TEXT =
-  import.meta.env.VITE_WIPE_SCHEDULE_HINT ||
-  'Вайп сервера каждую среду в 18:00 по Москве (МСК).';
-
-const MSK_TZ = 'Europe/Moscow';
+const WIPE_SCHEDULE_TEXT = import.meta.env.VITE_WIPE_SCHEDULE_HINT || WIPE_SCHEDULE_HINT_DEFAULT;
 
 export interface HistoryWinner {
   map_name: string;
@@ -43,11 +45,20 @@ const MONTHS_RU = [
 
 const WD_RU = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
 function dayKeyLocal(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+function dayKeyMsk(d: Date): string {
+  const c = mskCivilDateFromInstant(d);
+  return `${c.year}-${pad2(c.month)}-${pad2(c.day)}`;
 }
 
 function formatDayKeyRu(dayKey: string): string {
@@ -76,26 +87,9 @@ function WinnerDescription({ text }: { text: string | null | undefined }) {
   return <p className="wipe-cal-modal-desc">{t}</p>;
 }
 
-function mskHourNow(): number {
-  return Number(
-    new Intl.DateTimeFormat('en-GB', { timeZone: MSK_TZ, hour: 'numeric', hour12: false }).format(new Date())
-  );
-}
-
-/** Ближайшие среды с вайпом в 18:00 МСК (до max штук вперёд). */
+/** Ближайшие вайпы по новому расписанию. */
 function scheduledFutureWipeDates(max: number): Date[] {
-  const out: Date[] = [];
-  const now = new Date();
-  let d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const wd = d.getDay();
-  let add = (3 - wd + 7) % 7;
-  if (add === 0 && mskHourNow() >= 18) add = 7;
-  d.setDate(d.getDate() + add);
-  while (out.length < max) {
-    out.push(new Date(d));
-    d.setDate(d.getDate() + 7);
-  }
-  return out;
+  return upcomingWipeInstants(new Date(), max);
 }
 
 type CalModal =
@@ -128,7 +122,7 @@ function WipeCalendar({
   }, [history]);
 
   const estimatedKeys = useMemo(
-    () => new Set(estimatedFuture.map((d) => dayKeyLocal(d))),
+    () => new Set(estimatedFuture.map((d) => dayKeyMsk(d))),
     [estimatedFuture]
   );
 
@@ -223,7 +217,7 @@ function WipeCalendar({
                   key={dayKey}
                   type="button"
                   className="wipe-cal-cell wipe-cal-cell-day wipe-cal-cell-estimate wipe-cal-cell-clickable"
-                  aria-label={`${cell.d}: запланированный вайп (среда 18:00 МСК)`}
+                  aria-label={`${cell.d}: запланированный вайп (${wipeHourMskForInstant(new Date(`${dayKey}T12:00:00+03:00`))}:00 МСК)`}
                   onClick={() => setModal({ mode: 'estimate', dayKey })}
                 >
                   {inner}
@@ -242,7 +236,7 @@ function WipeCalendar({
             <span className="wipe-cal-dot wipe-cal-dot-past" /> вайп (нажмите для карты-победителя)
           </span>
           <span>
-            <span className="wipe-cal-dot wipe-cal-dot-estimate" /> запланированный вайп — среда 18:00 МСК
+            <span className="wipe-cal-dot wipe-cal-dot-estimate" /> запланированный вайп по расписанию
           </span>
         </div>
       </div>
@@ -434,12 +428,12 @@ function Voting() {
               <p className="voting-hint-main">{WIPE_SCHEDULE_TEXT}</p>
               <p className="voting-hint-cal">
                 Зелёная отметка — состоявшийся вайп: нажмите день, чтобы открыть карту-победителя и описание. Синяя
-                пунктирная — запланированный вайп по расписанию (среда, 18:00 МСК).
+                пунктирная — запланированный вайп по расписанию (первый четверг + каждые 10 дней).
               </p>
             </div>
             {history.length === 0 ? (
               <p className="voting-empty">
-                Пока нет завершённых голосований — в календаре отмечены ближайшие среды с вайпом в 18:00 МСК.
+                Пока нет завершённых голосований — в календаре отмечены ближайшие вайпы по расписанию.
               </p>
             ) : null}
             <WipeCalendar history={history} estimatedFuture={estimatedFuture} />

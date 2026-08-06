@@ -11,6 +11,7 @@ import {
 } from './statsWipeService';
 import { ensureWebUser } from './userProvisioning';
 import { formatCoinsWithLabel } from '../constants/currency';
+import { upcomingWipeInstants, wipeHourMskForInstant } from '../utils/wipeSchedule';
 
 const TOP_PLACES = 3;
 const PRIZE_BY_RANK = [500, 250, 150] as const;
@@ -279,10 +280,13 @@ export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<W
 }
 
 export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult): string {
+  const nextWipe = upcomingWipeInstants(new Date(), 1)[0];
+  const hourLabel = nextWipe ? `${wipeHourMskForInstant(nextWipe)}:00 МСК` : 'по расписанию';
+
   const lines: string[] = [
-    '🏆 **Итоги фарма перед вайпом** (среда 17:30 МСК)',
+    '🏆 **Итоги фарма перед вайпом** (за ~30 мин)',
     'Рейтинг: **серная руда ×1** + **железная руда ×0,5** + **камень ×0,3** + **дерево ×0,05**.',
-    `Период: с **${formatPeriodStart(result.periodStart)}** до вайпа в **18:00 МСК**.`,
+    `Период: с **${formatPeriodStart(result.periodStart)}** до вайпа (~**${hourLabel}**).`,
     '',
   ];
 
@@ -301,7 +305,7 @@ export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult)
     }
   }
 
-  lines.push('', 'Через 30 минут — вайп сервера.');
+  lines.push('', 'Через ~30 минут — вайп сервера.');
   return lines.join('\n').trim();
 }
 
@@ -328,7 +332,7 @@ export async function announceWipeFarmTops(): Promise<void> {
   const computed = await computeWipeFarmRatingTop();
   if (!computed) {
     await sendDiscordNotification(
-      '⚠️ **Итоги фарма (Ср 17:30 МСК)**\n' +
+      '⚠️ **Итоги фарма (за ~30 мин до вайпа)**\n' +
         'Нет снимка статистики вайпа — подведение итогов пропущено.\n' +
         'Проверьте таблицы `stats_wipe_*` или выполните снимок вручную.'
     );
