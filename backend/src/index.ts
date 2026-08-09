@@ -74,6 +74,7 @@ import inventoryRoutes from './routes/inventory';
 import adminVouchersRoutes from './routes/adminVouchers';
 import telegramRoutes from './routes/telegram';
 import botApiRoutes from './routes/botApi';
+import conveyorFiltersRoutes from './routes/conveyorFilters';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
@@ -185,6 +186,7 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/admin/vouchers', adminVouchersRoutes);
 app.use('/api/telegram', telegramRoutes);
+app.use('/api/conveyor-filters', conveyorFiltersRoutes);
 
 // Error handling
 app.use(errorHandler);

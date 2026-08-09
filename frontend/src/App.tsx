@@ -14,6 +14,11 @@ import VouchersAdmin from './pages/VouchersAdmin';
 import AdminLayout from './pages/AdminLayout';
 import AdminHome from './pages/AdminHome';
 import Voting from './pages/Voting';
+import ConveyorFiltersLayout from './pages/conveyorfilters/ConveyorFiltersLayout';
+import FiltersPage from './pages/conveyorfilters/FiltersPage';
+import MyFiltersPage from './pages/conveyorfilters/MyFiltersPage';
+import FilterEditorPage from './pages/conveyorfilters/FilterEditorPage';
+import AboutPage from './pages/conveyorfilters/AboutPage';
 import { useAuthStore } from './store/authStore';
 import { getLastPage, clearLastPage } from './utils/safeLocalStorage';
 
@@ -66,6 +71,13 @@ function App() {
             <Route path="/" element={<HomeWithRedirect />} />
             <Route path="/stats" element={<Statistics />} />
             <Route path="/vote" element={<Voting />} />
+            <Route path="/conveyorfilters" element={<ConveyorFiltersLayout />}>
+              <Route index element={<FiltersPage />} />
+              <Route path="my" element={<MyFiltersPage />} />
+              <Route path="about" element={<AboutPage />} />
+              <Route path="new" element={<FilterEditorPage />} />
+              <Route path=":id" element={<FilterEditorPage />} />
+            </Route>
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/telegram" element={<TelegramLink />} />

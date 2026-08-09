@@ -55,6 +55,12 @@ function Header() {
             <NavLink to="/vote" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Голосование
             </NavLink>
+            <NavLink
+              to="/conveyorfilters"
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              Conveyor Filters
+            </NavLink>
           </nav>
 
           <div className="header-tools">
