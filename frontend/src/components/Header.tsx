@@ -1,16 +1,14 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
+import { DISCORD_URL, TELEGRAM_URL } from '../constants/social';
 import { useAuthStore } from '../store/authStore';
+import HeaderWallet from './HeaderWallet';
 import ThemeSwitcher from './ThemeSwitcher';
 import './Header.css';
-
-const DISCORD_URL = 'https://discord.gg/NSPuBH4mZJ';
 
 function Header() {
   const { user, logout } = useAuthStore();
   const API_URL = import.meta.env.VITE_API_URL || '/api';
-  const telegramBotUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'DragonLostBot';
-  const telegramBotUrl = `https://t.me/${telegramBotUsername}`;
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -78,89 +76,91 @@ function Header() {
                 </svg>
               </a>
               <a
-                href={telegramBotUrl}
+                href={TELEGRAM_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="header-social-link header-social-telegram"
-                title="Telegram-бот"
-                aria-label="Telegram-бот"
+                title="Telegram"
+                aria-label="Telegram"
               >
                 <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true">
                   <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                 </svg>
               </a>
             </div>
-            <ThemeSwitcher />
-          </div>
 
-          <div className="auth-section">
-            {user ? (
-              <div className="user-dropdown" ref={dropdownRef}>
-                <div 
-                  className="user-info" 
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                >
-                  <img src={user.avatar} alt={user.username} className="user-avatar" />
-                  <span className="user-name">{user.username}</span>
-                  <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▼</span>
-                </div>
-                
-                {dropdownOpen && (
-                  <div className="dropdown-menu">
-                    <Link
-                      to="/inventory"
-                      className="dropdown-item"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span className="dropdown-icon">🎒</span>
-                      Инвентарь
-                    </Link>
-                    <Link
-                      to="/rewards"
-                      className="dropdown-item"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span className="dropdown-icon">🎁</span>
-                      Ежедневная награда
-                    </Link>
-                    <Link
-                      to="/telegram"
-                      className="dropdown-item"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <span className="dropdown-icon">📱</span>
-                      Telegram-бот
-                    </Link>
-                    {user.role === 'admin' ? <div className="dropdown-divider" role="separator" /> : null}
-                    {user.role === 'admin' && (
+            <div className="auth-section">
+              {user ? (
+                <div className="user-dropdown" ref={dropdownRef}>
+                  <div
+                    className="user-info"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  >
+                    <img src={user.avatar} alt={user.username} className="user-avatar" />
+                    <span className="user-name">{user.username}</span>
+                    <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▼</span>
+                  </div>
+
+                  {dropdownOpen && (
+                    <div className="dropdown-menu">
                       <Link
-                        to="/admin"
+                        to="/inventory"
                         className="dropdown-item"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        <span className="dropdown-icon">⚙️</span>
-                        Админка
+                        <span className="dropdown-icon">🎒</span>
+                        Инвентарь
                       </Link>
-                    )}
-                    <div className="dropdown-divider" role="separator" />
-                    <button 
-                      onClick={handleLogout} 
-                      className="dropdown-item logout"
-                    >
-                      <span className="dropdown-icon">🚪</span>
-                      Выход
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button onClick={handleLogin} className="btn-login">
-                <img
-                  src="https://steamcommunity-a.akamaihd.net/public/images/signinthroughsteam/sits_01.png"
-                  alt="Sign in through Steam"
-                />
-              </button>
-            )}
+                      <Link
+                        to="/rewards"
+                        className="dropdown-item"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <span className="dropdown-icon">🎁</span>
+                        Ежедневная награда
+                      </Link>
+                      <Link
+                        to="/telegram"
+                        className="dropdown-item"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <span className="dropdown-icon">📱</span>
+                        Telegram-бот
+                      </Link>
+                      {user.role === 'admin' ? <div className="dropdown-divider" role="separator" /> : null}
+                      {user.role === 'admin' && (
+                        <Link
+                          to="/admin"
+                          className="dropdown-item"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <span className="dropdown-icon">⚙️</span>
+                          Админка
+                        </Link>
+                      )}
+                      <div className="dropdown-divider" role="separator" />
+                      <button
+                        onClick={handleLogout}
+                        className="dropdown-item logout"
+                      >
+                        <span className="dropdown-icon">🚪</span>
+                        Выход
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button onClick={handleLogin} className="btn-login">
+                  <img
+                    src="https://steamcommunity-a.akamaihd.net/public/images/signinthroughsteam/sits_01.png"
+                    alt="Sign in through Steam"
+                  />
+                </button>
+              )}
+            </div>
+
+            <HeaderWallet enabled={Boolean(user)} />
+            <ThemeSwitcher />
           </div>
         </div>
       </div>

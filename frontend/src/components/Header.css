@@ -243,8 +243,21 @@
     flex-wrap: wrap;
   }
 
-  .auth-section {
+  .header-tools {
     width: 100%;
     justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .auth-section {
+    width: auto;
+    justify-content: center;
+  }
+
+  .user-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

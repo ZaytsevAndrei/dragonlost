@@ -1,0 +1,54 @@
+.header-wallet {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-wallet__promo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.header-wallet__promo:hover {
+  border-color: var(--brand-500);
+  background: color-mix(in srgb, var(--brand-500) 12%, var(--bg-tertiary));
+  color: var(--brand-400);
+}
+
+.header-wallet__balance {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, #e8b84a 14%, var(--bg-tertiary));
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.header-wallet__balance:hover {
+  border-color: color-mix(in srgb, #e8b84a 55%, var(--border));
+  background: color-mix(in srgb, #e8b84a 22%, var(--bg-tertiary));
+}
+
+.header-wallet__balance:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.header-wallet__balance .coin-amount {
+  gap: 6px;
+}

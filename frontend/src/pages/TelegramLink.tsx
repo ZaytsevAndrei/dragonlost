@@ -119,7 +119,7 @@ function TelegramLink() {
             Steam-профилем.
           </p>
           <p>
-            Откройте бота и используйте команду <code>/bonus</code> для получения награды.
+            Откройте бота и используйте команду <code>/bonus</code> для получения бонуса.
           </p>
           <a href={botUrl} target="_blank" rel="noopener noreferrer" className="telegram-link-btn">
             Открыть @{botUsername}

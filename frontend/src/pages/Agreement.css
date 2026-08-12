@@ -15,6 +15,10 @@
   color: var(--text-secondary);
   font-size: 15px;
   line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.agreement-intro + .agreement-intro {
   margin-bottom: 32px;
 }
 
@@ -28,28 +32,67 @@
   margin-bottom: 12px;
 }
 
-.agreement-section ol {
-  list-style: none;
-  counter-reset: item;
-  padding-left: 0;
+.agreement-subtitle {
+  margin: 16px 0 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.agreement-section ol li {
-  counter-increment: item;
+.agreement-terms {
+  margin: 0;
+  padding: 0;
+}
+
+.agreement-term {
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.agreement-term dt {
+  display: inline;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.agreement-term dt::after {
+  content: ' — ';
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.agreement-term dd {
+  display: inline;
+  margin: 0;
+}
+
+.agreement-clauses {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.agreement-clauses li {
   position: relative;
-  padding-left: 28px;
+  padding-left: 40px;
   margin-bottom: 10px;
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.7;
 }
 
-.agreement-section ol li::before {
-  content: counter(item) ".";
+.agreement-clauses .clause-num {
   position: absolute;
   left: 0;
   color: var(--accent);
   font-weight: 600;
+}
+
+.agreement-clauses a {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .agreement-date {

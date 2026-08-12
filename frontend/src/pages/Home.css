@@ -183,10 +183,6 @@
   justify-content: center;
 }
 
-.home-section--shop .wallet-panel {
-  margin-bottom: var(--space-6);
-}
-
 /* ===================== SERVER ===================== */
 .home-server-wrap {
   display: flex;

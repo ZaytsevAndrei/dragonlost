@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import CoinAmount from '../components/CoinAmount';
-import { formatCoinsWithLabel } from '../utils/currency';
 import StatePanel from '../components/StatePanel';
 import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
 import { api, getBackendOrigin, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import type { ShopItem } from '../types';
+import { emitBalanceUpdated, subscribeBalanceUpdated } from '../utils/balanceEvents';
 import { safeGetItem, safeSetItem } from '../utils/safeLocalStorage';
 import './Items.css';
 
@@ -154,8 +154,6 @@ interface PlayerBalance {
   total_spent: number;
 }
 
-const SHOW_DEPOSIT_ACTIONS = false;
-const SHOW_PROMOCODE_ACTIONS = true;
 const MAX_BUY_QUANTITY = 100;
 
 interface ItemsProps {
@@ -170,14 +168,9 @@ function Items({ embedded = false }: ItemsProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>(readSavedShopCategory);
   const [balance, setBalance] = useState<PlayerBalance | null>(null);
-  const [depositAmount, setDepositAmount] = useState<number>(500);
-  const [depositLoading, setDepositLoading] = useState(false);
-  const [voucherCode, setVoucherCode] = useState('');
-  const [voucherLoading, setVoucherLoading] = useState(false);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [modalItem, setModalItem] = useState<ShopItem | null>(null);
   const [modalQuantity, setModalQuantity] = useState(1);
-  const hasWalletControls = SHOW_DEPOSIT_ACTIONS || SHOW_PROMOCODE_ACTIONS;
 
   const fetchItems = useCallback(async () => {
     try {
@@ -209,6 +202,17 @@ function Items({ embedded = false }: ItemsProps) {
   }, [fetchItems]);
 
   useEffect(() => {
+    if (!user) return;
+    return subscribeBalanceUpdated((nextBalance) => {
+      setBalance((prev) =>
+        prev
+          ? { ...prev, balance: nextBalance }
+          : { balance: nextBalance, total_earned: 0, total_spent: 0 }
+      );
+    });
+  }, [user]);
+
+  useEffect(() => {
     safeSetItem(SHOP_CATEGORY_STORAGE_KEY, selectedCategory);
   }, [selectedCategory]);
 
@@ -234,65 +238,6 @@ function Items({ embedded = false }: ItemsProps) {
   const closeItemModal = useCallback(() => {
     setModalItem(null);
   }, []);
-
-  const handleDeposit = useCallback(async () => {
-    if (!user) return;
-    const amount = Number.isFinite(depositAmount) ? depositAmount : 0;
-    if (amount < 10 || amount > 50000) {
-      alert('Сумма должна быть от 10 до 50000');
-      return;
-    }
-
-    try {
-      setDepositLoading(true);
-      const res = await api.post<{ redirect_url?: string }>('/shop/deposit/create', { amount });
-      const url = res.data?.redirect_url;
-      if (!url) {
-        alert('Не удалось создать платёж');
-        return;
-      }
-      window.location.href = url;
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Ошибка при создании платежа';
-      alert(msg);
-    } finally {
-      setDepositLoading(false);
-    }
-  }, [depositAmount, user]);
-
-  const handleVoucherRedeem = useCallback(async () => {
-    if (!user) return;
-    const code = voucherCode.trim();
-    if (!code) {
-      alert('Введите код промокода');
-      return;
-    }
-
-    try {
-      setVoucherLoading(true);
-      const res = await api.post<{ success: boolean; amount: number; new_balance: number }>('/shop/deposit/redeem', {
-        code,
-      });
-      if (res.data?.success) {
-        setVoucherCode('');
-        setBalance((prev) =>
-          prev
-            ? { ...prev, balance: Number(res.data.new_balance) || prev.balance }
-            : { balance: Number(res.data.new_balance) || 0, total_earned: 0, total_spent: 0 }
-        );
-        alert(`Промокод активирован, начислено ${formatCoinsWithLabel(res.data.amount)}`);
-      }
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Ошибка при активации промокода';
-      alert(msg);
-    } finally {
-      setVoucherLoading(false);
-    }
-  }, [user, voucherCode]);
 
   const handlePurchase = useCallback(
     async (item: ShopItem, purchaseQuantity: number) => {
@@ -325,15 +270,17 @@ function Items({ embedded = false }: ItemsProps) {
           quantity: qty,
         });
         if (response.data?.success) {
+          const nextBalance = Number(response.data.new_balance) || 0;
           setBalance((prev) =>
             prev
               ? {
                   ...prev,
-                  balance: Number(response.data.new_balance) || prev.balance,
+                  balance: nextBalance,
                   total_spent: prev.total_spent + totalPrice,
                 }
               : prev
           );
+          emitBalanceUpdated(nextBalance);
           setModalItem(null);
         }
       } catch (err: unknown) {
@@ -432,59 +379,14 @@ function Items({ embedded = false }: ItemsProps) {
         {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
         <p>
           {embedded
-            ? 'Выберите категорию, активируйте промокод и покупайте нужные предметы.'
-            : 'Активируйте промокод, выберите предмет и совершайте покупки, всё в одном разделе.'}
+            ? 'Выберите категорию и покупайте нужные предметы.'
+            : 'Выберите предмет и совершайте покупки. Баланс и промокод — в шапке сайта.'}
         </p>
       </div>
 
-      {user ? (
-        <section className={`wallet-panel ${hasWalletControls ? '' : 'wallet-panel--compact'}`.trim()}>
-          <div className="wallet-balance">
-            <div className="wallet-balance-title">Баланс</div>
-            <div className="wallet-balance-value">
-              <CoinAmount value={balance?.balance || 0} size="lg" decimals={0} />
-            </div>
-          </div>
-          {hasWalletControls ? (
-            <div className="wallet-controls">
-              {SHOW_DEPOSIT_ACTIONS ? (
-                <div className="wallet-row">
-                  <input
-                    type="number"
-                    min={10}
-                    max={50000}
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(Number(e.target.value) || 10)}
-                    className="wallet-input"
-                    placeholder="Сумма пополнения"
-                    disabled={depositLoading}
-                  />
-                  <button type="button" className="wallet-btn" onClick={handleDeposit} disabled={depositLoading}>
-                    {depositLoading ? 'Создание...' : 'Пополнить'}
-                  </button>
-                </div>
-              ) : null}
-              {SHOW_PROMOCODE_ACTIONS ? (
-                <div className="wallet-row">
-                  <input
-                    type="text"
-                    value={voucherCode}
-                    onChange={(e) => setVoucherCode(e.target.value)}
-                    className="wallet-input"
-                    placeholder="Промокод"
-                    disabled={voucherLoading}
-                  />
-                  <button type="button" className="wallet-btn" onClick={handleVoucherRedeem} disabled={voucherLoading}>
-                    {voucherLoading ? 'Проверка...' : 'Активировать'}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-      ) : (
-        <section className="wallet-guest-note">Войдите через Steam, чтобы пополнять баланс и покупать товары.</section>
-      )}
+      {!user ? (
+        <section className="wallet-guest-note">Войдите через Steam, чтобы покупать товары.</section>
+      ) : null}
 
       <div className="items-filters">
         {filters.map((filter) => (

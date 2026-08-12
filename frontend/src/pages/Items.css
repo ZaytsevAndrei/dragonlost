@@ -22,100 +22,6 @@
   color: var(--text-secondary);
 }
 
-.wallet-panel {
-  display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(220px, auto) 1fr;
-  width: min(100%, 700px);
-  margin: 0 auto var(--space-5);
-  padding: clamp(14px, 2vw, 20px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  transition: border-color 0.2s ease;
-}
-
-.wallet-panel:hover {
-  border-color: color-mix(in srgb, var(--brand-500) 40%, var(--border));
-}
-
-.wallet-panel--compact {
-  grid-template-columns: 1fr;
-  align-items: center;
-  max-width: 300px;
-}
-
-.wallet-balance {
-  max-width: 180px;
-}
-
-.wallet-balance-title {
-  color: var(--text-secondary);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.wallet-balance-value {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(26px, 3vw, 34px);
-  line-height: 1;
-  font-weight: 700;
-  color: var(--brand-400);
-}
-
-.wallet-controls {
-  display: grid;
-  gap: var(--space-2);
-}
-
-.wallet-row {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.wallet-input {
-  flex: 1;
-  min-width: 0;
-  background-color: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.wallet-input:focus {
-  outline: none;
-  border-color: var(--brand-500);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 25%, transparent);
-}
-
-.wallet-btn {
-  white-space: nowrap;
-  padding: 10px 14px;
-  border: 1px solid var(--brand-500);
-  border-radius: 10px;
-  background: var(--brand-500);
-  color: #fff;
-  font-weight: 700;
-  transition: background-color 0.18s ease, border-color 0.18s ease;
-}
-
-.wallet-btn:hover:not(:disabled) {
-  background: var(--brand-600);
-  border-color: var(--brand-600);
-}
-
-.wallet-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
 .wallet-guest-note {
   margin-bottom: var(--space-5);
   padding: var(--space-3) var(--space-4);
@@ -561,23 +467,6 @@
 }
 
 @media (max-width: 768px) {
-  .wallet-panel {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-  }
-
-  .wallet-panel--compact {
-    max-width: 100%;
-  }
-
-  .wallet-balance {
-    max-width: 100%;
-  }
-
-  .wallet-row {
-    flex-direction: column;
-  }
-
   .items-filters {
     gap: var(--space-2);
   }

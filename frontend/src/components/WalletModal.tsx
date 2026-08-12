@@ -1,0 +1,358 @@
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import CoinAmount from './CoinAmount';
+import CoinIcon from './CoinIcon';
+import { api } from '../services/api';
+import { formatCoinsWithLabel } from '../utils/currency';
+import './WalletModal.css';
+
+export type WalletModalTab = 'deposit' | 'promo';
+
+type PaymentMethodId = 'sbp' | 'card' | 'crypto' | 'skins';
+
+interface PaymentMethod {
+  id: PaymentMethodId;
+  title: string;
+  hint: string;
+  badge: string;
+  icon: string;
+}
+
+const PAYMENT_METHODS: PaymentMethod[] = [
+  { id: 'sbp', title: 'СБП', hint: 'От 20 ₽', badge: 'RUB', icon: '⚡' },
+  { id: 'card', title: 'Карты', hint: 'МИР / Visa', badge: 'RUB', icon: '💳' },
+  { id: 'crypto', title: 'Крипта', hint: 'USDT / BTC', badge: 'USD', icon: '◈' },
+  { id: 'skins', title: 'Скины', hint: 'Rust / CS2', badge: 'SKINS', icon: '🎮' },
+];
+
+const MIN_AMOUNT = 20;
+const MAX_AMOUNT = 50000;
+const COIN_TO_RUB = 1;
+
+interface WalletModalProps {
+  open: boolean;
+  initialTab?: WalletModalTab;
+  balance: number;
+  onClose: () => void;
+  onBalanceChange: (balance: number) => void;
+}
+
+function WalletModal({
+  open,
+  initialTab = 'deposit',
+  balance,
+  onClose,
+  onBalanceChange,
+}: WalletModalProps) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<WalletModalTab>(initialTab);
+  const [method, setMethod] = useState<PaymentMethodId>('sbp');
+  const [coins, setCoins] = useState(MIN_AMOUNT);
+  const [rub, setRub] = useState(MIN_AMOUNT * COIN_TO_RUB);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoMessage, setPromoMessage] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState<'where' | 'types' | null>(null);
+  const [depositNote, setDepositNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setTab(initialTab);
+    setPromoMessage(null);
+    setPromoError(null);
+    setDepositNote(null);
+    setHelpOpen(null);
+  }, [open, initialTab]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (open) dialogRef.current?.focus();
+  }, [open]);
+
+  const syncFromCoins = useCallback((value: number) => {
+    const next = Math.min(MAX_AMOUNT, Math.max(0, Math.floor(value) || 0));
+    setCoins(next);
+    setRub(Math.round(next * COIN_TO_RUB));
+  }, []);
+
+  const syncFromRub = useCallback((value: number) => {
+    const nextRub = Math.min(MAX_AMOUNT * COIN_TO_RUB, Math.max(0, Math.floor(value) || 0));
+    setRub(nextRub);
+    setCoins(Math.round(nextRub / COIN_TO_RUB));
+  }, []);
+
+  const handleDepositClick = () => {
+    if (coins < MIN_AMOUNT) {
+      setDepositNote(`Минимальная сумма — ${MIN_AMOUNT} монет`);
+      return;
+    }
+    setDepositNote('Пополнение скоро будет доступно. Пока можно активировать промокод.');
+  };
+
+  const handlePromoApply = async () => {
+    const code = promoCode.trim();
+    if (!code) {
+      setPromoError('Введите код промокода');
+      setPromoMessage(null);
+      return;
+    }
+
+    try {
+      setPromoLoading(true);
+      setPromoError(null);
+      setPromoMessage(null);
+      const res = await api.post<{ success: boolean; amount: number; new_balance: number }>(
+        '/shop/deposit/redeem',
+        { code }
+      );
+      if (res.data?.success) {
+        setPromoCode('');
+        onBalanceChange(Number(res.data.new_balance) || balance);
+        setPromoMessage(`Начислено ${formatCoinsWithLabel(res.data.amount)}`);
+      }
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Не удалось активировать промокод';
+      setPromoError(msg);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  if (!open) return null;
+
+  const credited = coins;
+  const bonus = 0;
+
+  return (
+    <div className="wallet-modal-backdrop" onClick={onClose} role="presentation">
+      <div
+        className="wallet-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        ref={dialogRef}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="wallet-modal__top">
+          <div className="wallet-modal__tabs" role="tablist" aria-label="Кошелёк">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'deposit'}
+              className={`wallet-modal__tab ${tab === 'deposit' ? 'wallet-modal__tab--active' : ''}`}
+              onClick={() => setTab('deposit')}
+            >
+              Пополнение
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'promo'}
+              className={`wallet-modal__tab ${tab === 'promo' ? 'wallet-modal__tab--active' : ''}`}
+              onClick={() => setTab('promo')}
+            >
+              Промокод
+            </button>
+          </div>
+          <button type="button" className="wallet-modal__close" onClick={onClose} aria-label="Закрыть">
+            ×
+          </button>
+        </div>
+
+        <h2 id={titleId} className="visually-hidden">
+          {tab === 'deposit' ? 'Пополнение баланса' : 'Активация промокода'}
+        </h2>
+
+        {tab === 'deposit' ? (
+          <div className="wallet-modal__body">
+            <div className="wallet-modal__methods" role="listbox" aria-label="Способ оплаты">
+              {PAYMENT_METHODS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="option"
+                  aria-selected={method === item.id}
+                  className={`wallet-pay-card ${method === item.id ? 'wallet-pay-card--active' : ''}`}
+                  onClick={() => setMethod(item.id)}
+                >
+                  <span className="wallet-pay-card__badge">{item.badge}</span>
+                  <span className="wallet-pay-card__icon" aria-hidden>
+                    {item.icon}
+                  </span>
+                  <span className="wallet-pay-card__title">{item.title}</span>
+                  <span className="wallet-pay-card__hint">{item.hint}</span>
+                </button>
+              ))}
+            </div>
+
+            <label className="wallet-modal__label" htmlFor="wallet-amount-coins">
+              Введите сумму
+            </label>
+            <div className="wallet-amount-row">
+              <div className="wallet-amount-field">
+                <input
+                  id="wallet-amount-coins"
+                  type="number"
+                  min={MIN_AMOUNT}
+                  max={MAX_AMOUNT}
+                  value={coins}
+                  onChange={(e) => syncFromCoins(Number(e.target.value))}
+                />
+                <CoinIcon size="sm" title="" />
+              </div>
+              <span className="wallet-amount-swap" aria-hidden>
+                ⇄
+              </span>
+              <div className="wallet-amount-field">
+                <input
+                  type="number"
+                  min={MIN_AMOUNT}
+                  max={MAX_AMOUNT}
+                  value={rub}
+                  onChange={(e) => syncFromRub(Number(e.target.value))}
+                  aria-label="Сумма в рублях"
+                />
+                <span className="wallet-amount-currency">RUB</span>
+              </div>
+            </div>
+
+            <div className="wallet-modal__summary">
+              <div className="wallet-modal__summary-row">
+                <span className="wallet-modal__summary-label wallet-modal__summary-label--accent">
+                  Бонус к депозиту
+                </span>
+                <CoinAmount value={bonus} size="sm" signed decimals={0} />
+              </div>
+              <div className="wallet-modal__summary-row">
+                <span className="wallet-modal__summary-label">Будет зачислено</span>
+                <CoinAmount value={credited} size="sm" decimals={0} />
+              </div>
+            </div>
+
+            {depositNote ? <p className="wallet-modal__note">{depositNote}</p> : null}
+
+            <div className="wallet-modal__footer">
+              <button
+                type="button"
+                className="wallet-modal__gift"
+                onClick={() => setTab('promo')}
+                aria-label="Перейти к промокоду"
+                title="Промокод"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8" />
+                  <path d="M12 22V7" />
+                  <path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7z" />
+                  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                  <path d="M3 12h18" />
+                </svg>
+              </button>
+              <button type="button" className="wallet-modal__primary" onClick={handleDepositClick}>
+                Перейти к оплате →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="wallet-modal__body">
+            <label className="wallet-modal__label" htmlFor="wallet-promo-code">
+              Введите промокод
+            </label>
+            <input
+              id="wallet-promo-code"
+              className="wallet-promo-input"
+              type="text"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              placeholder="AAA00FFF444"
+              disabled={promoLoading}
+              autoComplete="off"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handlePromoApply();
+              }}
+            />
+
+            <div className="wallet-help-list">
+              <button
+                type="button"
+                className={`wallet-help-item ${helpOpen === 'where' ? 'wallet-help-item--open' : ''}`}
+                onClick={() => setHelpOpen((v) => (v === 'where' ? null : 'where'))}
+                aria-expanded={helpOpen === 'where'}
+              >
+                <span className="wallet-help-item__row">
+                  <span className="wallet-help-item__icon" aria-hidden>
+                    ⌕
+                  </span>
+                  <span>Где найти промокод?</span>
+                  <span className="wallet-help-item__chevron" aria-hidden>
+                    ▾
+                  </span>
+                </span>
+                {helpOpen === 'where' ? (
+                  <span className="wallet-help-item__body">
+                    Промокоды публикуются в Discord, Telegram и на главной странице сайта. Также их выдают на
+                    ивентах и в ежедневных наградах.
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                className={`wallet-help-item ${helpOpen === 'types' ? 'wallet-help-item--open' : ''}`}
+                onClick={() => setHelpOpen((v) => (v === 'types' ? null : 'types'))}
+                aria-expanded={helpOpen === 'types'}
+              >
+                <span className="wallet-help-item__row">
+                  <span className="wallet-help-item__icon" aria-hidden>
+                    💬
+                  </span>
+                  <span>Типы промокодов</span>
+                  <span className="wallet-help-item__chevron" aria-hidden>
+                    ▾
+                  </span>
+                </span>
+                {helpOpen === 'types' ? (
+                  <span className="wallet-help-item__body">
+                    Одноразовые — начисляют монеты на баланс один раз. Многоразовые — можно активировать до
+                    исчерпания лимита использований.
+                  </span>
+                ) : null}
+              </button>
+            </div>
+
+            {promoError ? <p className="wallet-modal__note wallet-modal__note--error">{promoError}</p> : null}
+            {promoMessage ? (
+              <p className="wallet-modal__note wallet-modal__note--ok">{promoMessage}</p>
+            ) : null}
+
+            <button
+              type="button"
+              className="wallet-modal__primary wallet-modal__primary--full"
+              onClick={() => void handlePromoApply()}
+              disabled={promoLoading}
+            >
+              {promoLoading ? 'Проверка...' : 'Применить'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default WalletModal;
