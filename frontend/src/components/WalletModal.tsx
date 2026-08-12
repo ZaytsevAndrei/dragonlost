@@ -7,7 +7,7 @@ import './WalletModal.css';
 
 export type WalletModalTab = 'deposit' | 'promo';
 
-type PaymentMethodId = 'sbp' | 'card' | 'crypto' | 'skins';
+type PaymentMethodId = 'sbp' | 'card';
 
 interface PaymentMethod {
   id: PaymentMethodId;
@@ -18,14 +18,13 @@ interface PaymentMethod {
 }
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'sbp', title: 'СБП', hint: 'От 20 ₽', badge: 'RUB', icon: '⚡' },
+  { id: 'sbp', title: 'СБП', hint: 'От 30 ₽', badge: 'RUB', icon: '⚡' },
   { id: 'card', title: 'Карты', hint: 'МИР / Visa', badge: 'RUB', icon: '💳' },
-  { id: 'crypto', title: 'Крипта', hint: 'USDT / BTC', badge: 'USD', icon: '◈' },
-  { id: 'skins', title: 'Скины', hint: 'Rust / CS2', badge: 'SKINS', icon: '🎮' },
 ];
 
-const MIN_AMOUNT = 20;
+const MIN_AMOUNT = 30;
 const MAX_AMOUNT = 50000;
+const DEFAULT_AMOUNT = 50;
 const COIN_TO_RUB = 1;
 
 interface WalletModalProps {
@@ -47,8 +46,8 @@ function WalletModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<WalletModalTab>(initialTab);
   const [method, setMethod] = useState<PaymentMethodId>('sbp');
-  const [coins, setCoins] = useState(MIN_AMOUNT);
-  const [rub, setRub] = useState(MIN_AMOUNT * COIN_TO_RUB);
+  const [coins, setCoins] = useState(DEFAULT_AMOUNT);
+  const [rub, setRub] = useState(DEFAULT_AMOUNT * COIN_TO_RUB);
   const [promoCode, setPromoCode] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoMessage, setPromoMessage] = useState<string | null>(null);
@@ -280,7 +279,7 @@ function WalletModal({
               type="text"
               value={promoCode}
               onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              placeholder="AAA00FFF444"
+              placeholder="X7K2M9QPL4R"
               disabled={promoLoading}
               autoComplete="off"
               onKeyDown={(e) => {
