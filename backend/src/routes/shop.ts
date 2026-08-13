@@ -3,19 +3,26 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
 import { isAuthenticated } from '../middleware/auth';
 import { paymentRateLimiter, sensitiveRateLimiter } from '../middleware/rateLimiter';
-import { createPayment } from '../services/robokassa';
+import { createPayment, getPaymentMethods } from '../services/robokassa';
 import { redeemVoucherInTransaction } from '../services/voucherRedeem';
 
 const router = Router();
 const MIN_DEPOSIT = 30;
 const MAX_DEPOSIT = 50000;
-
-/** Соответствие UI → IncCurrLabel Robokassa (XML Alias) */
-const METHOD_TO_CURR: Record<string, string> = {
-  sbp: 'SBP',
-  card: 'BankCard',
-};
 const MAX_PURCHASE_QUANTITY = 100;
+
+/** UI-подсказки для известных Alias Robokassa */
+const METHOD_UI: Record<string, { title: string; hint: string; icon: string; badge: string }> = {
+  SBP: { title: 'СБП', hint: 'Мгновенно', icon: '⚡', badge: 'RUB' },
+  BankCard: { title: 'Карта', hint: 'МИР / Visa / MC', icon: '💳', badge: 'RUB' },
+  Card120Days: { title: '120 дней', hint: 'Рассрочка 0%', icon: '📅', badge: '0%' },
+  BankCardHalva: { title: 'Халва', hint: 'Карта Халва', icon: '🧡', badge: 'RUB' },
+  SberPay: { title: 'SberPay', hint: 'Оплата в Сбере', icon: '🟢', badge: 'RUB' },
+  TinkoffPay: { title: 'T-Pay', hint: 'Тинькофф', icon: '🟨', badge: 'RUB' },
+  YandexPay: { title: 'ЯPay', hint: 'Яндекс Пэй', icon: '🔴', badge: 'RUB' },
+  YandexPaySplit: { title: 'Сплит', hint: 'Яндекс Сплит', icon: '🔴', badge: 'RUB' },
+  AlfaPay: { title: 'AlfaPay', hint: 'Альфа-Банк', icon: '❤️', badge: 'RUB' },
+};
 
 interface ShopItemRow extends RowDataPacket {
   id: number;
@@ -87,15 +94,68 @@ router.get('/balance', isAuthenticated, async (req, res) => {
   }
 });
 
+/** Способы оплаты, доступные магазину в Robokassa (GetCurrencies) */
+router.get('/payment-methods', async (_req, res) => {
+  try {
+    const methods = await getPaymentMethods();
+    return res.json({
+      methods: [
+        {
+          id: 'auto',
+          alias: null,
+          title: 'Все способы',
+          hint: 'Выбор на стороне Robokassa',
+          icon: '◇',
+          badge: 'ALL',
+          min_value: null,
+          max_value: null,
+        },
+        ...methods.map((m) => {
+          const ui = METHOD_UI[m.alias];
+          return {
+            id: m.alias,
+            alias: m.alias,
+            title: ui?.title || m.name,
+            hint: ui?.hint || m.groupDescription || m.name,
+            icon: ui?.icon || '₽',
+            badge: ui?.badge || 'RUB',
+            min_value: m.minValue,
+            max_value: m.maxValue,
+          };
+        }),
+      ],
+    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error fetching Robokassa payment methods:', message);
+    return res.status(500).json({ error: 'Не удалось загрузить способы оплаты' });
+  }
+});
+
 router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, res) => {
   try {
     const steamid = req.user!.steamid;
     const amount = Number.parseFloat(req.body.amount);
-    const methodRaw = String(req.body.method || '').toLowerCase();
-    const incCurrLabel = METHOD_TO_CURR[methodRaw];
+    const methodRaw = String(req.body.method || 'auto').trim();
 
     if (Number.isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
       return res.status(400).json({ error: `Сумма должна быть от ${MIN_DEPOSIT} до ${MAX_DEPOSIT}` });
+    }
+
+    let incCurrLabel: string | undefined;
+    if (methodRaw && methodRaw.toLowerCase() !== 'auto') {
+      const available = await getPaymentMethods();
+      const matched = available.find((m) => m.alias.toLowerCase() === methodRaw.toLowerCase());
+      if (!matched) {
+        return res.status(400).json({ error: 'Недоступный способ оплаты' });
+      }
+      if (matched.minValue != null && amount < matched.minValue) {
+        return res.status(400).json({ error: `Для этого способа минимум ${matched.minValue} ₽` });
+      }
+      if (matched.maxValue != null && amount > matched.maxValue) {
+        return res.status(400).json({ error: `Для этого способа максимум ${matched.maxValue} ₽` });
+      }
+      incCurrLabel = matched.alias;
     }
 
     const connection = await webPool.getConnection();
@@ -120,7 +180,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         outSum: payment.outSum,
         invId: payment.invId,
         isTest: payment.isTest,
-        method: methodRaw || null,
+        method: methodRaw || 'auto',
         incCurrLabel: incCurrLabel || null,
       };
 

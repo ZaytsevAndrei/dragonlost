@@ -8,19 +8,48 @@ import './WalletModal.css';
 
 export type WalletModalTab = 'deposit' | 'promo';
 
-type PaymentMethodId = 'sbp' | 'card';
-
 interface PaymentMethod {
-  id: PaymentMethodId;
+  id: string;
+  alias: string | null;
   title: string;
   hint: string;
   badge: string;
   icon: string;
+  min_value: number | null;
+  max_value: number | null;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'sbp', title: 'СБП', hint: 'От 30 ₽', badge: 'RUB', icon: '⚡' },
-  { id: 'card', title: 'Карты', hint: 'МИР / Visa', badge: 'RUB', icon: '💳' },
+const FALLBACK_METHODS: PaymentMethod[] = [
+  {
+    id: 'auto',
+    alias: null,
+    title: 'Все способы',
+    hint: 'Выбор на стороне Robokassa',
+    badge: 'ALL',
+    icon: '◇',
+    min_value: null,
+    max_value: null,
+  },
+  {
+    id: 'SBP',
+    alias: 'SBP',
+    title: 'СБП',
+    hint: 'Мгновенно',
+    badge: 'RUB',
+    icon: '⚡',
+    min_value: null,
+    max_value: 1000000,
+  },
+  {
+    id: 'BankCard',
+    alias: 'BankCard',
+    title: 'Карта',
+    hint: 'МИР / Visa / MC',
+    badge: 'RUB',
+    icon: '💳',
+    min_value: null,
+    max_value: null,
+  },
 ];
 
 const MIN_AMOUNT = 30;
@@ -50,7 +79,8 @@ function WalletModal({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<WalletModalTab>(initialTab);
-  const [method, setMethod] = useState<PaymentMethodId>('sbp');
+  const [methods, setMethods] = useState<PaymentMethod[]>(FALLBACK_METHODS);
+  const [method, setMethod] = useState<string>('SBP');
   const [coins, setCoins] = useState(DEFAULT_AMOUNT);
   const [rub, setRub] = useState(DEFAULT_AMOUNT * COIN_TO_RUB);
   const [promoCode, setPromoCode] = useState('');
@@ -72,6 +102,25 @@ function WalletModal({
     setDepositLoading(false);
     setHelpOpen(null);
   }, [open, initialTab, initialDepositNotice]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await api.get<{ methods: PaymentMethod[] }>('/shop/payment-methods');
+        const next = res.data?.methods;
+        if (cancelled || !Array.isArray(next) || next.length === 0) return;
+        setMethods(next);
+        setMethod((prev) => (next.some((m) => m.id === prev) ? prev : next[0].id));
+      } catch {
+        if (!cancelled) setMethods(FALLBACK_METHODS);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -221,7 +270,7 @@ function WalletModal({
         {tab === 'deposit' ? (
           <div className="wallet-modal__body">
             <div className="wallet-modal__methods" role="listbox" aria-label="Способ оплаты">
-              {PAYMENT_METHODS.map((item) => (
+              {methods.map((item) => (
                 <button
                   key={item.id}
                   type="button"
