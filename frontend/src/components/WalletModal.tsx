@@ -224,7 +224,6 @@ function WalletModal({
   if (!open) return null;
 
   const credited = coins;
-  const bonus = 0;
 
   return (
     <div className="wallet-modal-backdrop" onClick={onClose} role="presentation">
@@ -321,12 +320,6 @@ function WalletModal({
             </div>
 
             <div className="wallet-modal__summary">
-              <div className="wallet-modal__summary-row">
-                <span className="wallet-modal__summary-label wallet-modal__summary-label--accent">
-                  Бонус к депозиту
-                </span>
-                <CoinAmount value={bonus} size="sm" signed decimals={0} />
-              </div>
               <div className="wallet-modal__summary-row">
                 <span className="wallet-modal__summary-label">Будет зачислено</span>
                 <CoinAmount value={credited} size="sm" decimals={0} />

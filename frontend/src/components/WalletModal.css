@@ -216,11 +216,6 @@
   color: var(--text-secondary);
 }
 
-.wallet-modal__summary-label--accent {
-  color: color-mix(in srgb, #4ea1ff 80%, var(--text-primary));
-  border-bottom: 1px dotted color-mix(in srgb, #4ea1ff 55%, transparent);
-}
-
 .wallet-modal__footer {
   display: flex;
   align-items: center;
