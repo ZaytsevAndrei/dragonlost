@@ -50,6 +50,16 @@ const FALLBACK_METHODS: PaymentMethod[] = [
     min_value: null,
     max_value: null,
   },
+  {
+    id: 'BankCardHalva',
+    alias: 'BankCardHalva',
+    title: 'Халва',
+    hint: 'Карта Халва',
+    badge: 'RUB',
+    icon: '🧡',
+    min_value: null,
+    max_value: null,
+  },
 ];
 
 const MIN_AMOUNT = 30;

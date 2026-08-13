@@ -11,17 +11,14 @@ const MIN_DEPOSIT = 30;
 const MAX_DEPOSIT = 50000;
 const MAX_PURCHASE_QUANTITY = 100;
 
-/** UI-подсказки для известных Alias Robokassa */
-const METHOD_UI: Record<string, { title: string; hint: string; icon: string; badge: string }> = {
+/** Разрешённые Alias Robokassa в кошельке */
+const ALLOWED_PAYMENT_ALIASES = ['SBP', 'BankCard', 'BankCardHalva'] as const;
+
+/** UI-подсказки для разрешённых Alias Robokassa */
+const METHOD_UI: Record<(typeof ALLOWED_PAYMENT_ALIASES)[number], { title: string; hint: string; icon: string; badge: string }> = {
   SBP: { title: 'СБП', hint: 'Мгновенно', icon: '⚡', badge: 'RUB' },
   BankCard: { title: 'Карта', hint: 'МИР / Visa / MC', icon: '💳', badge: 'RUB' },
-  Card120Days: { title: '120 дней', hint: 'Рассрочка 0%', icon: '📅', badge: '0%' },
   BankCardHalva: { title: 'Халва', hint: 'Карта Халва', icon: '🧡', badge: 'RUB' },
-  SberPay: { title: 'SberPay', hint: 'Оплата в Сбере', icon: '🟢', badge: 'RUB' },
-  TinkoffPay: { title: 'T-Pay', hint: 'Тинькофф', icon: '🟨', badge: 'RUB' },
-  YandexPay: { title: 'ЯPay', hint: 'Яндекс Пэй', icon: '🔴', badge: 'RUB' },
-  YandexPaySplit: { title: 'Сплит', hint: 'Яндекс Сплит', icon: '🔴', badge: 'RUB' },
-  AlfaPay: { title: 'AlfaPay', hint: 'Альфа-Банк', icon: '❤️', badge: 'RUB' },
 };
 
 interface ShopItemRow extends RowDataPacket {
@@ -98,6 +95,8 @@ router.get('/balance', isAuthenticated, async (req, res) => {
 router.get('/payment-methods', async (_req, res) => {
   try {
     const methods = await getPaymentMethods();
+    const byAlias = new Map(methods.map((m) => [m.alias, m]));
+
     return res.json({
       methods: [
         {
@@ -110,18 +109,22 @@ router.get('/payment-methods', async (_req, res) => {
           min_value: null,
           max_value: null,
         },
-        ...methods.map((m) => {
-          const ui = METHOD_UI[m.alias];
-          return {
-            id: m.alias,
-            alias: m.alias,
-            title: ui?.title || m.name,
-            hint: ui?.hint || m.groupDescription || m.name,
-            icon: ui?.icon || '₽',
-            badge: ui?.badge || 'RUB',
-            min_value: m.minValue,
-            max_value: m.maxValue,
-          };
+        ...ALLOWED_PAYMENT_ALIASES.flatMap((alias) => {
+          const m = byAlias.get(alias);
+          if (!m) return [];
+          const ui = METHOD_UI[alias];
+          return [
+            {
+              id: alias,
+              alias,
+              title: ui.title,
+              hint: ui.hint,
+              icon: ui.icon,
+              badge: ui.badge,
+              min_value: m.minValue,
+              max_value: m.maxValue,
+            },
+          ];
         }),
       ],
     });
@@ -143,9 +146,18 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
     }
 
     let incCurrLabel: string | undefined;
-    if (methodRaw && methodRaw.toLowerCase() !== 'auto') {
+    let methodLabel = 'auto';
+
+    if (methodRaw.toLowerCase() !== 'auto') {
+      const allowedAlias = ALLOWED_PAYMENT_ALIASES.find(
+        (alias) => alias.toLowerCase() === methodRaw.toLowerCase()
+      );
+      if (!allowedAlias) {
+        return res.status(400).json({ error: 'Недоступный способ оплаты' });
+      }
+
       const available = await getPaymentMethods();
-      const matched = available.find((m) => m.alias.toLowerCase() === methodRaw.toLowerCase());
+      const matched = available.find((m) => m.alias === allowedAlias);
       if (!matched) {
         return res.status(400).json({ error: 'Недоступный способ оплаты' });
       }
@@ -156,6 +168,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         return res.status(400).json({ error: `Для этого способа максимум ${matched.maxValue} ₽` });
       }
       incCurrLabel = matched.alias;
+      methodLabel = matched.alias;
     }
 
     const connection = await webPool.getConnection();
@@ -180,7 +193,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         outSum: payment.outSum,
         invId: payment.invId,
         isTest: payment.isTest,
-        method: methodRaw || 'auto',
+        method: methodLabel,
         incCurrLabel: incCurrLabel || null,
       };
 
