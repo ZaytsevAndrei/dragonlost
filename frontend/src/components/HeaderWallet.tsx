@@ -3,10 +3,30 @@ import CoinAmount from './CoinAmount';
 import WalletModal, { type WalletModalTab } from './WalletModal';
 import { api } from '../services/api';
 import { emitBalanceUpdated, subscribeBalanceUpdated } from '../utils/balanceEvents';
+import {
+  PAYMENT_RETURN_EVENT,
+  PAYMENT_RETURN_KEY,
+  type PaymentReturnStatus,
+} from '../pages/PaymentReturnRedirect';
 import './HeaderWallet.css';
 
 interface HeaderWalletProps {
   enabled: boolean;
+}
+
+type DepositNotice = { text: string; tone: 'ok' | 'error' };
+
+function readPaymentReturn(): PaymentReturnStatus | null {
+  try {
+    const raw = sessionStorage.getItem(PAYMENT_RETURN_KEY);
+    if (raw === 'success' || raw === 'fail') {
+      sessionStorage.removeItem(PAYMENT_RETURN_KEY);
+      return raw;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 function HeaderWallet({ enabled }: HeaderWalletProps) {
@@ -14,6 +34,8 @@ function HeaderWallet({ enabled }: HeaderWalletProps) {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<WalletModalTab>('deposit');
+  const [depositNotice, setDepositNotice] = useState<DepositNotice | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<PaymentReturnStatus | null>(() => readPaymentReturn());
 
   const fetchBalance = useCallback(async () => {
     if (!enabled) {
@@ -40,7 +62,45 @@ function HeaderWallet({ enabled }: HeaderWalletProps) {
     return subscribeBalanceUpdated(setBalance);
   }, [enabled]);
 
+  useEffect(() => {
+    const onReturn = (event: Event) => {
+      const status = (event as CustomEvent<PaymentReturnStatus>).detail;
+      if (status === 'success' || status === 'fail') {
+        try {
+          sessionStorage.removeItem(PAYMENT_RETURN_KEY);
+        } catch {
+          /* ignore */
+        }
+        setPendingPayment(status);
+      }
+    };
+    window.addEventListener(PAYMENT_RETURN_EVENT, onReturn);
+    return () => window.removeEventListener(PAYMENT_RETURN_EVENT, onReturn);
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !pendingPayment) return;
+
+    if (pendingPayment === 'success') {
+      setDepositNotice({
+        text: 'Оплата принята. Баланс обновится после подтверждения платежа.',
+        tone: 'ok',
+      });
+      void fetchBalance();
+    } else {
+      setDepositNotice({
+        text: 'Оплата не завершена. Можно попробовать ещё раз.',
+        tone: 'error',
+      });
+    }
+
+    setInitialTab('deposit');
+    setModalOpen(true);
+    setPendingPayment(null);
+  }, [enabled, pendingPayment, fetchBalance]);
+
   const openModal = (tab: WalletModalTab) => {
+    setDepositNotice(null);
     setInitialTab(tab);
     setModalOpen(true);
   };
@@ -86,8 +146,12 @@ function HeaderWallet({ enabled }: HeaderWalletProps) {
         open={modalOpen}
         initialTab={initialTab}
         balance={balance}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setDepositNotice(null);
+        }}
         onBalanceChange={handleBalanceChange}
+        initialDepositNotice={depositNotice}
       />
     </>
   );

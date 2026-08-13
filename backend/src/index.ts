@@ -75,6 +75,7 @@ import adminVouchersRoutes from './routes/adminVouchers';
 import telegramRoutes from './routes/telegram';
 import botApiRoutes from './routes/botApi';
 import conveyorFiltersRoutes from './routes/conveyorFilters';
+import webhooksRoutes from './routes/webhooks';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
@@ -165,6 +166,9 @@ app.get('/api/csrf-token', (req, res) => {
 
 // Bot API — без CSRF, авторизация через X-Bot-Api-Key
 app.use('/api/bot', botApiRoutes);
+
+// Robokassa ResultURL — без CSRF (серверный callback платёжки)
+app.use('/api/webhooks', webhooksRoutes);
 
 // CSRF protection — проверяем токен для POST/PUT/DELETE/PATCH
 app.use('/api/', csrfProtection);

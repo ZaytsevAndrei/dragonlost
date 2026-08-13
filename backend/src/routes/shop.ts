@@ -1,15 +1,20 @@
-import { randomUUID } from 'crypto';
 import { Router } from 'express';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
 import { isAuthenticated } from '../middleware/auth';
 import { paymentRateLimiter, sensitiveRateLimiter } from '../middleware/rateLimiter';
-import { createPayment } from '../services/yookassa';
+import { createPayment } from '../services/robokassa';
 import { redeemVoucherInTransaction } from '../services/voucherRedeem';
 
 const router = Router();
-const MIN_DEPOSIT = 10;
+const MIN_DEPOSIT = 30;
 const MAX_DEPOSIT = 50000;
+
+/** Соответствие UI → IncCurrLabel Robokassa (XML Alias) */
+const METHOD_TO_CURR: Record<string, string> = {
+  sbp: 'SBP',
+  card: 'BankCard',
+};
 const MAX_PURCHASE_QUANTITY = 100;
 
 interface ShopItemRow extends RowDataPacket {
@@ -86,13 +91,12 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
   try {
     const steamid = req.user!.steamid;
     const amount = Number.parseFloat(req.body.amount);
+    const methodRaw = String(req.body.method || '').toLowerCase();
+    const incCurrLabel = METHOD_TO_CURR[methodRaw];
 
     if (Number.isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
       return res.status(400).json({ error: `Сумма должна быть от ${MIN_DEPOSIT} до ${MAX_DEPOSIT}` });
     }
-
-    const baseUrl = (process.env.BASE_URL || process.env.CORS_ORIGIN || 'http://localhost:3000').replace(/\/$/, '');
-    const returnUrl = `${baseUrl}/shop?payment=success`;
 
     const connection = await webPool.getConnection();
     try {
@@ -102,32 +106,31 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
       );
       const orderId = insertResult.insertId;
 
-      const payment = await createPayment({
+      const payment = createPayment({
         amount,
-        returnUrl,
+        invId: orderId,
         description: `Пополнение баланса DragonLost #${orderId}`,
-        idempotenceKey: randomUUID(),
-        metadata: { order_id: String(orderId) },
+        incCurrLabel,
+        culture: 'ru',
+        shp: { steamid },
       });
 
       const safePayload = {
-        id: payment.id,
-        status: payment.status,
-        amount: payment.amount,
+        provider: 'robokassa',
+        outSum: payment.outSum,
+        invId: payment.invId,
+        isTest: payment.isTest,
+        method: methodRaw || null,
+        incCurrLabel: incCurrLabel || null,
       };
 
       await connection.query('UPDATE payment_orders SET external_id = ?, payload = ? WHERE id = ?', [
-        payment.id,
+        String(orderId),
         JSON.stringify(safePayload),
         orderId,
       ]);
 
-      const redirectUrl = payment.confirmation?.confirmation_url || null;
-      if (!redirectUrl) {
-        return res.status(500).json({ error: 'Платёжная система не вернула ссылку на оплату' });
-      }
-
-      return res.json({ redirect_url: redirectUrl, order_id: orderId });
+      return res.json({ redirect_url: payment.redirectUrl, order_id: orderId });
     } finally {
       connection.release();
     }

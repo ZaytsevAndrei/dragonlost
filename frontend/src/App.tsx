@@ -19,6 +19,7 @@ import FiltersPage from './pages/conveyorfilters/FiltersPage';
 import MyFiltersPage from './pages/conveyorfilters/MyFiltersPage';
 import FilterEditorPage from './pages/conveyorfilters/FilterEditorPage';
 import AboutPage from './pages/conveyorfilters/AboutPage';
+import PaymentReturnRedirect from './pages/PaymentReturnRedirect';
 import { useAuthStore } from './store/authStore';
 import { getLastPage, clearLastPage } from './utils/safeLocalStorage';
 
@@ -69,6 +70,8 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<HomeWithRedirect />} />
+            <Route path="/payment/success" element={<PaymentReturnRedirect status="success" />} />
+            <Route path="/payment/fail" element={<PaymentReturnRedirect status="fail" />} />
             <Route path="/stats" element={<Statistics />} />
             <Route path="/vote" element={<Voting />} />
             <Route path="/conveyorfilters" element={<ConveyorFiltersLayout />}>

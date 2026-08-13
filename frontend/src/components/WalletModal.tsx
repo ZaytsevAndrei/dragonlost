@@ -33,6 +33,8 @@ interface WalletModalProps {
   balance: number;
   onClose: () => void;
   onBalanceChange: (balance: number) => void;
+  /** Сообщение при открытии (возврат с SuccessURL / FailURL) */
+  initialDepositNotice?: { text: string; tone: 'ok' | 'error' } | null;
 }
 
 function WalletModal({
@@ -41,6 +43,7 @@ function WalletModal({
   balance,
   onClose,
   onBalanceChange,
+  initialDepositNotice = null,
 }: WalletModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -54,15 +57,19 @@ function WalletModal({
   const [promoError, setPromoError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState<'where' | 'types' | null>(null);
   const [depositNote, setDepositNote] = useState<string | null>(null);
+  const [depositNoteTone, setDepositNoteTone] = useState<'ok' | 'error' | null>(null);
+  const [depositLoading, setDepositLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setTab(initialTab);
     setPromoMessage(null);
     setPromoError(null);
-    setDepositNote(null);
+    setDepositNote(initialDepositNotice?.text ?? null);
+    setDepositNoteTone(initialDepositNotice?.tone ?? null);
+    setDepositLoading(false);
     setHelpOpen(null);
-  }, [open, initialTab]);
+  }, [open, initialTab, initialDepositNotice]);
 
   useEffect(() => {
     if (!open) return;
@@ -94,12 +101,42 @@ function WalletModal({
     setCoins(Math.round(nextRub / COIN_TO_RUB));
   }, []);
 
-  const handleDepositClick = () => {
+  const handleDepositClick = async () => {
     if (coins < MIN_AMOUNT) {
       setDepositNote(`Минимальная сумма — ${MIN_AMOUNT} монет`);
+      setDepositNoteTone('error');
       return;
     }
-    setDepositNote('Пополнение скоро будет доступно. Пока можно активировать промокод.');
+    if (coins > MAX_AMOUNT) {
+      setDepositNote(`Максимальная сумма — ${MAX_AMOUNT} монет`);
+      setDepositNoteTone('error');
+      return;
+    }
+
+    try {
+      setDepositLoading(true);
+      setDepositNote(null);
+      setDepositNoteTone(null);
+      const res = await api.post<{ redirect_url: string; order_id: number }>('/shop/deposit/create', {
+        amount: coins,
+        method,
+      });
+      const redirectUrl = res.data?.redirect_url;
+      if (!redirectUrl) {
+        setDepositNote('Не удалось получить ссылку на оплату');
+        setDepositNoteTone('error');
+        return;
+      }
+      window.location.assign(redirectUrl);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Ошибка при создании платежа. Попробуйте позже.';
+      setDepositNote(msg);
+      setDepositNoteTone('error');
+    } finally {
+      setDepositLoading(false);
+    }
   };
 
   const handlePromoApply = async () => {
@@ -245,7 +282,19 @@ function WalletModal({
               </div>
             </div>
 
-            {depositNote ? <p className="wallet-modal__note">{depositNote}</p> : null}
+            {depositNote ? (
+              <p
+                className={`wallet-modal__note${
+                  depositNoteTone === 'ok'
+                    ? ' wallet-modal__note--ok'
+                    : depositNoteTone === 'error'
+                      ? ' wallet-modal__note--error'
+                      : ''
+                }`}
+              >
+                {depositNote}
+              </p>
+            ) : null}
 
             <div className="wallet-modal__footer">
               <button
@@ -263,8 +312,13 @@ function WalletModal({
                   <path d="M3 12h18" />
                 </svg>
               </button>
-              <button type="button" className="wallet-modal__primary" onClick={handleDepositClick}>
-                Перейти к оплате →
+              <button
+                type="button"
+                className="wallet-modal__primary"
+                onClick={() => void handleDepositClick()}
+                disabled={depositLoading}
+              >
+                {depositLoading ? 'Переход к оплате...' : 'Перейти к оплате →'}
               </button>
             </div>
           </div>
