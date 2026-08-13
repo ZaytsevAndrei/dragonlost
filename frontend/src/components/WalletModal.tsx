@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import CoinAmount from './CoinAmount';
 import CoinIcon from './CoinIcon';
 import { api } from '../services/api';
@@ -26,6 +27,7 @@ const MIN_AMOUNT = 30;
 const MAX_AMOUNT = 50000;
 const DEFAULT_AMOUNT = 50;
 const COIN_TO_RUB = 1;
+const ROBOKASSA_SITE = 'https://www.robokassa.com/';
 
 interface WalletModalProps {
   open: boolean;
@@ -295,6 +297,37 @@ function WalletModal({
                 {depositNote}
               </p>
             ) : null}
+
+            <div className="wallet-modal__legal">
+              <p className="wallet-modal__legal-text">
+                Нажимая «Перейти к оплате», вы принимаете{' '}
+                <Link to="/agreement" className="wallet-modal__legal-link" onClick={onClose}>
+                  публичную оферту
+                </Link>
+                , включая условия возврата. Монеты — внутриигровая валюта DragonLost (1 ₽ = 1 монета),
+                зачисляются на баланс после подтверждения оплаты.
+              </p>
+              <a
+                className="wallet-modal__robokassa"
+                href={ROBOKASSA_SITE}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Оплата через Robokassa"
+              >
+                <span className="wallet-modal__robokassa-logo" aria-hidden>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8Z" />
+                    <path d="M12.8 7h-2.2v10h2.2a3.5 3.5 0 0 0 0-7h.3V7Zm0 8.2h-.5V9.8h.5a1.7 1.7 0 1 1 0 3.4 1.6 1.6 0 0 1 0 2Z" />
+                  </svg>
+                </span>
+                <span className="wallet-modal__robokassa-copy">
+                  <span className="wallet-modal__robokassa-title">Оплата через Robokassa</span>
+                  <span className="wallet-modal__robokassa-hint">
+                    Карты, СБП и другие способы — условия на сайте платёжной системы
+                  </span>
+                </span>
+              </a>
+            </div>
 
             <div className="wallet-modal__footer">
               <button

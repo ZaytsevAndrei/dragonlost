@@ -225,6 +225,75 @@
   margin-top: 4px;
 }
 
+.wallet-modal__legal {
+  display: grid;
+  gap: 10px;
+  margin: 2px 0 2px;
+}
+
+.wallet-modal__legal-text {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.wallet-modal__legal-link {
+  color: color-mix(in srgb, #4ea1ff 85%, var(--text-primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.wallet-modal__legal-link:hover {
+  color: var(--text-primary);
+}
+
+.wallet-modal__robokassa {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.wallet-modal__robokassa:hover {
+  background: color-mix(in srgb, var(--bg-tertiary) 70%, var(--text-primary) 8%);
+}
+
+.wallet-modal__robokassa-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, #e85d04 18%, transparent);
+  color: #e85d04;
+}
+
+.wallet-modal__robokassa-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wallet-modal__robokassa-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wallet-modal__robokassa-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
 .wallet-modal__gift {
   display: inline-flex;
   align-items: center;
