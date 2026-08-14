@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../services/api';
+import RustCategoryIcon from '../../components/RustCategoryIcon';
 import { findRustItem, rustItemIconUrl, searchRustItems } from '../../data/rustItems';
 import { RUST_CATEGORIES, rustTargetCategoryLabel, type RustCategoryId } from '../../data/rustCategories';
 import { useAuthStore } from '../../store/authStore';
@@ -393,6 +394,15 @@ function FilterEditorPage() {
                 {suggestions.map((item) => (
                   <li key={item.shortname}>
                     <button type="button" onClick={() => addItem(item.shortname)}>
+                      <img
+                        src={rustItemIconUrl(item.shortname)}
+                        alt=""
+                        className="cf-suggest-icon"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.visibility = 'hidden';
+                        }}
+                      />
                       <strong>{item.name}</strong>
                       <span>{item.shortname}</span>
                       <em>{item.category}</em>
@@ -432,19 +442,39 @@ function FilterEditorPage() {
               {items.map((item, index) => {
                 const meta = item.TargetItemName ? findRustItem(item.TargetItemName) : undefined;
                 const categoryOnlyLabel = rustTargetCategoryLabel(item.TargetCategory);
+                const iconShortname = item.TargetItemName.trim();
                 return (
                   <tr key={`${item.TargetItemName || 'cat'}-${item.TargetCategory ?? 'x'}-${index}`}>
                     <td>
-                      <div className="cf-item-name">
-                        <strong>
-                          {meta?.name ||
-                            item.TargetItemName ||
-                            (categoryOnlyLabel ? `Категория: ${categoryOnlyLabel}` : 'Без имени')}
-                        </strong>
-                        <code>
-                          {item.TargetItemName ||
-                            (item.TargetCategory !== null ? `TargetCategory=${item.TargetCategory}` : '—')}
-                        </code>
+                      <div className="cf-item-cell">
+                        {iconShortname ? (
+                          <img
+                            src={rustItemIconUrl(iconShortname)}
+                            alt=""
+                            className="cf-item-icon"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.visibility = 'hidden';
+                            }}
+                          />
+                        ) : (
+                          <RustCategoryIcon
+                            targetCategory={item.TargetCategory}
+                            className="cf-item-icon cf-item-icon-category"
+                            title={categoryOnlyLabel || undefined}
+                          />
+                        )}
+                        <div className="cf-item-name">
+                          <strong>
+                            {meta?.name ||
+                              item.TargetItemName ||
+                              (categoryOnlyLabel ? `Категория: ${categoryOnlyLabel}` : 'Без имени')}
+                          </strong>
+                          <code>
+                            {item.TargetItemName ||
+                              (item.TargetCategory !== null ? `TargetCategory=${item.TargetCategory}` : '—')}
+                          </code>
+                        </div>
                       </div>
                     </td>
                     <td>
