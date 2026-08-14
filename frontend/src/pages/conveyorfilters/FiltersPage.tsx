@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import type { ConveyorFilter } from '../../utils/conveyorExport';
+import ConveyorFiltersPageHeader from './ConveyorFiltersPageHeader';
 import FilterCard from './FilterCard';
 
 function FiltersPage() {
@@ -41,28 +42,19 @@ function FiltersPage() {
 
   return (
     <section className="cf-section">
-      <p className="cf-intro">
-        Устали тратить часы на настройку фильтров конвейера каждый вайп? Наше приложение позволяет легко
-        создавать, редактировать и делиться кастомными схемами конвейеров. Просматривайте публичный каталог,
-        сохраняйте любимые фильтры и экспортируйте конфигурации прямо в Rust для плавной и эффективной
-        сортировки лута. Измените свой геймплей навсегда и верните себе драгоценное время!
-      </p>
-      <header className="cf-header">
-        <div>
-          <h1>Filters</h1>
-          <p className="cf-lead">
-            Публичный каталог фильтров конвейеров для Rust. Создавайте пресеты, делитесь доступом и
-            экспортируйте JSON прямо в игру.
-          </p>
-        </div>
-        {user ? (
-          <Link to="/conveyorfilters/new" className="cf-btn cf-btn-primary">
-            Создать фильтр
-          </Link>
-        ) : (
-          <p className="cf-hint">Войдите через Steam, чтобы создавать и шарить фильтры</p>
-        )}
-      </header>
+      <ConveyorFiltersPageHeader
+        title="Общие фильтры"
+        lead="Публичный каталог пресетов. Ищите чужие схемы, сохраняйте в избранное и копируйте JSON в буфер обмена одной кнопкой «Экспорт»."
+        actions={
+          user ? (
+            <Link to="/conveyorfilters/new" className="cf-btn cf-btn-primary">
+              Создать фильтр
+            </Link>
+          ) : (
+            <p className="cf-hint">Войдите через Steam, чтобы создавать и шарить фильтры</p>
+          )
+        }
+      />
 
       <form className="cf-search" onSubmit={onSubmit}>
         <input
@@ -81,7 +73,7 @@ function FiltersPage() {
       {error && <p className="cf-error">{error}</p>}
       {!loading && !error && filters.length === 0 && (
         <div className="cf-empty">
-          <p>Публичных фильтров пока нет.</p>
+          <p>Общих фильтров пока нет.</p>
           {user && (
             <Link to="/conveyorfilters/new" className="cf-btn cf-btn-primary">
               Создать первый

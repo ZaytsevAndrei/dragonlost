@@ -9,7 +9,6 @@ import {
   ConveyorFilterShare,
   copyText,
   createEmptyItem,
-  downloadText,
   exportConveyorJson,
   parseConveyorImport,
 } from '../../utils/conveyorExport';
@@ -114,7 +113,6 @@ function FilterEditorPage() {
   const handleExportLocal = async () => {
     const json = exportConveyorJson(items);
     const ok = await copyText(json);
-    downloadText(`${title || 'filter'}.json`, json);
     setMessage(ok ? 'JSON скопирован в буфер обмена' : 'Не удалось скопировать');
   };
 
@@ -223,7 +221,7 @@ function FilterEditorPage() {
       <section className="cf-section">
         <p className="cf-error">{error}</p>
         <Link to="/conveyorfilters" className="cf-btn">
-          К каталогу
+          К общим фильтрам
         </Link>
       </section>
     );
@@ -235,7 +233,8 @@ function FilterEditorPage() {
         <div>
           <h1>{isNew ? 'Новый фильтр' : title || 'Фильтр'}</h1>
           <p className="cf-lead">
-            Настройте предметы и экспортируйте JSON в формате игры (вставьте в настройки конвейера в Rust).
+            Настройте предметы и скопируйте JSON в буфер обмена — затем вставьте его в настройки конвейера в
+            Rust.
           </p>
         </div>
         <div className="cf-header-actions">
@@ -244,7 +243,7 @@ function FilterEditorPage() {
           </button>
           {!isNew && (
             <Link to="/conveyorfilters/my" className="cf-btn">
-              My Filters
+              Приватные фильтры
             </Link>
           )}
         </div>
@@ -272,7 +271,7 @@ function FilterEditorPage() {
               onChange={(e) => setIsPublic(e.target.checked)}
               disabled={!canEdit || (!isNew && !isOwner)}
             />
-            <span>Публичный (в каталоге Filters)</span>
+            <span>Публичный (в общих фильтрах)</span>
           </label>
         </div>
 

@@ -83,6 +83,114 @@
   color: var(--text-secondary);
   max-width: 52rem;
   line-height: 1.65;
+  font-size: var(--font-size-md, 1rem);
+}
+
+.cf-hero-compact {
+  display: grid;
+  grid-template-columns: minmax(14rem, 42%) 1fr;
+  gap: var(--space-5);
+  align-items: center;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.02), rgb(255 255 255 / 0));
+}
+
+.cf-hero-compact-visual {
+  margin: 0;
+}
+
+.cf-hero-image-compact {
+  max-height: 16rem;
+  object-fit: cover;
+  object-position: center 40%;
+}
+
+.cf-intro-compact {
+  max-width: none;
+}
+
+.cf-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.cf-page-header-center {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.cf-page-header-text h1 {
+  margin: 0;
+  font-size: var(--font-size-3xl);
+}
+
+.cf-page-header-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cf-hero {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+}
+
+.cf-hero-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cf-hero-blink {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 28%, rgb(255 140 60 / 0.22), transparent 18%),
+    radial-gradient(circle at 72% 22%, rgb(80 200 120 / 0.18), transparent 16%),
+    radial-gradient(circle at 84% 58%, rgb(255 90 70 / 0.2), transparent 14%),
+    radial-gradient(circle at 32% 68%, rgb(255 170 60 / 0.16), transparent 12%);
+  mix-blend-mode: screen;
+  animation: cf-filter-blink 2.4s ease-in-out infinite;
+}
+
+@keyframes cf-filter-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  25% {
+    opacity: 0.85;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+
+  75% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-hero-blink {
+    animation: none;
+    opacity: 0.35;
+  }
 }
 
 .cf-hint,
@@ -316,6 +424,24 @@
 @media (max-width: 720px) {
   .cf-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cf-hero-compact {
+    grid-template-columns: 1fr;
+    padding: var(--space-3);
+  }
+
+  .cf-hero-image-compact {
+    max-height: 12rem;
+  }
+
+  .cf-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cf-page-header-actions {
+    justify-content: flex-start;
   }
 }
 

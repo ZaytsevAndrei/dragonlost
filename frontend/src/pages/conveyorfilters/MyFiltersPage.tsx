@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import type { ConveyorFilter } from '../../utils/conveyorExport';
+import ConveyorFiltersPageHeader from './ConveyorFiltersPageHeader';
 import FilterCard from './FilterCard';
 
 type Tab = 'yours' | 'saved' | 'shared';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'yours', label: 'Your Filters' },
-  { id: 'saved', label: 'Saved Filters' },
-  { id: 'shared', label: 'Shared With You' },
+  { id: 'yours', label: 'Мои фильтры' },
+  { id: 'saved', label: 'Избранное' },
+  { id: 'shared', label: 'Доступные мне' },
 ];
 
 function MyFiltersPage() {
@@ -50,23 +51,30 @@ function MyFiltersPage() {
 
   if (!user) {
     return (
-      <section className="cf-section cf-center">
-        <h1>My Filters</h1>
-        <p className="cf-lead">Войдите через Steam, чтобы видеть свои фильтры, избранное и доступ от друзей.</p>
+      <section className="cf-section">
+        <ConveyorFiltersPageHeader
+          title="Приватные фильтры"
+          lead="Ваши пресеты, избранное и доступы — войдите через Steam, чтобы управлять фильтрами."
+          centered
+        />
       </section>
     );
   }
 
   return (
     <section className="cf-section">
-      <header className="cf-header cf-header-center">
-        <h1>My Filters</h1>
-        <Link to="/conveyorfilters/new" className="cf-btn cf-btn-primary">
-          Создать фильтр
-        </Link>
-      </header>
+      <ConveyorFiltersPageHeader
+        title="Приватные фильтры"
+        lead="Ваши личные пресеты, избранное из общего каталога и фильтры, которыми с вами поделились."
+        centered
+        actions={
+          <Link to="/conveyorfilters/new" className="cf-btn cf-btn-primary">
+            Создать фильтр
+          </Link>
+        }
+      />
 
-      <div className="cf-pill-tabs" role="tablist" aria-label="Разделы My Filters">
+      <div className="cf-pill-tabs" role="tablist" aria-label="Разделы приватных фильтров">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -94,7 +102,9 @@ function MyFiltersPage() {
               </Link>
             </>
           )}
-          {tab === 'saved' && <p>Сохранённых фильтров нет. Откройте публичный каталог и нажмите «Сохранить».</p>}
+          {tab === 'saved' && (
+            <p>Сохранённых фильтров нет. Откройте «Общие фильтры» и нажмите «Сохранить».</p>
+          )}
           {tab === 'shared' && <p>Вам пока никто не выдал доступ к фильтрам.</p>}
         </div>
       )}

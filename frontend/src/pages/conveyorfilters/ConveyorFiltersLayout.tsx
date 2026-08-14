@@ -1,24 +1,30 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import ConveyorFiltersHero from './ConveyorFiltersHero';
 import './ConveyorFilters.css';
 
 function ConveyorFiltersLayout() {
+  const { pathname } = useLocation();
+  const isEditorRoute = /\/conveyorfilters\/(new|\d+)/.test(pathname);
+
   return (
     <div className="cf-page">
-      <nav className="cf-subnav" aria-label="Conveyor Filters">
+      {!isEditorRoute && <ConveyorFiltersHero />}
+
+      <nav className="cf-subnav" aria-label="Фильтры конвейеров">
         <NavLink to="/conveyorfilters" end className={({ isActive }) => `cf-subnav-link${isActive ? ' active' : ''}`}>
-          Filters
+          Общие фильтры
         </NavLink>
         <NavLink
           to="/conveyorfilters/my"
           className={({ isActive }) => `cf-subnav-link${isActive ? ' active' : ''}`}
         >
-          My Filters
+          Приватные фильтры
         </NavLink>
         <NavLink
           to="/conveyorfilters/about"
           className={({ isActive }) => `cf-subnav-link${isActive ? ' active' : ''}`}
         >
-          About
+          Как это работает
         </NavLink>
       </nav>
       <Outlet />
