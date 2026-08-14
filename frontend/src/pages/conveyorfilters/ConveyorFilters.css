@@ -78,6 +78,13 @@
   max-width: 48rem;
 }
 
+.cf-intro {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 52rem;
+  line-height: 1.65;
+}
+
 .cf-hint,
 .cf-muted {
   color: var(--text-muted);
