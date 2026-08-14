@@ -154,6 +154,11 @@ function FilterEditorPage() {
       return;
     }
     if (!coverShortname.trim()) {
+      const fallback = items[0]?.TargetItemName || '';
+      if (fallback) setCoverShortname(fallback);
+    }
+    const resolvedCover = coverShortname.trim() || items[0]?.TargetItemName || '';
+    if (!resolvedCover) {
       setError('Выберите предмет для превью');
       return;
     }
@@ -163,7 +168,7 @@ function FilterEditorPage() {
       const payload = {
         title: title.trim(),
         description: description.trim() || null,
-        cover_shortname: coverShortname.trim(),
+        cover_shortname: resolvedCover,
         category: category || null,
         is_public: isPublic,
         items,

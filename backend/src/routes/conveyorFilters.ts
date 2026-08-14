@@ -10,6 +10,39 @@ const MAX_ITEMS = 64;
 const MAX_TITLE = 120;
 const MAX_DESCRIPTION = 2000;
 const MAX_SHORTNAME = 128;
+const MYSQL_DUP_FIELD = 1060;
+const MYSQL_DUP_KEYNAME = 1061;
+
+function mysqlErrno(error: unknown): number | null {
+  if (!error || typeof error !== 'object' || !('errno' in error)) return null;
+  const errno = Number((error as { errno: unknown }).errno);
+  return Number.isFinite(errno) ? errno : null;
+}
+
+let metaColumnsPromise: Promise<void> | null = null;
+
+async function ensureFilterMetaColumns(): Promise<void> {
+  if (!metaColumnsPromise) {
+    metaColumnsPromise = (async () => {
+      const statements = [
+        `ALTER TABLE conveyor_filters ADD COLUMN cover_shortname VARCHAR(128) NULL`,
+        `ALTER TABLE conveyor_filters ADD COLUMN category VARCHAR(32) NULL`,
+        `ALTER TABLE conveyor_filters ADD INDEX idx_category (category)`,
+      ];
+      for (const sql of statements) {
+        try {
+          await webPool.query(sql);
+        } catch (error) {
+          const errno = mysqlErrno(error);
+          if (errno === MYSQL_DUP_FIELD || errno === MYSQL_DUP_KEYNAME) continue;
+          console.error('ensureFilterMetaColumns:', error instanceof Error ? error.message : error);
+          return;
+        }
+      }
+    })();
+  }
+  return metaColumnsPromise;
+}
 
 interface ConveyorFilterItem {
   TargetCategory: number | null;
@@ -352,7 +385,8 @@ router.post('/', isAuthenticated, async (req: Request, res: Response) => {
       typeof req.body.description === 'string' ? req.body.description.trim().slice(0, MAX_DESCRIPTION) : null;
     const isPublic = Boolean(req.body.is_public);
     const items = normalizeItems(req.body.items);
-    const coverShortname = normalizeCoverShortname(req.body.cover_shortname);
+    const coverShortname =
+      normalizeCoverShortname(req.body.cover_shortname) || items?.[0]?.TargetItemName || null;
     const category = normalizeCategory(req.body.category);
 
     if (!title || title.length > MAX_TITLE) {
@@ -365,13 +399,27 @@ router.post('/', isAuthenticated, async (req: Request, res: Response) => {
       return res.status(400).json({ error: `Список предметов некорректен (макс. ${MAX_ITEMS})` });
     }
 
-    const [result] = await webPool.query<ResultSetHeader>(
-      `INSERT INTO conveyor_filters (owner_steamid, title, description, cover_shortname, category, is_public, items)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [steamid, title, description || null, coverShortname, category, isPublic ? 1 : 0, JSON.stringify(items)]
-    );
+    await ensureFilterMetaColumns();
 
-    const access = await getFilterAccess(result.insertId, steamid);
+    let insertId: number;
+    try {
+      const [result] = await webPool.query<ResultSetHeader>(
+        `INSERT INTO conveyor_filters (owner_steamid, title, description, cover_shortname, category, is_public, items)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [steamid, title, description || null, coverShortname, category, isPublic ? 1 : 0, JSON.stringify(items)]
+      );
+      insertId = result.insertId;
+    } catch (error) {
+      if (mysqlErrno(error) !== 1054) throw error;
+      const [result] = await webPool.query<ResultSetHeader>(
+        `INSERT INTO conveyor_filters (owner_steamid, title, description, is_public, items)
+         VALUES (?, ?, ?, ?, ?)`,
+        [steamid, title, description || null, isPublic ? 1 : 0, JSON.stringify(items)]
+      );
+      insertId = result.insertId;
+    }
+
+    const access = await getFilterAccess(insertId, steamid);
     res.status(201).json({ filter: mapFilter(access!.filter, { can_edit: true, is_owner: true }) });
   } catch (error) {
     console.error('Error creating conveyor filter:', error instanceof Error ? error.message : error);
@@ -405,9 +453,10 @@ router.put('/:id', isAuthenticated, async (req: Request, res: Response) => {
     const items =
       req.body.items !== undefined ? normalizeItems(req.body.items) : parseItems(access.filter.items);
     const coverShortname =
-      req.body.cover_shortname !== undefined
-        ? normalizeCoverShortname(req.body.cover_shortname)
-        : access.filter.cover_shortname;
+      normalizeCoverShortname(req.body.cover_shortname) ||
+      access.filter.cover_shortname ||
+      items?.[0]?.TargetItemName ||
+      null;
     const category =
       req.body.category !== undefined ? normalizeCategory(req.body.category) : access.filter.category;
 
@@ -424,12 +473,24 @@ router.put('/:id', isAuthenticated, async (req: Request, res: Response) => {
     // Только владелец может менять публичность
     const finalPublic = access.isOwner ? (isPublic ? 1 : 0) : access.filter.is_public;
 
-    await webPool.query(
-      `UPDATE conveyor_filters
-       SET title = ?, description = ?, cover_shortname = ?, category = ?, is_public = ?, items = ?
-       WHERE id = ?`,
-      [title, description || null, coverShortname, category, finalPublic, JSON.stringify(items), filterId]
-    );
+    await ensureFilterMetaColumns();
+
+    try {
+      await webPool.query(
+        `UPDATE conveyor_filters
+         SET title = ?, description = ?, cover_shortname = ?, category = ?, is_public = ?, items = ?
+         WHERE id = ?`,
+        [title, description || null, coverShortname, category, finalPublic, JSON.stringify(items), filterId]
+      );
+    } catch (error) {
+      if (mysqlErrno(error) !== 1054) throw error;
+      await webPool.query(
+        `UPDATE conveyor_filters
+         SET title = ?, description = ?, is_public = ?, items = ?
+         WHERE id = ?`,
+        [title, description || null, finalPublic, JSON.stringify(items), filterId]
+      );
+    }
 
     const updated = await getFilterAccess(filterId, steamid);
     res.json({ filter: mapFilter(updated!.filter, { can_edit: true, is_owner: updated!.isOwner }) });
