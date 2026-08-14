@@ -362,7 +362,7 @@ function FilterEditorPage() {
               onChange={(e) => setIsPublic(e.target.checked)}
               disabled={!canEdit || (!isNew && !isOwner)}
             />
-            <span>Публичный (в общих фильтрах)</span>
+            <span>Сделать общим фильтром</span>
           </label>
         </div>
 
@@ -503,7 +503,7 @@ function FilterEditorPage() {
 
       {canEdit && (
         <details className="cf-panel">
-          <summary>Импорт JSON из игры</summary>
+          <summary>Импорт JSON</summary>
           <p className="cf-muted">Вставьте массив фильтров из настроек конвейера (формат как в primer.txt).</p>
           <textarea
             value={importText}
