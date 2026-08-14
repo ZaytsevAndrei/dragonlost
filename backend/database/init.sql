@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Заказы пополнения баланса (Robokassa InvId = payment_orders.id)
+-- ON DELETE RESTRICT: платёжные документы не пропадают при удалении аккаунта (хранение ≥ 5 лет)
 CREATE TABLE IF NOT EXISTS payment_orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   steamid VARCHAR(32) NOT NULL,
@@ -60,10 +61,27 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   payload JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (steamid) REFERENCES users(steamid) ON DELETE CASCADE,
+  CONSTRAINT fk_payment_orders_steamid FOREIGN KEY (steamid) REFERENCES users(steamid) ON DELETE RESTRICT,
   UNIQUE KEY uk_external_id (external_id),
   INDEX idx_steamid_status (steamid, status),
   INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Журнал электронных документов по оплатам (договор Robokassa п. 3.4)
+CREATE TABLE IF NOT EXISTS payment_audit_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NULL,
+  steamid VARCHAR(32) NULL,
+  event VARCHAR(64) NOT NULL,
+  ip VARCHAR(45) NULL,
+  http_method VARCHAR(8) NULL,
+  payload JSON NULL,
+  note VARCHAR(512) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_payment_audit_order (order_id),
+  INDEX idx_payment_audit_steamid (steamid),
+  INDEX idx_payment_audit_event (event),
+  INDEX idx_payment_audit_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Таблица ежедневных наград

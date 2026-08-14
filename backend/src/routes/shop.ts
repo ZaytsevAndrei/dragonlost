@@ -4,6 +4,7 @@ import { webPool } from '../config/database';
 import { isAuthenticated } from '../middleware/auth';
 import { paymentRateLimiter, sensitiveRateLimiter } from '../middleware/rateLimiter';
 import { createPayment, getPaymentMethods } from '../services/robokassa';
+import { writePaymentAudit } from '../services/paymentAudit';
 import { redeemVoucherInTransaction } from '../services/voucherRedeem';
 
 const router = Router();
@@ -202,6 +203,19 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         JSON.stringify(safePayload),
         orderId,
       ]);
+
+      await writePaymentAudit(
+        {
+          event: 'deposit_created',
+          orderId,
+          steamid,
+          ip: req.ip || null,
+          httpMethod: req.method,
+          payload: safePayload,
+          note: `Создан заказ на ${amount} ₽`,
+        },
+        connection
+      );
 
       return res.json({ redirect_url: payment.redirectUrl, order_id: orderId });
     } finally {

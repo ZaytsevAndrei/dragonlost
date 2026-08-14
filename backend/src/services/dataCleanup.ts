@@ -1,7 +1,15 @@
 import cron from 'node-cron';
 import { webPool } from '../config/database';
 
+/** Ретенция ПДн / неплатёжных транзакций (152-ФЗ). */
 const DATA_RETENTION_YEARS = 3;
+
+/**
+ * Платёжные документы по договору Robokassa п. 3.4 хранятся не менее 5 лет
+ * с даты прекращения договора. Пока договор действует, кроном не удаляем:
+ * payment_orders, payment_audit_log и транзакции пополнения.
+ */
+const PAYMENT_DESC_PREFIX = 'Пополнение баланса #';
 
 /**
  * Удаляет истёкшие сессии из таблицы sessions.
@@ -15,12 +23,15 @@ async function cleanExpiredSessions(): Promise<number> {
 }
 
 /**
- * Удаляет транзакции старше DATA_RETENTION_YEARS лет.
+ * Удаляет неплатёжные транзакции старше DATA_RETENTION_YEARS лет.
+ * Пополнения Robokassa не трогаем.
  */
 async function cleanOldTransactions(): Promise<number> {
   const [result] = await webPool.query(
-    'DELETE FROM transactions WHERE created_at < DATE_SUB(NOW(), INTERVAL ? YEAR)',
-    [DATA_RETENTION_YEARS]
+    `DELETE FROM transactions
+     WHERE created_at < DATE_SUB(NOW(), INTERVAL ? YEAR)
+       AND (description IS NULL OR description NOT LIKE ?)`,
+    [DATA_RETENTION_YEARS, `${PAYMENT_DESC_PREFIX}%`]
   );
   return (result as { affectedRows: number }).affectedRows;
 }

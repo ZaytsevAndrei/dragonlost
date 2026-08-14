@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
 import { extractShpParams, verifyResultSignature } from '../services/robokassa';
+import { writePaymentAudit } from '../services/paymentAudit';
 
 const router = Router();
 
@@ -44,40 +45,94 @@ function pickParam(source: Record<string, unknown>, ...names: string[]): string 
   return '';
 }
 
+function documentPayload(params: Record<string, unknown>) {
+  return {
+    OutSum: pickParam(params, 'OutSum', 'out_summ', 'outSum'),
+    InvId: pickParam(params, 'InvId', 'inv_id', 'InvID'),
+    SignatureValue: pickParam(params, 'SignatureValue', 'crc', 'signature'),
+    Fee: pickParam(params, 'Fee'),
+    PaymentMethod: pickParam(params, 'PaymentMethod'),
+    IncCurrLabel: pickParam(params, 'IncCurrLabel'),
+    EMail: pickParam(params, 'EMail', 'Email'),
+    shp: extractShpParams(params),
+  };
+}
+
 async function handleResultUrl(req: Request, res: Response): Promise<void> {
+  const clientIp = req.ip || req.socket.remoteAddress || '';
+  const httpMethod = req.method;
+
   try {
-    const clientIp = req.ip || req.socket.remoteAddress || '';
     if (!isRobokassaIp(clientIp)) {
       console.warn(`Robokassa ResultURL: отклонён запрос с IP ${clientIp}`);
+      await writePaymentAudit({
+        event: 'result_rejected_ip',
+        ip: clientIp,
+        httpMethod,
+        note: 'IP не в белом списке Robokassa',
+      });
       res.status(403).type('text/plain').send('bad ip');
       return;
     }
 
     const params = { ...(req.query as Record<string, unknown>), ...(req.body as Record<string, unknown>) };
-    const outSum = pickParam(params, 'OutSum', 'out_summ', 'outSum');
-    const invId = pickParam(params, 'InvId', 'inv_id', 'InvID');
-    const signatureValue = pickParam(params, 'SignatureValue', 'crc', 'signature');
+    const doc = documentPayload(params);
+    const outSum = doc.OutSum;
+    const invId = doc.InvId;
+    const signatureValue = doc.SignatureValue;
+    const parsedOrderId = Number.parseInt(invId, 10);
+    const orderId = Number.isFinite(parsedOrderId) && parsedOrderId > 0 ? parsedOrderId : null;
 
     if (!outSum || !invId || !signatureValue) {
+      await writePaymentAudit({
+        event: 'result_bad_request',
+        orderId,
+        ip: clientIp,
+        httpMethod,
+        payload: doc,
+        note: 'Нет OutSum, InvId или SignatureValue',
+      });
       res.status(400).type('text/plain').send('bad request');
       return;
     }
 
-    const shp = extractShpParams(params);
+    const shp = doc.shp;
     if (!verifyResultSignature({ outSum, invId, signatureValue, shp })) {
       console.warn(`Robokassa ResultURL: неверная подпись InvId=${invId}`);
+      await writePaymentAudit({
+        event: 'result_bad_sign',
+        orderId,
+        ip: clientIp,
+        httpMethod,
+        payload: doc,
+        note: 'Неверная SignatureValue',
+      });
       res.status(400).type('text/plain').send('bad sign');
       return;
     }
 
-    const orderId = Number.parseInt(invId, 10);
-    if (!Number.isFinite(orderId) || orderId < 1) {
+    if (orderId == null) {
+      await writePaymentAudit({
+        event: 'result_bad_inv',
+        ip: clientIp,
+        httpMethod,
+        payload: doc,
+        note: 'Некорректный InvId',
+      });
       res.status(400).type('text/plain').send('bad inv');
       return;
     }
 
     const paidAmount = Number.parseFloat(outSum);
     if (!Number.isFinite(paidAmount) || paidAmount <= 0) {
+      await writePaymentAudit({
+        event: 'result_bad_sum',
+        orderId,
+        ip: clientIp,
+        httpMethod,
+        payload: doc,
+        note: 'Некорректная сумма',
+      });
       res.status(400).type('text/plain').send('bad sum');
       return;
     }
@@ -93,6 +148,13 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
 
       if (orders.length === 0) {
         await connection.rollback();
+        await writePaymentAudit({
+          event: 'result_order_not_found',
+          orderId,
+          ip: clientIp,
+          httpMethod,
+          payload: doc,
+        });
         res.status(404).type('text/plain').send('order not found');
         return;
       }
@@ -100,6 +162,15 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
       const order = orders[0];
       if (order.status === 'success') {
         await connection.commit();
+        await writePaymentAudit({
+          event: 'result_already_success',
+          orderId,
+          steamid: String(order.steamid),
+          ip: clientIp,
+          httpMethod,
+          payload: doc,
+          note: 'Повторный ResultURL, баланс не менялся',
+        });
         res.status(200).type('text/plain').send(`OK${invId}`);
         return;
       }
@@ -110,6 +181,15 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
           `Robokassa ResultURL: сумма не совпала InvId=${invId} paid=${paidAmount} order=${orderAmount}`
         );
         await connection.rollback();
+        await writePaymentAudit({
+          event: 'result_bad_sum',
+          orderId,
+          steamid: String(order.steamid),
+          ip: clientIp,
+          httpMethod,
+          payload: { ...doc, orderAmount },
+          note: `paid=${paidAmount} order=${orderAmount}`,
+        });
         res.status(400).type('text/plain').send('bad sum');
         return;
       }
@@ -119,10 +199,10 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
         result: {
           OutSum: outSum,
           InvId: invId,
-          Fee: pickParam(params, 'Fee'),
-          PaymentMethod: pickParam(params, 'PaymentMethod'),
-          IncCurrLabel: pickParam(params, 'IncCurrLabel'),
-          EMail: pickParam(params, 'EMail', 'Email'),
+          Fee: doc.Fee,
+          PaymentMethod: doc.PaymentMethod,
+          IncCurrLabel: doc.IncCurrLabel,
+          EMail: doc.EMail,
         },
       };
 
@@ -137,6 +217,15 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
 
       if (updateResult.affectedRows === 0) {
         await connection.rollback();
+        await writePaymentAudit({
+          event: 'result_already_success',
+          orderId,
+          steamid: String(order.steamid),
+          ip: clientIp,
+          httpMethod,
+          payload: doc,
+          note: 'UPDATE pending не затронул строку',
+        });
         res.status(200).type('text/plain').send(`OK${invId}`);
         return;
       }
@@ -152,6 +241,19 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
         [order.steamid, 'earn', orderAmount, `Пополнение баланса #${orderId}`]
       );
 
+      await writePaymentAudit(
+        {
+          event: 'result_credited',
+          orderId,
+          steamid: String(order.steamid),
+          ip: clientIp,
+          httpMethod,
+          payload: { ...doc, credited: orderAmount },
+          note: `Начислено ${orderAmount} на ${order.steamid}`,
+        },
+        connection
+      );
+
       await connection.commit();
       res.status(200).type('text/plain').send(`OK${invId}`);
     } catch (err) {
@@ -162,6 +264,12 @@ async function handleResultUrl(req: Request, res: Response): Promise<void> {
     }
   } catch (err) {
     console.error('Robokassa ResultURL error:', err);
+    await writePaymentAudit({
+      event: 'result_error',
+      ip: clientIp,
+      httpMethod,
+      note: err instanceof Error ? err.message : 'Unknown error',
+    });
     res.status(500).type('text/plain').send('error');
   }
 }

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS payment_orders (
   payload JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (steamid) REFERENCES users(steamid) ON DELETE CASCADE,
+  CONSTRAINT fk_payment_orders_steamid FOREIGN KEY (steamid) REFERENCES users(steamid) ON DELETE RESTRICT,
   UNIQUE KEY uk_external_id (external_id),
   INDEX idx_steamid_status (steamid, status),
   INDEX idx_created (created_at)

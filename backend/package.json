@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "migrate:014": "node scripts/run-sql-migration.mjs database/migrations/014-telegram-bot.sql",
-    "migrate:015": "node scripts/run-sql-migration.mjs database/migrations/015-conveyor-filters.sql"
+    "migrate:015": "node scripts/run-sql-migration.mjs database/migrations/015-conveyor-filters.sql",
+    "migrate:017": "node scripts/run-sql-migration.mjs database/migrations/017-payment-audit-retention.sql"
   },
   "dependencies": {
     "compression": "^1.7.4",
