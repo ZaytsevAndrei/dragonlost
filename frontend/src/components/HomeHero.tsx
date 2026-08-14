@@ -61,8 +61,8 @@ function HomeHero() {
 
         <div className="home-hero-copy">
           <p className="home-hero-brand">Волга | ВАЙП 10 дней</p>
-          <h1 className="home-hero-title">x1 Trio — сервер, на котором хочется играть</h1>
-          <p className="home-hero-text">Классический вайп, лимит трио, магазин предметов и награды — всё в одном месте.</p>
+          <h1 className="home-hero-title">x1 — сервер, на котором хочется играть</h1>
+          <p className="home-hero-text">Классический вайп, магазин предметов и награды — всё в одном месте.</p>
 
           <button
             type="button"
