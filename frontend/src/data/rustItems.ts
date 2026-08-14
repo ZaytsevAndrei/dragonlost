@@ -14,6 +14,10 @@ export function findRustItem(shortname: string): RustItem | undefined {
   return byShortname.get(shortname);
 }
 
+export function rustItemIconUrl(shortname: string): string {
+  return `https://wiki.rustclash.com/img/items180/${encodeURIComponent(shortname)}.png`;
+}
+
 export function searchRustItems(query: string, limit = 40): RustItem[] {
   const q = query.trim().toLowerCase();
   if (!q) return RUST_ITEMS.slice(0, limit);

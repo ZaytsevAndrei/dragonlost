@@ -218,6 +218,7 @@
 .cf-search input,
 .cf-field input,
 .cf-field textarea,
+.cf-field select,
 .cf-share-form input,
 .cf-panel textarea,
 .cf-items-table input[type='number'] {
@@ -302,19 +303,58 @@
 
 .cf-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: var(--space-4);
 }
 
 .cf-card {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 88px 1fr;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-strong);
   background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
   position: relative;
+}
+
+.cf-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  min-height: 88px;
+  border-right: 1px solid var(--border);
+  padding-right: var(--space-3);
+}
+
+.cf-card-preview img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+.cf-card-preview-empty {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+
+.cf-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.cf-card-category {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--font-size-xs);
+  color: var(--brand-400);
 }
 
 .cf-card-top {
@@ -421,9 +461,97 @@
   align-items: end;
 }
 
+.cf-form-grid-2 {
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.cf-required {
+  color: var(--error-500);
+  font-style: normal;
+}
+
+.cf-field-hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.cf-cover-picker {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.cf-cover-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.cf-cover-picker-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-cover-picker-field .cf-suggest {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+}
+
+.cf-suggest-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.cf-category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cf-category-chip {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.cf-category-chip:hover {
+  border-color: var(--brand-500);
+}
+
+.cf-category-chip.active {
+  background: color-mix(in srgb, var(--brand-500) 28%, transparent);
+  border-color: var(--brand-500);
+  color: var(--text-primary);
+}
+
 @media (max-width: 720px) {
   .cf-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cf-form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .cf-card {
+    grid-template-columns: 64px 1fr;
   }
 
   .cf-hero-compact {
@@ -482,7 +610,8 @@
 .cf-suggest button {
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
   gap: var(--space-3);
   text-align: left;
   padding: var(--space-3) var(--space-4);

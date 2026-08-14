@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
+import { isRustCategoryId } from '../constants/rustCategories';
 import { isAuthenticated } from '../middleware/auth';
 
 const router = Router();
@@ -8,6 +9,7 @@ const router = Router();
 const MAX_ITEMS = 64;
 const MAX_TITLE = 120;
 const MAX_DESCRIPTION = 2000;
+const MAX_SHORTNAME = 128;
 
 interface ConveyorFilterItem {
   TargetCategory: number | null;
@@ -23,6 +25,8 @@ interface FilterRow extends RowDataPacket {
   owner_steamid: string;
   title: string;
   description: string | null;
+  cover_shortname: string | null;
+  category: string | null;
   is_public: number;
   items: string | ConveyorFilterItem[];
   export_count: number;
@@ -91,6 +95,20 @@ function normalizeItems(input: unknown): ConveyorFilterItem[] | null {
   return items;
 }
 
+function normalizeCoverShortname(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const value = input.trim();
+  if (!value || value.length > MAX_SHORTNAME) return null;
+  return value;
+}
+
+function normalizeCategory(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const value = input.trim();
+  if (!value) return null;
+  return isRustCategoryId(value) ? value : null;
+}
+
 function mapFilter(row: FilterRow, extras: Record<string, unknown> = {}) {
   const items = parseItems(row.items);
   return {
@@ -100,6 +118,8 @@ function mapFilter(row: FilterRow, extras: Record<string, unknown> = {}) {
     owner_avatar: row.owner_avatar ?? null,
     title: row.title,
     description: row.description,
+    cover_shortname: row.cover_shortname ?? null,
+    category: row.category ?? null,
     is_public: Boolean(row.is_public),
     items,
     item_count: row.item_count ?? items.length,
@@ -154,6 +174,8 @@ async function getFilterAccess(filterId: number, steamid?: string) {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 100) : '';
+    const categoryRaw = typeof req.query.category === 'string' ? req.query.category.trim() : '';
+    const category = isRustCategoryId(categoryRaw) ? categoryRaw : '';
     const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 24));
     const offset = Math.max(0, Number(req.query.offset) || 0);
     const steamid = req.isAuthenticated() ? req.user!.steamid : null;
@@ -164,6 +186,10 @@ router.get('/', async (req: Request, res: Response) => {
       where += ' AND (f.title LIKE ? OR f.description LIKE ? OR u.username LIKE ?)';
       const like = `%${q}%`;
       params.push(like, like, like);
+    }
+    if (category) {
+      where += ' AND f.category = ?';
+      params.push(category);
     }
 
     const savedJoin = steamid
@@ -184,7 +210,12 @@ router.get('/', async (req: Request, res: Response) => {
       [...params, limit, offset]
     );
 
-    const countParams = q ? [`%${q}%`, `%${q}%`, `%${q}%`] : [];
+    const countParams: Array<string | number> = [];
+    if (q) {
+      const like = `%${q}%`;
+      countParams.push(like, like, like);
+    }
+    if (category) countParams.push(category);
     const [countRows] = await webPool.query<RowDataPacket[]>(
       `SELECT COUNT(*) AS total
        FROM conveyor_filters f
@@ -321,18 +352,23 @@ router.post('/', isAuthenticated, async (req: Request, res: Response) => {
       typeof req.body.description === 'string' ? req.body.description.trim().slice(0, MAX_DESCRIPTION) : null;
     const isPublic = Boolean(req.body.is_public);
     const items = normalizeItems(req.body.items);
+    const coverShortname = normalizeCoverShortname(req.body.cover_shortname);
+    const category = normalizeCategory(req.body.category);
 
     if (!title || title.length > MAX_TITLE) {
       return res.status(400).json({ error: 'Укажите название фильтра (до 120 символов)' });
+    }
+    if (!coverShortname) {
+      return res.status(400).json({ error: 'Выберите предмет для превью' });
     }
     if (!items) {
       return res.status(400).json({ error: `Список предметов некорректен (макс. ${MAX_ITEMS})` });
     }
 
     const [result] = await webPool.query<ResultSetHeader>(
-      `INSERT INTO conveyor_filters (owner_steamid, title, description, is_public, items)
-       VALUES (?, ?, ?, ?, ?)`,
-      [steamid, title, description || null, isPublic ? 1 : 0, JSON.stringify(items)]
+      `INSERT INTO conveyor_filters (owner_steamid, title, description, cover_shortname, category, is_public, items)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [steamid, title, description || null, coverShortname, category, isPublic ? 1 : 0, JSON.stringify(items)]
     );
 
     const access = await getFilterAccess(result.insertId, steamid);
@@ -368,9 +404,18 @@ router.put('/:id', isAuthenticated, async (req: Request, res: Response) => {
       req.body.is_public !== undefined ? Boolean(req.body.is_public) : Boolean(access.filter.is_public);
     const items =
       req.body.items !== undefined ? normalizeItems(req.body.items) : parseItems(access.filter.items);
+    const coverShortname =
+      req.body.cover_shortname !== undefined
+        ? normalizeCoverShortname(req.body.cover_shortname)
+        : access.filter.cover_shortname;
+    const category =
+      req.body.category !== undefined ? normalizeCategory(req.body.category) : access.filter.category;
 
     if (!title || title.length > MAX_TITLE) {
       return res.status(400).json({ error: 'Укажите название фильтра (до 120 символов)' });
+    }
+    if (!coverShortname) {
+      return res.status(400).json({ error: 'Выберите предмет для превью' });
     }
     if (!items) {
       return res.status(400).json({ error: `Список предметов некорректен (макс. ${MAX_ITEMS})` });
@@ -381,9 +426,9 @@ router.put('/:id', isAuthenticated, async (req: Request, res: Response) => {
 
     await webPool.query(
       `UPDATE conveyor_filters
-       SET title = ?, description = ?, is_public = ?, items = ?
+       SET title = ?, description = ?, cover_shortname = ?, category = ?, is_public = ?, items = ?
        WHERE id = ?`,
-      [title, description || null, finalPublic, JSON.stringify(items), filterId]
+      [title, description || null, coverShortname, category, finalPublic, JSON.stringify(items), filterId]
     );
 
     const updated = await getFilterAccess(filterId, steamid);

@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../services/api';
-import { findRustItem, searchRustItems } from '../../data/rustItems';
+import { findRustItem, rustItemIconUrl, searchRustItems } from '../../data/rustItems';
+import { RUST_CATEGORIES, type RustCategoryId } from '../../data/rustCategories';
 import { useAuthStore } from '../../store/authStore';
 import {
   ConveyorFilter,
@@ -21,6 +22,9 @@ function FilterEditorPage() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [coverShortname, setCoverShortname] = useState('');
+  const [coverQuery, setCoverQuery] = useState('');
+  const [category, setCategory] = useState<RustCategoryId | ''>('');
   const [isPublic, setIsPublic] = useState(false);
   const [items, setItems] = useState<ConveyorFilterItem[]>([]);
   const [filterMeta, setFilterMeta] = useState<ConveyorFilter | null>(null);
@@ -38,6 +42,8 @@ function FilterEditorPage() {
   const isOwner = isNew || Boolean(filterMeta?.is_owner);
 
   const suggestions = useMemo(() => searchRustItems(itemQuery, 24), [itemQuery]);
+  const coverSuggestions = useMemo(() => searchRustItems(coverQuery, 24), [coverQuery]);
+  const coverMeta = coverShortname ? findRustItem(coverShortname) : undefined;
 
   const loadShares = useCallback(async (filterId: number) => {
     try {
@@ -65,6 +71,8 @@ function FilterEditorPage() {
         setFilterMeta(f);
         setTitle(f.title);
         setDescription(f.description || '');
+        setCoverShortname(f.cover_shortname || f.items?.[0]?.TargetItemName || '');
+        setCategory((f.category as RustCategoryId) || '');
         setIsPublic(f.is_public);
         setItems(f.items || []);
         if (f.is_owner) {
@@ -87,8 +95,10 @@ function FilterEditorPage() {
 
   const addItem = (shortname: string) => {
     if (!shortname.trim()) return;
-    setItems((prev) => [...prev, createEmptyItem(shortname.trim())]);
+    const name = shortname.trim();
+    setItems((prev) => [...prev, createEmptyItem(name)]);
     setItemQuery('');
+    if (!coverShortname) setCoverShortname(name);
   };
 
   const updateItem = (index: number, patch: Partial<ConveyorFilterItem>) => {
@@ -143,12 +153,18 @@ function FilterEditorPage() {
       setError('Укажите название');
       return;
     }
+    if (!coverShortname.trim()) {
+      setError('Выберите предмет для превью');
+      return;
+    }
     try {
       setSaving(true);
       setError(null);
       const payload = {
         title: title.trim(),
         description: description.trim() || null,
+        cover_shortname: coverShortname.trim(),
+        category: category || null,
         is_public: isPublic,
         items,
       };
@@ -253,6 +269,76 @@ function FilterEditorPage() {
       {error && <p className="cf-error">{error}</p>}
 
       <form className="cf-editor" onSubmit={(e) => void onSave(e)}>
+        <div className="cf-form-grid cf-form-grid-2">
+          <label className="cf-field">
+            <span>
+              Превью <em className="cf-required">*</em>
+            </span>
+            <div className="cf-cover-picker">
+              {coverShortname && (
+                <img
+                  src={rustItemIconUrl(coverShortname)}
+                  alt=""
+                  className="cf-cover-thumb"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.visibility = 'hidden';
+                  }}
+                />
+              )}
+              <div className="cf-cover-picker-field">
+                <input
+                  value={coverQuery || coverMeta?.name || coverShortname}
+                  onChange={(e) => {
+                    setCoverQuery(e.target.value);
+                    if (!e.target.value) setCoverShortname('');
+                  }}
+                  onFocus={() => setCoverQuery(coverMeta?.name || coverShortname)}
+                  disabled={!canEdit}
+                  placeholder="Выберите предмет из игры"
+                  required={!coverShortname}
+                />
+                {canEdit && coverQuery.trim() && (
+                  <ul className="cf-suggest">
+                    {coverSuggestions.map((item) => (
+                      <li key={item.shortname}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverShortname(item.shortname);
+                            setCoverQuery('');
+                          }}
+                        >
+                          <img src={rustItemIconUrl(item.shortname)} alt="" className="cf-suggest-icon" />
+                          <strong>{item.name}</strong>
+                          <span>{item.shortname}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <small className="cf-field-hint">Выберите предмет из игры для превью фильтра.</small>
+          </label>
+
+          <label className="cf-field">
+            <span>Категория</span>
+            <select
+              value={category}
+              onChange={(e) => setCategory((e.target.value as RustCategoryId) || '')}
+              disabled={!canEdit}
+            >
+              <option value="">Выберите категорию</option>
+              {RUST_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <small className="cf-field-hint">Категория для организации фильтров. Можно изменить позже.</small>
+          </label>
+        </div>
+
         <div className="cf-form-grid">
           <label className="cf-field">
             <span>Название</span>

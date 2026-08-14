@@ -14,6 +14,8 @@ export interface ConveyorFilter {
   owner_avatar: string | null;
   title: string;
   description: string | null;
+  cover_shortname: string | null;
+  category: string | null;
   is_public: boolean;
   items: ConveyorFilterItem[];
   item_count: number;

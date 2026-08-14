@@ -1,8 +1,10 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { type RustCategoryId } from '../../data/rustCategories';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import type { ConveyorFilter } from '../../utils/conveyorExport';
+import ConveyorCategoryBar from './ConveyorCategoryBar';
 import ConveyorFiltersPageHeader from './ConveyorFiltersPageHeader';
 import FilterCard from './FilterCard';
 
@@ -12,15 +14,16 @@ function FiltersPage() {
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<RustCategoryId | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (query: string) => {
+  const load = useCallback(async (query: string, cat: string) => {
     try {
       setLoading(true);
       setError(null);
       const res = await api.get<{ filters: ConveyorFilter[]; total: number }>('/conveyor-filters', {
-        params: { q: query || undefined, limit: 48 },
+        params: { q: query || undefined, category: cat || undefined, limit: 48 },
       });
       setFilters(res.data.filters || []);
       setTotal(res.data.total || 0);
@@ -32,8 +35,8 @@ function FiltersPage() {
   }, []);
 
   useEffect(() => {
-    void load(search);
-  }, [load, search]);
+    void load(search, category);
+  }, [load, search, category]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -69,6 +72,8 @@ function FiltersPage() {
         </button>
       </form>
 
+      <ConveyorCategoryBar value={category} onChange={setCategory} />
+
       {loading && <p className="cf-muted">Загрузка…</p>}
       {error && <p className="cf-error">{error}</p>}
       {!loading && !error && filters.length === 0 && (
@@ -87,7 +92,7 @@ function FiltersPage() {
           <p className="cf-muted">Найдено: {total}</p>
           <div className="cf-grid">
             {filters.map((filter) => (
-              <FilterCard key={filter.id} filter={filter} onChanged={() => void load(search)} />
+              <FilterCard key={filter.id} filter={filter} onChanged={() => void load(search, category)} />
             ))}
           </div>
         </>
