@@ -61,7 +61,9 @@ function FilterCard({ filter, onChanged, showOwner = true }: FilterCardProps) {
   };
 
   const cover =
-    filter.cover_shortname || filter.items?.[0]?.TargetItemName || '';
+    filter.cover_shortname ||
+    filter.items?.find((item) => item.TargetItemName)?.TargetItemName ||
+    '';
   const coverMeta = cover ? findRustItem(cover) : undefined;
   const categoryLabel = rustCategoryLabel(filter.category);
 

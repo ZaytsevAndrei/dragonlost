@@ -2,7 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { findRustItem, rustItemIconUrl, searchRustItems } from '../../data/rustItems';
-import { RUST_CATEGORIES, type RustCategoryId } from '../../data/rustCategories';
+import { RUST_CATEGORIES, rustTargetCategoryLabel, type RustCategoryId } from '../../data/rustCategories';
 import { useAuthStore } from '../../store/authStore';
 import {
   ConveyorFilter,
@@ -154,10 +154,11 @@ function FilterEditorPage() {
       return;
     }
     if (!coverShortname.trim()) {
-      const fallback = items[0]?.TargetItemName || '';
+      const fallback = items.find((item) => item.TargetItemName.trim())?.TargetItemName || '';
       if (fallback) setCoverShortname(fallback);
     }
-    const resolvedCover = coverShortname.trim() || items[0]?.TargetItemName || '';
+    const resolvedCover =
+      coverShortname.trim() || items.find((item) => item.TargetItemName.trim())?.TargetItemName || '';
     if (!resolvedCover) {
       setError('Выберите предмет для превью');
       return;
@@ -429,13 +430,21 @@ function FilterEditorPage() {
                 </tr>
               )}
               {items.map((item, index) => {
-                const meta = findRustItem(item.TargetItemName);
+                const meta = item.TargetItemName ? findRustItem(item.TargetItemName) : undefined;
+                const categoryOnlyLabel = rustTargetCategoryLabel(item.TargetCategory);
                 return (
-                  <tr key={`${item.TargetItemName}-${index}`}>
+                  <tr key={`${item.TargetItemName || 'cat'}-${item.TargetCategory ?? 'x'}-${index}`}>
                     <td>
                       <div className="cf-item-name">
-                        <strong>{meta?.name || item.TargetItemName}</strong>
-                        <code>{item.TargetItemName}</code>
+                        <strong>
+                          {meta?.name ||
+                            item.TargetItemName ||
+                            (categoryOnlyLabel ? `Категория: ${categoryOnlyLabel}` : 'Без имени')}
+                        </strong>
+                        <code>
+                          {item.TargetItemName ||
+                            (item.TargetCategory !== null ? `TargetCategory=${item.TargetCategory}` : '—')}
+                        </code>
                       </div>
                     </td>
                     <td>

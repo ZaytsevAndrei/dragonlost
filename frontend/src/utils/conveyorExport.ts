@@ -69,12 +69,16 @@ export function parseConveyorImport(raw: string): ConveyorFilterItem[] {
       throw new Error('Некорректный элемент фильтра');
     }
     const name = String(entry.TargetItemName || '').trim();
-    if (!name) throw new Error('У элемента нет TargetItemName');
+    const categoryRaw = entry.TargetCategory;
+    const targetCategory =
+      categoryRaw === null || categoryRaw === undefined || categoryRaw === ''
+        ? null
+        : Number(categoryRaw);
+    if (!name && (targetCategory === null || !Number.isFinite(targetCategory))) {
+      throw new Error('У элемента нет TargetItemName и TargetCategory');
+    }
     return {
-      TargetCategory:
-        entry.TargetCategory === null || entry.TargetCategory === undefined
-          ? null
-          : Number(entry.TargetCategory),
+      TargetCategory: targetCategory === null || !Number.isFinite(targetCategory) ? null : targetCategory,
       MaxAmountInOutput: Number(entry.MaxAmountInOutput) || 0,
       BufferAmount: Number(entry.BufferAmount) || 0,
       MinAmountInInput: Number(entry.MinAmountInInput) || 0,

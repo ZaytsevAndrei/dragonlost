@@ -91,7 +91,7 @@ function normalizeItem(input: unknown): ConveyorFilterItem | null {
       : typeof obj.targetItemName === 'string'
         ? obj.targetItemName.trim()
         : '';
-  if (!targetItemName || targetItemName.length > 128) return null;
+  if (targetItemName.length > 128) return null;
 
   const toInt = (v: unknown, fallback = 0) => {
     const n = typeof v === 'number' ? v : Number(v);
@@ -105,6 +105,9 @@ function normalizeItem(input: unknown): ConveyorFilterItem | null {
     const n = Number(categoryRaw);
     targetCategory = Number.isFinite(n) ? Math.floor(n) : null;
   }
+
+  // В игре допустим фильтр только по категории (TargetItemName пустой, TargetCategory задан)
+  if (!targetItemName && targetCategory === null) return null;
 
   return {
     TargetCategory: targetCategory,
@@ -386,7 +389,9 @@ router.post('/', isAuthenticated, async (req: Request, res: Response) => {
     const isPublic = Boolean(req.body.is_public);
     const items = normalizeItems(req.body.items);
     const coverShortname =
-      normalizeCoverShortname(req.body.cover_shortname) || items?.[0]?.TargetItemName || null;
+      normalizeCoverShortname(req.body.cover_shortname) ||
+      items?.find((item) => item.TargetItemName)?.TargetItemName ||
+      null;
     const category = normalizeCategory(req.body.category);
 
     if (!title || title.length > MAX_TITLE) {
@@ -455,7 +460,7 @@ router.put('/:id', isAuthenticated, async (req: Request, res: Response) => {
     const coverShortname =
       normalizeCoverShortname(req.body.cover_shortname) ||
       access.filter.cover_shortname ||
-      items?.[0]?.TargetItemName ||
+      items?.find((item) => item.TargetItemName)?.TargetItemName ||
       null;
     const category =
       req.body.category !== undefined ? normalizeCategory(req.body.category) : access.filter.category;
