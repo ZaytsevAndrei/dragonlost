@@ -115,8 +115,8 @@
   margin: 0;
   font-size: clamp(2rem, 5vw, 3.25rem);
   font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 0.95;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: #fff;
   text-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
 }

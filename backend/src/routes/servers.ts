@@ -3,6 +3,8 @@ import { rustServersApi } from '../services/rustServersApi';
 
 const router = Router();
 
+const SERVER_DISPLAY_NAME = 'Волга | ВАЙП 10 дней';
+
 // Get server data from rust-servers.net API
 router.get('/', async (req, res) => {
   try {
@@ -14,7 +16,7 @@ router.get('/', async (req, res) => {
         servers: [
           {
             id: 1,
-            name: 'DragonLost | Main Server',
+            name: SERVER_DISPLAY_NAME,
             ip: '185.189.255.19',
             port: 35500,
             players: 0,
@@ -31,7 +33,7 @@ router.get('/', async (req, res) => {
     const servers = [
       {
         id: parseInt(serverData.id, 10),
-        name: serverData.hostname || serverData.name || 'Unknown',
+        name: SERVER_DISPLAY_NAME,
         ip: serverData.address,
         port: parseInt(serverData.port, 10),
         players: parseInt(serverData.players, 10) || 0,
