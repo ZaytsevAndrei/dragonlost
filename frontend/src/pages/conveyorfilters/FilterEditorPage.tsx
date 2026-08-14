@@ -115,7 +115,7 @@ function FilterEditorPage() {
     const json = exportConveyorJson(items);
     const ok = await copyText(json);
     downloadText(`${title || 'filter'}.json`, json);
-    setMessage(ok ? 'JSON скопирован и скачан' : 'JSON скачан');
+    setMessage(ok ? 'JSON скопирован в буфер обмена' : 'Не удалось скопировать');
   };
 
   const handleExportServer = async () => {
@@ -123,15 +123,18 @@ function FilterEditorPage() {
       await handleExportLocal();
       return;
     }
+    const json = exportConveyorJson(items);
+    const ok = await copyText(json);
     try {
-      const res = await api.post<{ json: string; filename: string }>(
-        `/conveyor-filters/${filterMeta.id}/export`
-      );
-      const ok = await copyText(res.data.json);
-      downloadText(res.data.filename, res.data.json);
-      setMessage(ok ? 'JSON скопирован и скачан' : 'JSON скачан');
+      await api.post(`/conveyor-filters/${filterMeta.id}/export`);
+      setError(null);
+      setMessage(ok ? 'JSON скопирован в буфер обмена' : 'Не удалось скопировать');
     } catch {
-      setError('Не удалось экспортировать');
+      if (ok) {
+        setMessage('JSON скопирован в буфер обмена');
+      } else {
+        setError('Не удалось экспортировать');
+      }
     }
   };
 

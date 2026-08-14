@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
-import {
-  ConveyorFilter,
-  copyText,
-  downloadText,
-  exportConveyorJson,
-} from '../../utils/conveyorExport';
+import { ConveyorFilter, copyText, exportConveyorJson } from '../../utils/conveyorExport';
 
 interface FilterCardProps {
   filter: ConveyorFilter;
@@ -28,12 +23,17 @@ function FilterCard({ filter, onChanged, showOwner = true }: FilterCardProps) {
   const handleExport = async () => {
     try {
       setBusy(true);
-      const res = await api.post<{ json: string; filename: string }>(`/conveyor-filters/${filter.id}/export`);
-      const json = res.data.json || exportConveyorJson(filter.items);
+      const json = exportConveyorJson(filter.items);
       const ok = await copyText(json);
-      downloadText(res.data.filename || `${filter.title}.json`, json);
-      flash(ok ? 'Скопировано и скачано' : 'Файл скачан');
-      onChanged?.();
+
+      try {
+        await api.post(`/conveyor-filters/${filter.id}/export`);
+        onChanged?.();
+      } catch {
+        if (!ok) throw new Error('export failed');
+      }
+
+      flash(ok ? 'Скопировано в буфер обмена' : 'Не удалось скопировать');
     } catch {
       flash('Ошибка экспорта');
     } finally {
