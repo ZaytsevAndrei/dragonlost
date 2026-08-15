@@ -12,6 +12,7 @@ import {
   copyText,
   createEmptyItem,
   exportConveyorJson,
+  MAX_CONVEYOR_ITEMS,
   parseConveyorImport,
 } from '../../utils/conveyorExport';
 
@@ -96,9 +97,14 @@ function FilterEditorPage() {
 
   const addItem = (shortname: string) => {
     if (!shortname.trim()) return;
+    if (items.length >= MAX_CONVEYOR_ITEMS) {
+      setError(`В фильтре максимум ${MAX_CONVEYOR_ITEMS} предметов`);
+      return;
+    }
     const name = shortname.trim();
     setItems((prev) => [...prev, createEmptyItem(name)]);
     setItemQuery('');
+    setError(null);
     if (!coverShortname) setCoverShortname(name);
   };
 
@@ -382,11 +388,17 @@ function FilterEditorPage() {
         {canEdit && (
           <div className="cf-item-picker">
             <label className="cf-field">
-              <span>Добавить предмет</span>
+              <span>
+                Добавить предмет{' '}
+                <em className="cf-muted">
+                  ({items.length}/{MAX_CONVEYOR_ITEMS})
+                </em>
+              </span>
               <input
                 value={itemQuery}
                 onChange={(e) => setItemQuery(e.target.value)}
                 placeholder="Поиск по имени или shortname…"
+                disabled={items.length >= MAX_CONVEYOR_ITEMS}
               />
             </label>
             {itemQuery.trim() && (

@@ -7,6 +7,9 @@ export interface ConveyorFilterItem {
   TargetItemName: string;
 }
 
+/** Лимит слотов фильтра, как в Industrial Conveyor в Rust */
+export const MAX_CONVEYOR_ITEMS = 30;
+
 export interface ConveyorFilter {
   id: number;
   owner_steamid: string;
@@ -63,6 +66,9 @@ export function parseConveyorImport(raw: string): ConveyorFilterItem[] {
   const parsed = JSON.parse(raw);
   if (!Array.isArray(parsed)) {
     throw new Error('Ожидался JSON-массив');
+  }
+  if (parsed.length > MAX_CONVEYOR_ITEMS) {
+    throw new Error(`Максимум ${MAX_CONVEYOR_ITEMS} предметов в фильтре`);
   }
   return parsed.map((entry) => {
     if (!entry || typeof entry !== 'object') {

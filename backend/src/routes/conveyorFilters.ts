@@ -6,7 +6,7 @@ import { isAuthenticated } from '../middleware/auth';
 
 const router = Router();
 
-const MAX_ITEMS = 64;
+const MAX_ITEMS = 30;
 const MAX_TITLE = 120;
 const MAX_DESCRIPTION = 2000;
 const MAX_SHORTNAME = 128;
