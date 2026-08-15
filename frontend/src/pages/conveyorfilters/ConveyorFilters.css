@@ -736,20 +736,9 @@
   gap: var(--space-3);
 }
 
-.cf-panel summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.cf-json {
+.cf-panel h2 {
   margin: 0;
-  padding: var(--space-3);
-  overflow: auto;
-  max-height: 320px;
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-lg);
 }
 
 .cf-share-form {

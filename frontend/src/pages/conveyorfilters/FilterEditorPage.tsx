@@ -16,6 +16,17 @@ import {
   parseConveyorImport,
 } from '../../utils/conveyorExport';
 
+const IMPORT_JSON_EXAMPLE = `[
+  {
+    "TargetCategory": null,
+    "MaxAmountInOutput": 0,
+    "BufferAmount": 0,
+    "MinAmountInInput": 0,
+    "IsBlueprint": false,
+    "TargetItemName": "keycard_green"
+  }
+]`;
+
 function FilterEditorPage() {
   const { id } = useParams();
   const isNew = !id || id === 'new';
@@ -34,7 +45,7 @@ function FilterEditorPage() {
   const [shareUser, setShareUser] = useState('');
   const [shareCanEdit, setShareCanEdit] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
-  const [importText, setImportText] = useState('');
+  const [importText, setImportText] = useState(IMPORT_JSON_EXAMPLE);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -564,18 +575,18 @@ function FilterEditorPage() {
       </form>
 
       {canEdit && (
-        <details className="cf-panel">
-          <summary>Импорт JSON</summary>
+        <section className="cf-panel">
+          <h2>Импорт JSON</h2>
           <textarea
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
-            rows={8}
-            placeholder='[{ "TargetCategory": null, "MaxAmountInOutput": 0, ... }]'
+            rows={12}
+            spellCheck={false}
           />
           <button type="button" className="cf-btn" onClick={handleImport}>
             Импортировать
           </button>
-        </details>
+        </section>
       )}
 
       {isOwner && !isNew && (
@@ -621,11 +632,6 @@ function FilterEditorPage() {
           )}
         </section>
       )}
-
-      <details className="cf-panel">
-        <summary>Предпросмотр JSON</summary>
-        <pre className="cf-json">{exportConveyorJson(items)}</pre>
-      </details>
     </section>
   );
 }
