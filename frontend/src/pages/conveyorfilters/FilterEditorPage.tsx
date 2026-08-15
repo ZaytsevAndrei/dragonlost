@@ -566,7 +566,6 @@ function FilterEditorPage() {
       {canEdit && (
         <details className="cf-panel">
           <summary>Импорт JSON</summary>
-          <p className="cf-muted">Вставьте массив фильтров из настроек конвейера (формат как в primer.txt).</p>
           <textarea
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
