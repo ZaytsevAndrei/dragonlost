@@ -16,17 +16,6 @@ import {
   parseConveyorImport,
 } from '../../utils/conveyorExport';
 
-const IMPORT_JSON_EXAMPLE = `[
-  {
-    "TargetCategory": null,
-    "MaxAmountInOutput": 0,
-    "BufferAmount": 0,
-    "MinAmountInInput": 0,
-    "IsBlueprint": false,
-    "TargetItemName": "keycard_green"
-  }
-]`;
-
 function FilterEditorPage() {
   const { id } = useParams();
   const isNew = !id || id === 'new';
@@ -45,7 +34,7 @@ function FilterEditorPage() {
   const [shareUser, setShareUser] = useState('');
   const [shareCanEdit, setShareCanEdit] = useState(false);
   const [itemQuery, setItemQuery] = useState('');
-  const [importText, setImportText] = useState(IMPORT_JSON_EXAMPLE);
+  const [importText, setImportText] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
