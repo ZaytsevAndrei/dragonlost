@@ -466,6 +466,24 @@
   align-items: start;
 }
 
+.cf-public-field {
+  justify-content: flex-start;
+}
+
+.cf-public-field .cf-btn {
+  width: fit-content;
+  align-self: flex-start;
+}
+
+.cf-field-spacer {
+  display: block;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  visibility: hidden;
+  user-select: none;
+}
+
 .cf-required {
   color: var(--error-500);
   font-style: normal;

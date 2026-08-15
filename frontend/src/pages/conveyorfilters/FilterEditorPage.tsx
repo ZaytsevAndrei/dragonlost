@@ -284,6 +284,36 @@ function FilterEditorPage() {
       <form className="cf-editor" onSubmit={(e) => void onSave(e)}>
         <div className="cf-form-grid cf-form-grid-2">
           <label className="cf-field">
+            <span>Название</span>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={!canEdit}
+              maxLength={120}
+              required
+            />
+          </label>
+
+          <label className="cf-field">
+            <span>Категория</span>
+            <select
+              value={category}
+              onChange={(e) => setCategory((e.target.value as RustCategoryId) || '')}
+              disabled={!canEdit}
+            >
+              <option value="">Выберите категорию</option>
+              {RUST_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <small className="cf-field-hint">Категория для организации фильтров. Можно изменить позже.</small>
+          </label>
+        </div>
+
+        <div className="cf-form-grid cf-form-grid-2">
+          <label className="cf-field">
             <span>
               Превью <em className="cf-required">*</em>
             </span>
@@ -334,44 +364,25 @@ function FilterEditorPage() {
             <small className="cf-field-hint">Выберите предмет из игры для превью фильтра.</small>
           </label>
 
-          <label className="cf-field">
-            <span>Категория</span>
-            <select
-              value={category}
-              onChange={(e) => setCategory((e.target.value as RustCategoryId) || '')}
-              disabled={!canEdit}
-            >
-              <option value="">Выберите категорию</option>
-              {RUST_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <small className="cf-field-hint">Категория для организации фильтров. Можно изменить позже.</small>
-          </label>
-        </div>
-
-        <div className="cf-form-grid">
-          <label className="cf-field">
-            <span>Название</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={!canEdit}
-              maxLength={120}
-              required
-            />
-          </label>
-          <label className="cf-field cf-check">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(e) => setIsPublic(e.target.checked)}
+          <div className="cf-field cf-public-field">
+            <span className="cf-field-spacer" aria-hidden="true">
+              &nbsp;
+            </span>
+            <button
+              type="button"
+              className={`cf-btn${isPublic ? ' cf-btn-primary' : ''}`}
               disabled={!canEdit || (!isNew && !isOwner)}
-            />
-            <span>Сделать общим фильтром</span>
-          </label>
+              onClick={() => setIsPublic((prev) => !prev)}
+              aria-pressed={isPublic}
+            >
+              {isPublic ? 'Общий фильтр' : 'Сделать общим фильтром'}
+            </button>
+            <small className="cf-field-hint">
+              {isPublic
+                ? 'Фильтр виден в каталоге «Общие фильтры».'
+                : 'Нажмите, чтобы опубликовать фильтр в общем каталоге.'}
+            </small>
+          </div>
         </div>
 
         <label className="cf-field">
