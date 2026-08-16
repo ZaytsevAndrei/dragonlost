@@ -107,8 +107,21 @@
   object-position: center 40%;
 }
 
+.cf-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.cf-hero-title {
+  margin: 0;
+  font-size: var(--font-size-3xl);
+  line-height: 1.15;
+}
+
 .cf-intro-compact {
   max-width: none;
+  font-size: var(--font-size-lg, 1.125rem);
 }
 
 .cf-page-header {
