@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { useEffect } from 'react';
 import Layout from './components/Layout';
 import Home from './pages/Home';
+import Items from './pages/Items';
 import Statistics from './pages/Statistics';
 import Rewards from './pages/Rewards';
 import Inventory from './pages/Inventory';
@@ -70,6 +71,8 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<HomeWithRedirect />} />
+            <Route path="/shop" element={<Items />} />
+            <Route path="/items" element={<Navigate to="/shop" replace />} />
             <Route path="/payment/success" element={<PaymentReturnRedirect status="success" />} />
             <Route path="/payment/fail" element={<PaymentReturnRedirect status="fail" />} />
             <Route path="/stats" element={<Statistics />} />
@@ -84,8 +87,6 @@ function App() {
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/telegram" element={<TelegramLink />} />
-            <Route path="/shop" element={<Navigate to="/#shop" replace />} />
-            <Route path="/items" element={<Navigate to="/#shop" replace />} />
             <Route path="/agreement" element={<Agreement />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/personal-information" element={<PersonalInformation />} />

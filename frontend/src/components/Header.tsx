@@ -47,6 +47,9 @@ function Header() {
             <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Главная
             </NavLink>
+            <NavLink to="/shop" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              Магазин
+            </NavLink>
             <NavLink to="/stats" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Статистика
             </NavLink>

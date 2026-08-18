@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './HomeHero.css';
 
 const PROMO_CODE = import.meta.env.VITE_HERO_PROMO_CODE || 'WIPE';
@@ -81,9 +82,9 @@ function HomeHero() {
             <button type="button" className="home-hero-cta" onClick={scrollToServer}>
               Начать играть
             </button>
-            <a href="#shop" className="home-hero-cta home-hero-cta--ghost">
-              Предметы
-            </a>
+            <Link to="/shop" className="home-hero-cta home-hero-cta--ghost">
+              Магазин
+            </Link>
           </div>
         </div>
       </div>

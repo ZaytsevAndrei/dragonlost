@@ -151,38 +151,6 @@
   color: var(--brand-400);
 }
 
-/* ===================== SHOP ON HOME ===================== */
-.home-section--shop {
-  position: relative;
-  padding: clamp(1.5rem, 3vw, 2.25rem);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-}
-
-.home-section--shop .items--embedded {
-  padding: 0;
-}
-
-.home-section--shop .items-header {
-  text-align: center;
-  max-width: 560px;
-  margin-inline: auto;
-  margin-bottom: clamp(1.25rem, 2.5vw, 1.75rem);
-}
-
-.home-section--shop .items-header h2 {
-  margin: 0 0 var(--space-2);
-  font-size: clamp(1.55rem, 3.2vw, 2.15rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.home-section--shop .items-filters {
-  justify-content: center;
-}
-
 /* ===================== SERVER ===================== */
 .home-server-wrap {
   display: flex;
@@ -208,10 +176,6 @@
 
   .feature-card {
     min-height: 0;
-  }
-
-  .home-section--shop {
-    padding: var(--space-4);
   }
 }
 

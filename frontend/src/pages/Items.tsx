@@ -156,12 +156,7 @@ interface PlayerBalance {
 
 const MAX_BUY_QUANTITY = 100;
 
-interface ItemsProps {
-  /** Встроенный блок на главной (без отдельного page chrome). */
-  embedded?: boolean;
-}
-
-function Items({ embedded = false }: ItemsProps) {
+function Items() {
   const { user } = useAuthStore();
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -338,12 +333,10 @@ function Items({ embedded = false }: ItemsProps) {
     }
   }, [loading, items.length, filters, selectedCategory]);
 
-  const rootClassName = embedded ? 'items items--embedded' : 'items';
-
   if (loading) {
     return (
-      <div className={rootClassName} id={embedded ? 'shop' : undefined}>
-        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
+      <div className="items">
+        <h1>Магазин</h1>
         <StatePanel type="loading" title="Загрузка товаров" />
       </div>
     );
@@ -351,8 +344,8 @@ function Items({ embedded = false }: ItemsProps) {
 
   if (error) {
     return (
-      <div className={rootClassName} id={embedded ? 'shop' : undefined}>
-        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
+      <div className="items">
+        <h1>Магазин</h1>
         <StatePanel
           type="error"
           title="Не удалось загрузить товары"
@@ -366,22 +359,18 @@ function Items({ embedded = false }: ItemsProps) {
 
   if (items.length === 0) {
     return (
-      <div className={rootClassName} id={embedded ? 'shop' : undefined}>
-        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
+      <div className="items">
+        <h1>Магазин</h1>
         <StatePanel type="empty" title="Список товаров пуст" message="В таблице shop_items пока нет записей." />
       </div>
     );
   }
 
   return (
-    <div className={rootClassName} id={embedded ? 'shop' : undefined}>
+    <div className="items">
       <div className="items-header">
-        {embedded ? <h2>Предметы</h2> : <h1>Предметы</h1>}
-        <p>
-          {embedded
-            ? 'Выберите категорию и покупайте нужные предметы.'
-            : 'Выберите предмет и совершайте покупки. Баланс и промокод — в шапке сайта.'}
-        </p>
+        <h1>Магазин</h1>
+        <p>Выберите предмет и совершайте покупки. Баланс и промокод — в шапке сайта.</p>
       </div>
 
       {!user ? (

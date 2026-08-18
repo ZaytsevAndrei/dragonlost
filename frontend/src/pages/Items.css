@@ -4,11 +4,6 @@
   --item-image-height: 120px;
 }
 
-.items--embedded {
-  padding: 0;
-  scroll-margin-top: 96px;
-}
-
 .items-header {
   margin-bottom: var(--space-6);
 }

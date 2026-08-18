@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import HomeHero from '../components/HomeHero';
 import ServerStatus from '../components/ServerStatus';
 import { useAuthStore } from '../store/authStore';
-import Items from './Items';
 import './Home.css';
 
 function useAnimateOnScroll() {
@@ -50,17 +49,22 @@ function AnimatedSection({
 function Home() {
   const { user } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!location.hash) return;
     const id = location.hash.replace('#', '');
+    if (id === 'shop') {
+      navigate('/shop', { replace: true });
+      return;
+    }
     const el = document.getElementById(id);
     if (!el) return;
     const timer = window.setTimeout(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
     return () => window.clearTimeout(timer);
-  }, [location.hash]);
+  }, [location.hash, navigate]);
 
   return (
     <div className="home">
@@ -95,10 +99,6 @@ function Home() {
             <span className="feature-card-inline-link">Перейти к колесу</span>
           </Link>
         </div>
-      </AnimatedSection>
-
-      <AnimatedSection className="home-section--shop">
-        <Items embedded />
       </AnimatedSection>
 
       <AnimatedSection className="home-section--server" id="server">
