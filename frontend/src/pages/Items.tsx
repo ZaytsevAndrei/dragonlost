@@ -374,7 +374,9 @@ function Items() {
       </div>
 
       {!user ? (
-        <section className="wallet-guest-note">Войдите через Steam, чтобы покупать товары.</section>
+        <section className="wallet-guest-note">
+          Войдите через Steam, чтобы покупать товары. Монеты — внутриигровая валюта DragonLost (1 ₽ = 1 монета).
+        </section>
       ) : null}
 
       <div className="items-filters">
@@ -565,7 +567,9 @@ function Items() {
                         </button>
                       </>
                     ) : (
-                      <p className="item-modal-guest">Войдите через Steam, чтобы выбрать количество и купить товар.</p>
+                      <p className="item-modal-guest">
+                        Войдите через Steam, чтобы выбрать количество и купить товар. Стоимость 1 монеты: 1 ₽ (1 ₽ = 1 монета).
+                      </p>
                     )}
                   </div>
                 </>
