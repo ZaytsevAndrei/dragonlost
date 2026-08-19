@@ -24,6 +24,22 @@ export interface RobokassaPaymentMethod {
   maxValue: number | null;
 }
 
+export interface RobokassaReceiptItem {
+  name: string;
+  quantity: number;
+  sum: number;
+  tax: string;
+  cost?: number;
+  payment_method?: string;
+  payment_object?: string;
+  nomenclature_code?: string;
+}
+
+export interface RobokassaReceipt {
+  sno?: string;
+  items: RobokassaReceiptItem[];
+}
+
 export interface CreatePaymentParams {
   amount: number;
   invId: number;
@@ -34,12 +50,21 @@ export interface CreatePaymentParams {
   /** Несколько Alias (параметр PaymentMethods) */
   paymentMethods?: string[];
   culture?: 'ru' | 'en';
+  /** Фискальная номенклатура (54-ФЗ) */
+  receipt?: RobokassaReceipt;
   /** Пользовательские параметры Shp_* (без префикса в ключе — будет добавлен) */
   shp?: Record<string, string>;
 }
 
+export interface PaymentFormPayload {
+  action: string;
+  method: 'POST';
+  fields: Array<{ name: string; value: string }>;
+}
+
 export interface CreatePaymentResult {
   redirectUrl: string;
+  paymentForm: PaymentFormPayload;
   signatureValue: string;
   outSum: string;
   invId: number;
@@ -158,9 +183,44 @@ export function formatOutSum(amount: number): string {
   return amount.toFixed(2);
 }
 
+/** JSON Receipt и URL-кодированное значение для подписи и формы оплаты */
+export function serializeReceipt(receipt: RobokassaReceipt): { json: string; encoded: string } {
+  const json = JSON.stringify(receipt);
+  return { json, encoded: encodeURIComponent(json) };
+}
+
+/** Номенклатура для пополнения игрового баланса (аванс) */
+export function buildDepositReceipt(amount: number): RobokassaReceipt {
+  const tax = process.env.ROBOKASSA_RECEIPT_TAX?.trim() || 'none';
+  const paymentMethod = process.env.ROBOKASSA_RECEIPT_PAYMENT_METHOD?.trim() || 'advance';
+  const paymentObject = process.env.ROBOKASSA_RECEIPT_PAYMENT_OBJECT?.trim() || 'payment';
+  const itemName =
+    process.env.ROBOKASSA_RECEIPT_ITEM_NAME?.trim() || 'Пополнение игрового баланса DragonLost';
+  const sno = process.env.ROBOKASSA_RECEIPT_SNO?.trim();
+
+  const receipt: RobokassaReceipt = {
+    items: [
+      {
+        name: itemName.slice(0, 128),
+        quantity: 1,
+        sum: Number.parseFloat(formatOutSum(amount)),
+        tax,
+        payment_method: paymentMethod,
+        payment_object: paymentObject,
+      },
+    ],
+  };
+
+  if (sno) {
+    receipt.sno = sno;
+  }
+
+  return receipt;
+}
+
 /**
  * Подпись инициализации платежа (Password#1):
- * MerchantLogin:OutSum:InvId:Пароль#1[:Shp_*]
+ * MerchantLogin:OutSum:InvId[:Receipt]:Пароль#1[:Shp_*]
  */
 export function buildPaymentSignature(
   merchantLogin: string,
@@ -168,9 +228,10 @@ export function buildPaymentSignature(
   invId: number | string,
   password1: string,
   hashAlgo: RobokassaHashAlgo,
-  shp?: Record<string, string>
+  options?: { shp?: Record<string, string>; receiptEncoded?: string }
 ): string {
-  const base = `${merchantLogin}:${outSum}:${invId}:${password1}${formatShpSuffix(shp)}`;
+  const receiptPart = options?.receiptEncoded ? `:${options.receiptEncoded}` : '';
+  const base = `${merchantLogin}:${outSum}:${invId}${receiptPart}:${password1}${formatShpSuffix(options?.shp)}`;
   return hashValue(base, hashAlgo);
 }
 
@@ -210,59 +271,82 @@ export function verifyResultSignature(params: {
   return expected.toUpperCase() === params.signatureValue.toUpperCase();
 }
 
-/**
- * Формирует URL редиректа на платёжную страницу Robokassa.
- */
-export function createPayment(params: CreatePaymentParams): CreatePaymentResult {
-  const { merchantLogin, password1, hashAlgo, isTest } = getConfig();
+function buildPaymentFields(
+  params: CreatePaymentParams,
+  ctx: { merchantLogin: string; password1: string; hashAlgo: RobokassaHashAlgo; isTest: boolean }
+): { fields: Array<{ name: string; value: string }>; signatureValue: string; outSum: string } {
+  const { merchantLogin, password1, hashAlgo, isTest } = ctx;
   const outSum = formatOutSum(params.amount);
   const description = params.description.slice(0, 100);
-  const signatureValue = buildPaymentSignature(
-    merchantLogin,
-    outSum,
-    params.invId,
-    password1,
-    hashAlgo,
-    params.shp
-  );
+  const receiptEncoded = params.receipt ? serializeReceipt(params.receipt).encoded : undefined;
 
-  const query = new URLSearchParams();
-  query.set('MerchantLogin', merchantLogin);
-  query.set('OutSum', outSum);
-  query.set('InvId', String(params.invId));
-  query.set('Description', description);
-  query.set('SignatureValue', signatureValue);
-  query.set('Culture', params.culture || 'ru');
-  query.set('Encoding', 'utf-8');
+  const signatureValue = buildPaymentSignature(merchantLogin, outSum, params.invId, password1, hashAlgo, {
+    shp: params.shp,
+    receiptEncoded,
+  });
+
+  const fields: Array<{ name: string; value: string }> = [
+    { name: 'MerchantLogin', value: merchantLogin },
+    { name: 'OutSum', value: outSum },
+    { name: 'InvId', value: String(params.invId) },
+    { name: 'Description', value: description },
+    { name: 'SignatureValue', value: signatureValue },
+    { name: 'Culture', value: params.culture || 'ru' },
+    { name: 'Encoding', value: 'utf-8' },
+  ];
 
   if (isTest) {
-    query.set('IsTest', '1');
+    fields.push({ name: 'IsTest', value: '1' });
   }
   if (params.email) {
-    query.set('Email', params.email);
+    fields.push({ name: 'Email', value: params.email });
+  }
+  if (receiptEncoded) {
+    fields.push({ name: 'Receipt', value: receiptEncoded });
   }
 
   const paymentMethods = (params.paymentMethods || []).map((m) => m.trim()).filter(Boolean);
   if (paymentMethods.length > 0) {
     for (const method of paymentMethods) {
-      query.append('PaymentMethods', method);
+      fields.push({ name: 'PaymentMethods', value: method });
     }
   } else if (params.incCurrLabel) {
-    query.set('IncCurrLabel', params.incCurrLabel);
+    fields.push({ name: 'IncCurrLabel', value: params.incCurrLabel });
   }
 
   if (params.shp) {
     for (const [k, v] of Object.entries(params.shp)) {
       const key = k.startsWith('Shp_') ? k : `Shp_${k}`;
-      query.set(key, v);
+      fields.push({ name: key, value: v });
     }
+  }
+
+  return { fields, signatureValue, outSum };
+}
+
+/**
+ * Формирует URL редиректа и POST-форму на платёжную страницу Robokassa.
+ * При наличии Receipt рекомендуется отправлять paymentForm методом POST.
+ */
+export function createPayment(params: CreatePaymentParams): CreatePaymentResult {
+  const ctx = getConfig();
+  const { fields, signatureValue, outSum } = buildPaymentFields(params, ctx);
+
+  const query = new URLSearchParams();
+  for (const { name, value } of fields) {
+    query.append(name, value);
   }
 
   return {
     redirectUrl: `${PAYMENT_URL}?${query.toString()}`,
+    paymentForm: {
+      action: PAYMENT_URL,
+      method: 'POST',
+      fields,
+    },
     signatureValue,
     outSum,
     invId: params.invId,
-    isTest,
+    isTest: ctx.isTest,
   };
 }

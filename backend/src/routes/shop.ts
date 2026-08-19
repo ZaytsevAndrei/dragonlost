@@ -3,7 +3,7 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
 import { isAuthenticated } from '../middleware/auth';
 import { paymentRateLimiter, sensitiveRateLimiter } from '../middleware/rateLimiter';
-import { createPayment, getPaymentMethods } from '../services/robokassa';
+import { createPayment, getPaymentMethods, buildDepositReceipt } from '../services/robokassa';
 import { writePaymentAudit } from '../services/paymentAudit';
 import { redeemVoucherInTransaction } from '../services/voucherRedeem';
 
@@ -186,6 +186,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         description: `Пополнение баланса DragonLost #${orderId}`,
         incCurrLabel,
         culture: 'ru',
+        receipt: buildDepositReceipt(amount),
         shp: { steamid },
       });
 
@@ -196,6 +197,7 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         isTest: payment.isTest,
         method: methodLabel,
         incCurrLabel: incCurrLabel || null,
+        hasReceipt: true,
       };
 
       await connection.query('UPDATE payment_orders SET external_id = ?, payload = ? WHERE id = ?', [
@@ -217,7 +219,11 @@ router.post('/deposit/create', paymentRateLimiter, isAuthenticated, async (req, 
         connection
       );
 
-      return res.json({ redirect_url: payment.redirectUrl, order_id: orderId });
+      return res.json({
+        redirect_url: payment.redirectUrl,
+        payment_form: payment.paymentForm,
+        order_id: orderId,
+      });
     } finally {
       connection.release();
     }

@@ -68,6 +68,28 @@ const DEFAULT_AMOUNT = 50;
 const COIN_TO_RUB = 1;
 const ROBOKASSA_SITE = 'https://www.robokassa.com/';
 
+interface RobokassaPaymentForm {
+  action: string;
+  method: 'POST';
+  fields: Array<{ name: string; value: string }>;
+}
+
+function submitRobokassaForm(form: RobokassaPaymentForm) {
+  const el = document.createElement('form');
+  el.method = form.method;
+  el.action = form.action;
+  el.style.display = 'none';
+  for (const { name, value } of form.fields) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    el.appendChild(input);
+  }
+  document.body.appendChild(el);
+  el.submit();
+}
+
 interface WalletModalProps {
   open: boolean;
   initialTab?: WalletModalTab;
@@ -178,10 +200,18 @@ function WalletModal({
       setDepositLoading(true);
       setDepositNote(null);
       setDepositNoteTone(null);
-      const res = await api.post<{ redirect_url: string; order_id: number }>('/shop/deposit/create', {
+      const res = await api.post<{
+        redirect_url: string;
+        payment_form?: RobokassaPaymentForm;
+        order_id: number;
+      }>('/shop/deposit/create', {
         amount: coins,
         method,
       });
+      if (res.data?.payment_form) {
+        submitRobokassaForm(res.data.payment_form);
+        return;
+      }
       const redirectUrl = res.data?.redirect_url;
       if (!redirectUrl) {
         setDepositNote('Не удалось получить ссылку на оплату');
