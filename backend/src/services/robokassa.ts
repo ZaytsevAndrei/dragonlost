@@ -189,11 +189,11 @@ export function serializeReceipt(receipt: RobokassaReceipt): { json: string; enc
   return { json, encoded: encodeURIComponent(json) };
 }
 
-/** Номенклатура для пополнения игрового баланса (аванс) */
+/** Номенклатура для пополнения игрового баланса (самозанятый / Робочеки СМЗ) */
 export function buildDepositReceipt(amount: number): RobokassaReceipt {
   const tax = process.env.ROBOKASSA_RECEIPT_TAX?.trim() || 'none';
-  const paymentMethod = process.env.ROBOKASSA_RECEIPT_PAYMENT_METHOD?.trim() || 'advance';
-  const paymentObject = process.env.ROBOKASSA_RECEIPT_PAYMENT_OBJECT?.trim() || 'payment';
+  const paymentMethod = process.env.ROBOKASSA_RECEIPT_PAYMENT_METHOD?.trim() || 'full_payment';
+  const paymentObject = process.env.ROBOKASSA_RECEIPT_PAYMENT_OBJECT?.trim() || 'service';
   const itemName =
     process.env.ROBOKASSA_RECEIPT_ITEM_NAME?.trim() || 'Пополнение игрового баланса DragonLost';
   const sno = process.env.ROBOKASSA_RECEIPT_SNO?.trim();
