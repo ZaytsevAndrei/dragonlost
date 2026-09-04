@@ -14,9 +14,9 @@
 
 | Имя секрета | Значение | Описание |
 |-------------|----------|----------|
-| `SERVER_IP` | `31.130.135.146` | IP адрес сервера |
-| `SERVER_USERNAME` | `root` | Пользователь для SSH |
-| `SERVER_PASSWORD` | `sVYPjmX1N1-R8k` | Пароль от сервера |
+| `SERVER_IP` | IP сервера | IP адрес сервера |
+| `SERVER_USERNAME` | например `root` | Пользователь для SSH |
+| `DEPLOY_KEY` | приватный SSH-ключ | Ключ для деплоя (предпочтительно) |
 | `PROJECT_PATH` | `/var/www/dragonlost` | Путь к проекту на сервере |
 
 **⚠️ ВАЖНО**: Никогда не коммитьте эти данные в Git!
@@ -100,9 +100,9 @@ git push origin main
 
 ### На сервере:
 ```bash
-ssh root@31.130.135.146
+ssh root@YOUR_SERVER_IP
 pm2 logs dragonlost-backend
-pm2 logs dragonlost-frontend
+pm2 logs dragonlost-telegram-bot
 ```
 
 ---
@@ -118,7 +118,7 @@ pm2 logs dragonlost-frontend
 ### Проблема: "Permission denied"
 
 **Решение**: Проверьте:
-- ✅ Правильность `SERVER_USERNAME` и `SERVER_PASSWORD` в Secrets
+- ✅ Правильность `SERVER_USERNAME` и `DEPLOY_KEY` в Secrets
 - ✅ SSH доступ разрешен на сервере
 - ✅ Порт 22 открыт в файрволе
 
@@ -219,16 +219,14 @@ on:
 ```yaml
 - name: Rollback on failure
   if: failure()
-  uses: appleboy/ssh-action@v1.0.0
-  with:
-    host: ${{ secrets.SERVER_IP }}
-    username: ${{ secrets.SERVER_USERNAME }}
-    password: ${{ secrets.SERVER_PASSWORD }}
-    script: |
-      cd /var/www/dragonlost
+  run: |
+    ssh deploy-target "
+      set -euo pipefail
+      cd ${{ secrets.PROJECT_PATH }}
       git reset --hard HEAD~1
       npm run build
-      pm2 restart all
+      pm2 restart ecosystem.config.js --env production
+    "
 ```
 
 ---

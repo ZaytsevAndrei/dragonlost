@@ -2,9 +2,11 @@
 # Использование: .\scripts\deploy-to-server.ps1
 
 param(
-    [string]$ServerIP = "31.130.135.146",
+    [Parameter(Mandatory = $true)]
+    [string]$ServerIP,
     [string]$Username = "root",
-    [string]$Password = "sVYPjmX1N1-R8k",
+    [Parameter(Mandatory = $true)]
+    [string]$Password,
     [string]$ProjectPath = "/var/www/dragonlost"
 )
 

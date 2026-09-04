@@ -10,9 +10,9 @@
 
 | Секрет | Ваше значение | Описание |
 |--------|---------------|----------|
-| `SERVER_IP` | `31.130.135.146` | IP адрес вашего сервера |
-| `SERVER_USERNAME` | `root` | Пользователь SSH |
-| `SERVER_PASSWORD` | `sVYPjmX1N1-R8k` | Пароль SSH |
+| `SERVER_IP` | IP сервера | IP адрес вашего сервера |
+| `SERVER_USERNAME` | например `root` | Пользователь SSH |
+| `DEPLOY_KEY` | приватный SSH-ключ | Ключ для деплоя (предпочтительно) |
 | `PROJECT_PATH` | `/var/www/dragonlost` | Путь к проекту |
 
 ---
@@ -51,7 +51,7 @@ New repository secret
   ↓
 ┌────────────────────────────────────┐
 │ Name: SERVER_IP                    │
-│ Secret: 31.130.135.146             │
+│ Secret: your.server.ip             │
 │                                    │
 │        [Add secret]                │
 └────────────────────────────────────┘
@@ -68,7 +68,7 @@ New repository secret
 ```
 ✅ SERVER_IP
 ✅ SERVER_USERNAME  
-✅ SERVER_PASSWORD
+✅ DEPLOY_KEY
 ✅ PROJECT_PATH
 ```
 
@@ -119,7 +119,7 @@ cat ~/.ssh/github_deploy.pub
 
 ```bash
 # Войдите на сервер
-ssh root@31.130.135.146
+ssh root@YOUR_SERVER_IP
 
 # Добавьте публичный ключ
 mkdir -p ~/.ssh
@@ -134,7 +134,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 ### В GitHub Secrets:
 
-Вместо `SERVER_PASSWORD` создайте `SSH_PRIVATE_KEY`:
+Вместо пароля создайте `DEPLOY_KEY`:
 
 ```bash
 # Скопируйте приватный ключ

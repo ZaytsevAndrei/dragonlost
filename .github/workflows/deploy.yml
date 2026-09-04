@@ -8,21 +8,32 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup SSH key
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           install -m 600 /dev/null ~/.ssh/id_ed25519
           printf "%s\n" "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_ed25519
           ssh-keyscan -H -t ed25519 ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          cat >> ~/.ssh/config << EOF
+          Host deploy-target
+            HostName ${{ secrets.SERVER_IP }}
+            User ${{ secrets.SERVER_USERNAME }}
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+            ServerAliveInterval 30
+            ServerAliveCountMax 120
+            TCPKeepAlive yes
+            StrictHostKeyChecking yes
+          EOF
 
       - name: Test SSH
-        run: |
-          ssh -v ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "echo OK"
+        run: ssh deploy-target "echo OK"
 
       - name: Sync entire repo
         run: |
@@ -31,18 +42,32 @@ jobs:
             --exclude ".github" \
             --exclude "logs" \
             --exclude "node_modules" \
+            --exclude "**/node_modules" \
             --exclude "frontend/.env" \
             --exclude "backend/.env" \
             --exclude ".env" \
             ./ \
-            ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.PROJECT_PATH }}
+            deploy-target:${{ secrets.PROJECT_PATH }}
+
+      # Отдельные SSH-сессии: длинный install+build в одной сессии рвёт канал (Broken pipe).
+      - name: Install dependencies on server
+        run: |
+          ssh deploy-target "set -euo pipefail; cd ${{ secrets.PROJECT_PATH }}; npm run install:all"
 
       - name: Build on server
         run: |
-          ssh ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP }} "
+          ssh deploy-target "set -euo pipefail; cd ${{ secrets.PROJECT_PATH }}; npm run build"
+
+      - name: Restart apps on server
+        run: |
+          ssh deploy-target "
+            set -euo pipefail
             cd ${{ secrets.PROJECT_PATH }}
-            
-            npm run install:all
-            npm run build
-            npm run start
+            if pm2 describe dragonlost-backend >/dev/null 2>&1; then
+              pm2 restart ecosystem.config.js --env production
+            else
+              pm2 start ecosystem.config.js --env production
+            fi
+            pm2 save
+            pm2 status
           "
