@@ -115,8 +115,10 @@
 
 .cf-hero-title {
   margin: 0;
-  font-size: var(--font-size-3xl);
-  line-height: 1.15;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text-muted, var(--text-secondary, inherit));
 }
 
 .cf-intro-compact {
