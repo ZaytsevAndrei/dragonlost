@@ -168,6 +168,7 @@ function Rewards() {
   return (
     <div className="rewards">
       <div className="rewards-header">
+        <span className="rewards-header-badge">🎰 Казино Bandit Camp</span>
         <h1>Ежедневная награда</h1>
         <p className="rewards-subtitle">
           Крутите колесо раз в день — как в казино Bandit Camp в Rust. 25 секторов, награда в монетах на баланс.
@@ -228,10 +229,22 @@ function Rewards() {
       <div className="reward-rules">
         <h3>Как это работает</h3>
         <ul>
-          <li>Одно вращение в сутки — отсчёт с 00:00 по Москве</li>
-          <li>Нажмите на колесо, дождитесь остановки — монеты зачисляются сразу</li>
-          <li>Серия дней сохраняется при ежедневном входе; пропуск сбрасывает счётчик</li>
-          <li>Результат определяет сервер — анимация совпадает с выпавшим сектором</li>
+          <li>
+            <span className="rule-number">1</span>
+            <span>Одно вращение в сутки — отсчёт с 00:00 по Москве</span>
+          </li>
+          <li>
+            <span className="rule-number">2</span>
+            <span>Нажмите на колесо, дождитесь остановки — монеты зачисляются сразу</span>
+          </li>
+          <li>
+            <span className="rule-number">3</span>
+            <span>Серия дней сохраняется при ежедневном входе; пропуск сбрасывает счётчик</span>
+          </li>
+          <li>
+            <span className="rule-number">4</span>
+            <span>Результат определяет сервер — анимация совпадает с выпавшим сектором</span>
+          </li>
         </ul>
       </div>
     </div>
