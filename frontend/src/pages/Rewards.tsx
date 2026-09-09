@@ -168,10 +168,10 @@ function Rewards() {
   return (
     <div className="rewards">
       <div className="rewards-header">
-        <span className="rewards-header-badge">🎰 Казино Bandit Camp</span>
+        <span className="rewards-header-badge">🎡 Колесо фортуны</span>
         <h1>Ежедневная награда</h1>
         <p className="rewards-subtitle">
-          Крутите колесо раз в день — как в казино Bandit Camp в Rust. 25 секторов, награда в монетах на баланс.
+          Крутите колесо раз в день — как в Rust. 25 секторов, награда в монетах на баланс.
         </p>
       </div>
 
