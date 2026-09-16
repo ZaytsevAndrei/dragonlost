@@ -76,12 +76,15 @@ import telegramRoutes from './routes/telegram';
 import botApiRoutes from './routes/botApi';
 import conveyorFiltersRoutes from './routes/conveyorFilters';
 import webhooksRoutes from './routes/webhooks';
+import metaRoutes from './routes/meta';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import { csrfProtection, ensureCsrfToken } from './middleware/csrf';
 import { EncryptedSessionStore } from './config/encryptedSessionStore';
 import { scheduleDataCleanup } from './services/dataCleanup';
 import { scheduleMapVoteTasks } from './services/mapVoteScheduler';
+import { scheduleWipeNotificationTasks } from './services/wipeNotifications';
+import { isTelegramChannelConfigured } from './services/telegramChannel';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -91,9 +94,13 @@ app.set('trust proxy', 1);
 
 // Security middleware.
 // Разрешаем использовать изображения/статику с backend-origin в frontend (другой origin в dev).
+// CSP/COEP отключены: SSR-lite meta-роут отдаёт SPA index.html с inline-скриптом
+// темы и кросс-доменными картинками (Steam-аватары).
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
   })
 );
 app.use(compression());
@@ -192,6 +199,10 @@ app.use('/api/admin/vouchers', adminVouchersRoutes);
 app.use('/api/telegram', telegramRoutes);
 app.use('/api/conveyor-filters', conveyorFiltersRoutes);
 
+// SSR-lite: index.html с подставленными title/OG под маршрут.
+// Nginx проксирует сюда /player/*, /leaders и /wipe (см. nginx-production.conf).
+app.use(['/player', '/leaders', '/wipe'], metaRoutes);
+
 // Error handling
 app.use(errorHandler);
 
@@ -205,4 +216,13 @@ app.listen(PORT, () => {
 
   // Cron: голосование по окну вайпа, рестарт 17:30 / 20:30 МСК
   scheduleMapVoteTasks();
+
+  // Cron: уведомления о вайпах подписчикам бота + автопост в Telegram-канал
+  scheduleWipeNotificationTasks();
+  if (!isTelegramChannelConfigured()) {
+    console.warn(
+      '⚠️ TELEGRAM_CHANNEL_ID не задан — автопостинг вайпов в Telegram-канал отключён ' +
+        '(добавьте бота администратором канала и укажите ID канала в .env)'
+    );
+  }
 });

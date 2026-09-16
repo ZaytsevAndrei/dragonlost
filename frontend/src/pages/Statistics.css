@@ -29,6 +29,36 @@
   font-size: var(--font-size-sm);
 }
 
+.stats-leaders-link {
+  flex: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.stats-leaders-link:hover {
+  border-color: var(--brand-500);
+  color: var(--brand-400);
+}
+
+.stats-player-link {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.stats-player-link:hover {
+  color: var(--brand-400);
+  text-decoration: underline;
+}
+
 .columns-badge {
   padding: 6px 10px;
   border-radius: var(--radius-sm);

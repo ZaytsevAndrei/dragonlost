@@ -93,6 +93,21 @@ SESSION_SECRET=your_random_secret
 
 # CORS Configuration
 CORS_ORIGIN=http://localhost:3000
+
+# Telegram-бот (бонусы + уведомления о вайпах)
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_BOT_USERNAME=DragonLostBot
+BOT_API_KEY=shared_secret_between_backend_and_bot
+SITE_URL=https://dragonlost.ru
+API_URL=http://127.0.0.1:5000/api
+
+# Автопостинг о вайпах в Telegram-канал (необязательно):
+# добавьте бота администратором канала и укажите @username или ID (-100...)
+TELEGRAM_CHANNEL_ID=
+
+# Каталог собранного фронтенда для SSR-lite meta (необязательно,
+# по умолчанию ../../frontend/dist относительно backend)
+FRONTEND_DIST=
 ```
 
 Создайте файл `frontend/.env`:
@@ -227,6 +242,29 @@ npx ts-node src/scripts/announceWipeFarmTops.ts
 ```powershell
 npx ts-node src/scripts/creditPendingWipeFarmRewards.ts
 ```
+
+## 🌐 SEO, публичные страницы и вайпы
+
+### Публичный контент для шаринга
+
+- **`/leaders`** — публичный топ игроков за текущий вайп (время, киллы, K/D, хедшоты, ресурсы). Сортировка на сервере: `GET /api/stats/leaderboard?metric=time|kills|kd|headshots|sulfur|wood|stones|metal&limit=50`.
+- **`/player/:steamid`** — публичный профиль игрока по SteamID64: `GET /api/stats/:steamid` (без авторизации, аватар и имя из Steam API с кэшем).
+- **`/wipe`** — расписание вайпов с обратным отсчётом; такой же виджет отсчёта встроен на главную.
+
+### SSR-lite для превью ссылок
+
+Nginx проксирует `/player/*`, `/leaders` и `/wipe` на backend (`location ~ ^/(player|leaders|wipe)(/|$)`), который отдаёт `index.html` с подставленными `<title>`, `description` и Open Graph под конкретную страницу (`backend/src/routes/meta.ts`). Благодаря этому Discord/Telegram/VK и поисковики видят корректное превью ссылки без выполнения JS. Путь к собранному фронтенду задаётся `FRONTEND_DIST` (по умолчанию — `frontend/dist` рядом с backend).
+
+Миграция: `npm run migrate:019` (в папке `backend/`).
+
+### Автопостинг вайпов в Telegram
+
+Управляется переменными `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHANNEL_ID` (бот — администратор канала). Без них функции тихо отключены.
+
+Что отправляется:
+
+- **Канал**: анонс за 24 часа до вайпа; пост «вайп выполнен» — дата, размер карты, сид, онлайн перед вайпом.
+- **Подписчики бота** (`/subscribe` в боте): напоминания за 24 часа и за 1 час, пост о выполненном вайпе. Команда `/wipes` показывает расписание. Таблицы: `telegram_wipe_subscribers`, `telegram_wipe_notify_log` (защита от дублей после рестарта).
 
 ## 🤝 Вклад в проект
 

@@ -91,3 +91,45 @@ export function claimBonus(telegramId: number): Promise<BonusResult> {
     body: { telegram_id: telegramId },
   });
 }
+
+export interface WipeScheduleInfo {
+  upcoming: Array<{ at: string; isAnchor: boolean }>;
+  hint: string;
+}
+
+export function getWipeSchedule(): Promise<WipeScheduleInfo> {
+  return request<WipeScheduleInfo>('/wipe-schedule');
+}
+
+export interface WipeSubscriptionResult {
+  success: boolean;
+  subscribed: boolean;
+}
+
+export function subscribeToWipeNotifications(
+  telegramId: number,
+  telegramUsername?: string | null,
+): Promise<WipeSubscriptionResult> {
+  return request<WipeSubscriptionResult>('/wipe-subscriptions/subscribe', {
+    method: 'POST',
+    body: {
+      telegram_id: telegramId,
+      telegram_username: telegramUsername ?? null,
+    },
+  });
+}
+
+export function unsubscribeFromWipeNotifications(telegramId: number): Promise<WipeSubscriptionResult> {
+  return request<WipeSubscriptionResult>('/wipe-subscriptions/unsubscribe', {
+    method: 'POST',
+    body: { telegram_id: telegramId },
+  });
+}
+
+export interface WipeSubscriptionStatus {
+  subscribed: boolean;
+}
+
+export function getWipeSubscriptionStatus(telegramId: number): Promise<WipeSubscriptionStatus> {
+  return request<WipeSubscriptionStatus>(`/wipe-subscriptions/${telegramId}`);
+}

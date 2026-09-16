@@ -15,6 +15,9 @@ import VouchersAdmin from './pages/VouchersAdmin';
 import AdminLayout from './pages/AdminLayout';
 import AdminHome from './pages/AdminHome';
 import Voting from './pages/Voting';
+import WipeSchedule from './pages/WipeSchedule';
+import Leaders from './pages/Leaders';
+import PlayerProfile from './pages/PlayerProfile';
 import ConveyorFiltersLayout from './pages/conveyorfilters/ConveyorFiltersLayout';
 import FiltersPage from './pages/conveyorfilters/FiltersPage';
 import MyFiltersPage from './pages/conveyorfilters/MyFiltersPage';
@@ -76,6 +79,9 @@ function App() {
             <Route path="/payment/success" element={<PaymentReturnRedirect status="success" />} />
             <Route path="/payment/fail" element={<PaymentReturnRedirect status="fail" />} />
             <Route path="/stats" element={<Statistics />} />
+            <Route path="/leaders" element={<Leaders />} />
+            <Route path="/player/:steamid" element={<PlayerProfile />} />
+            <Route path="/wipe" element={<WipeSchedule />} />
             <Route path="/vote" element={<Voting />} />
             <Route path="/conveyorfilters" element={<ConveyorFiltersLayout />}>
               <Route index element={<FiltersPage />} />

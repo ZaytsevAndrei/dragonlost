@@ -1,5 +1,14 @@
 import { Bot } from 'grammy';
-import { BotApiError, claimBonus, getBotStatus, linkAccount } from './apiClient';
+import {
+  BotApiError,
+  claimBonus,
+  getBotStatus,
+  linkAccount,
+  getWipeSchedule,
+  getWipeSubscriptionStatus,
+  subscribeToWipeNotifications,
+  unsubscribeFromWipeNotifications,
+} from './apiClient';
 import { formatDuration } from './format';
 import { getSiteUrl, getTelegramBotToken, getBotApiKey } from './env';
 
@@ -21,12 +30,15 @@ const bot = new Bot(token);
 const WELCOME_TEXT = [
   '🐉 <b>DragonLost Bot</b>',
   '',
-  'Бонусы для сервера Rust DragonLost — предметы попадают в инвентарь на сайте.',
+  'Бонусы и вайп-уведомления для сервера Rust DragonLost.',
   '',
   '<b>Команды:</b>',
   '/link КОД — привязать Steam (код на сайте)',
   '/bonus — бонус в инвентарь (раз в 12 часов)',
   '/status — статус и кулдаун',
+  '/wipes — расписание ближайших вайпов',
+  '/subscribe — уведомления о вайпах (за 24ч и за 1ч)',
+  '/unsubscribe — отключить уведомления',
   '',
   `🌐 <a href="${siteUrl}">dragonlost.ru</a>`,
   `📦 <a href="${siteUrl}/inventory">Инвентарь</a>`,
@@ -151,6 +163,85 @@ bot.command('bonus', async (ctx) => {
       await ctx.reply(`⏳ Бонус ещё недоступен.\n\nПодождите ещё ${wait}.\n\nИспользуйте /status для проверки.`);
       return;
     }
+    await ctx.reply(formatApiError(error));
+  }
+});
+
+function formatWipeIn(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const remainder = seconds % 86400;
+  if (days > 0 && remainder >= 60) return `${days} дн ${formatDuration(remainder)}`;
+  if (days > 0) return `${days} дн`;
+  return formatDuration(seconds);
+}
+
+bot.command('wipes', async (ctx) => {
+  try {
+    const schedule = await getWipeSchedule();
+
+    if (schedule.upcoming.length === 0) {
+      await ctx.reply('Не удалось определить расписание вайпов. Попробуйте позже.');
+      return;
+    }
+
+    const lines = ['⏳ <b>Ближайшие вайпы:</b>', ''];
+    schedule.upcoming.forEach((wipe, index) => {
+      const date = new Date(wipe.at);
+      const dateLabel = date.toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const secondsLeft = Math.max(0, Math.floor((date.getTime() - Date.now()) / 1000));
+      const kind = wipe.isAnchor ? 'первый четверг' : 'промежуточный';
+      lines.push(`${index + 1}. ${dateLabel} МСК — ${kind} (через ${formatWipeIn(secondsLeft)})`);
+    });
+
+    lines.push(
+      '',
+      `📅 <a href="${siteUrl}/wipe">Полное расписание</a>`,
+      '🔔 Уведомления о вайпах: /subscribe'
+    );
+
+    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+  } catch (error) {
+    await ctx.reply(formatApiError(error));
+  }
+});
+
+bot.command('subscribe', async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  try {
+    await subscribeToWipeNotifications(telegramId, ctx.from?.username ?? null);
+    await ctx.reply(
+      [
+        '🔔 <b>Подписка оформлена!</b>',
+        '',
+        'Напомню за 24 часа и за 1 час до вайпа, а также сообщу, когда вайп выполнен (дата, размер карты, сид, онлайн).',
+        '',
+        'Отписаться: /unsubscribe',
+        `📅 <a href="${siteUrl}/wipe">Расписание вайпов</a>`,
+      ].join('\n'),
+      { parse_mode: 'HTML', link_preview_options: { is_disabled: true } },
+    );
+  } catch (error) {
+    await ctx.reply(formatApiError(error));
+  }
+});
+
+bot.command('unsubscribe', async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  try {
+    await unsubscribeFromWipeNotifications(telegramId);
+    await ctx.reply('🔕 Уведомления о вайпах отключены. Вернуть их можно командой /subscribe.');
+  } catch (error) {
     await ctx.reply(formatApiError(error));
   }
 });

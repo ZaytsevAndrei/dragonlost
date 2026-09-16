@@ -1,0 +1,202 @@
+.wipe-schedule {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.wipe-schedule-header h1 {
+  margin: 0;
+  font-size: 32px;
+  color: var(--text-primary);
+}
+
+.wipe-schedule-subtitle {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+}
+
+.wipe-schedule-section h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.wipe-schedule-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+}
+
+.wipe-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+.wipe-schedule-table th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.wipe-schedule-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.wipe-schedule-table tr:last-child td {
+  border-bottom: none;
+}
+
+.wipe-schedule-table tr.is-anchor td {
+  background: rgba(245, 197, 66, 0.04);
+}
+
+.wipe-date-cell {
+  font-weight: 600;
+  color: var(--text-primary) !important;
+}
+
+.wipe-time-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary) !important;
+}
+
+.wipe-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-400);
+  background: rgba(255, 106, 26, 0.1);
+  border: 1px solid rgba(255, 106, 26, 0.3);
+}
+
+.wipe-type-badge.anchor {
+  color: var(--warning-500);
+  background: rgba(245, 197, 66, 0.08);
+  border-color: rgba(245, 197, 66, 0.3);
+}
+
+.wipe-vote-cell {
+  font-size: 14px;
+}
+
+.wipe-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.wipe-rule-card {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.wipe-rule-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex: none;
+}
+
+.wipe-rule-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.wipe-rule-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.wipe-rule-card a {
+  color: var(--brand-400);
+}
+
+.wipe-rules-hint {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.wipe-cta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.wipe-cta-card {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-elevated));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.wipe-cta-card:hover {
+  border-color: var(--brand-500);
+  transform: translateY(-2px);
+}
+
+.wipe-cta-card--static:hover {
+  border-color: var(--border);
+  transform: none;
+}
+
+.wipe-cta-icon {
+  font-size: 26px;
+  line-height: 1;
+  flex: none;
+}
+
+.wipe-cta-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.wipe-cta-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.wipe-cta-code {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: var(--brand-400);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .wipe-schedule {
+    padding: 20px 14px 48px;
+    gap: 28px;
+  }
+
+  .wipe-schedule-header h1 {
+    font-size: 26px;
+  }
+}

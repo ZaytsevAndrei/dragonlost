@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { rustPool } from '../config/database';
 import { RowDataPacket } from 'mysql2';
-import { isAuthenticated, isAdmin } from '../middleware/auth';
+import { isAdmin } from '../middleware/auth';
 import { sensitiveRateLimiter } from '../middleware/rateLimiter';
 import {
   subtractWipeBaseline,
@@ -12,6 +12,7 @@ import {
   snapshotWipeBaselines,
   fetchLatestClosedMapVoteSessionId,
 } from '../services/statsWipeService';
+import { getSteamProfile } from '../services/steamProfile';
 
 const router = Router();
 
@@ -156,11 +157,111 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * Публичный лидерборд: топ игроков по метрике текущего вайпа.
+ * Датасет парсится один раз и кэшируется на 60 секунд,
+ * сортировка по метрике выполняется на сервере.
+ */
+type ParsedPlayer = ReturnType<typeof parsePlayerRow>;
+
+type LeaderboardMetric =
+  | 'time'
+  | 'kills'
+  | 'kd'
+  | 'headshots'
+  | 'wood'
+  | 'stones'
+  | 'metal'
+  | 'sulfur';
+
+const LEADERBOARD_METRICS: Record<LeaderboardMetric, (p: ParsedPlayer) => number> = {
+  time: (p) => p.stats.secondsPlayed,
+  kills: (p) => p.stats.kills,
+  kd: (p) => p.stats.kd,
+  headshots: (p) => p.stats.headshots,
+  wood: (p) => p.resources.wood,
+  stones: (p) => p.resources.stones,
+  metal: (p) => p.resources.metalOre,
+  sulfur: (p) => p.resources.sulfurOre,
+};
+
+const LEADERBOARD_CACHE_TTL_MS = 60 * 1000;
+let leaderboardCache: {
+  players: ParsedPlayer[];
+  fetchedAt: number;
+  wipeStats: boolean;
+  wipedAt: string | null;
+} | null = null;
+
+async function fetchLeaderboardDataset(): Promise<NonNullable<typeof leaderboardCache>> {
+  if (leaderboardCache && Date.now() - leaderboardCache.fetchedAt < LEADERBOARD_CACHE_TTL_MS) {
+    return leaderboardCache;
+  }
+
+  const wipeSinceUnix = await getWipeSinceUnix();
+
+  const [rows] = await rustPool.query<RowDataPacket[]>(
+    wipeSinceUnix != null
+      ? 'SELECT * FROM PlayerDatabase WHERE `Last Seen` >= ?'
+      : 'SELECT * FROM PlayerDatabase',
+    wipeSinceUnix != null ? [wipeSinceUnix] : []
+  );
+
+  const useWipeStats = await hasWipeBaselines();
+  const baselines = useWipeStats
+    ? await getBaselinesForSteamIds(rows.map((r) => String(r.steamid || '')))
+    : new Map<string, Record<string, unknown>>();
+  const wipeMeta = useWipeStats ? await getWipeMeta() : { wipedAt: null, mapVoteSessionId: null };
+
+  const players = rows.map((row) => {
+    const steamid = String(row.steamid || '');
+    const baseline = useWipeStats ? baselines.get(steamid) ?? {} : undefined;
+    // Полный steamid нужен для публичных профилей игроков (/player/:steamid)
+    return parsePlayerRow(row, true, false, baseline);
+  });
+
+  leaderboardCache = {
+    players,
+    fetchedAt: Date.now(),
+    wipeStats: useWipeStats,
+    wipedAt: wipeMeta.wipedAt ? wipeMeta.wipedAt.toISOString() : null,
+  };
+  return leaderboardCache;
+}
+
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const metric = (req.query.metric as string) || 'time';
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+
+    const accessor = LEADERBOARD_METRICS[metric as LeaderboardMetric];
+    if (!accessor) {
+      return res.status(400).json({ error: 'Unknown leaderboard metric' });
+    }
+
+    const dataset = await fetchLeaderboardDataset();
+    const leaders = [...dataset.players]
+      .sort((a, b) => accessor(b) - accessor(a))
+      .slice(0, limit)
+      .map((player, index) => ({ rank: index + 1, ...player }));
+
+    res.json({
+      metric,
+      leaders,
+      wipeStats: dataset.wipeStats,
+      wipedAt: dataset.wipedAt,
+    });
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error instanceof Error ? error.message : 'Unknown');
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
 /** Steam ID64 — 17 цифр */
 const STEAMID64_REGEX = /^\d{17}$/;
 
-// Get player statistics by Steam ID (requires authentication)
-router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
+// Публичная статистика игрока по Steam ID (для страницы /player/:steamid и OG-превью)
+router.get('/:steamid', sensitiveRateLimiter, async (req, res) => {
   try {
     const { steamid } = req.params;
 
@@ -189,8 +290,16 @@ router.get('/:steamid', sensitiveRateLimiter, isAuthenticated, async (req, res) 
 
     const player = parsePlayerRow(rows[0], true, true, useWipeStats ? baselines.get(steamid) ?? {} : undefined);
 
+    let steam: { personaname: string; avatarfull: string; profileurl?: string } | null = null;
+    try {
+      steam = await getSteamProfile(steamid);
+    } catch {
+      steam = null;
+    }
+
     res.json({
       player,
+      steam,
       wipeStats: useWipeStats,
       wipedAt: wipeMeta.wipedAt ? wipeMeta.wipedAt.toISOString() : null,
     });

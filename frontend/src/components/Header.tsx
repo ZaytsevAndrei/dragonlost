@@ -53,6 +53,12 @@ function Header() {
             <NavLink to="/stats" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Статистика
             </NavLink>
+            <NavLink to="/leaders" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              Топ игроков
+            </NavLink>
+            <NavLink to="/wipe" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              Вайпы
+            </NavLink>
             <NavLink to="/vote" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Голосование
             </NavLink>

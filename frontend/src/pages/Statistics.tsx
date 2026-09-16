@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 import StatePanel from '../components/StatePanel';
 import type { PlayerStats } from '../types';
@@ -259,6 +260,7 @@ function Statistics() {
               <p className="stats-wipe-hint">Показатели за текущий вайп с {wipePeriodLabel} (МСК)</p>
             )}
           </div>
+          <Link to="/leaders" className="stats-leaders-link">🏆 Топ игроков</Link>
         </div>
         
         <div className="stats-filters">
@@ -304,7 +306,15 @@ function Statistics() {
           <tbody>
             {sortedPlayers.map((player) => (
               <tr key={player.id}>
-                <td className="player-name">{player.name || 'Неизвестный игрок'}</td>
+                <td className="player-name">
+                  {player.steamid && player.steamid.length === 17 ? (
+                    <Link to={`/player/${player.steamid}`} className="stats-player-link">
+                      {player.name || 'Неизвестный игрок'}
+                    </Link>
+                  ) : (
+                    player.name || 'Неизвестный игрок'
+                  )}
+                </td>
                 {activeColumns.map((column) => (
                   <td key={`${player.id}-${column.key}`} className={column.cellClassName}>
                     {column.render(player)}

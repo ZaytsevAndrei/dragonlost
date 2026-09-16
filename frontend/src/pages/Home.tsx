@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import HomeHero from '../components/HomeHero';
 import ServerStatus from '../components/ServerStatus';
+import WipeCountdown from '../components/WipeCountdown';
 import { useAuthStore } from '../store/authStore';
 import './Home.css';
 
@@ -69,6 +70,10 @@ function Home() {
   return (
     <div className="home">
       <HomeHero />
+
+      <AnimatedSection className="home-section--wipe" id="wipe">
+        <WipeCountdown variant="home" />
+      </AnimatedSection>
 
       <AnimatedSection className="home-section--features" id="features">
         <header className="home-section-header">

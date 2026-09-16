@@ -8,6 +8,7 @@ import {
   fetchLatestClosedMapVoteSessionId,
 } from './statsWipeService';
 import { announceWipeFarmTops, isWipeFarmSummaryCronDisabled } from './wipeFarmSummary';
+import { announceWipeExecuted } from './wipeNotifications';
 import {
   findWipeNear,
   upcomingWipeInstants,
@@ -374,8 +375,8 @@ export async function notifyVoteClosed(sessionId: number, winnerId: number | nul
   }
 }
 
-/** Вайп по расписанию: seed/size победителя → панель / RCON. */
-async function runScheduledGameServerWipe(): Promise<void> {
+/** Вайп по расписанию: seed/size победителя → панель / RCON + анонсы в Telegram. */
+async function runScheduledGameServerWipe(wipeAt: Date): Promise<void> {
   try {
     try {
       const sessionId = await fetchLatestClosedMapVoteSessionId();
@@ -415,6 +416,13 @@ async function runScheduledGameServerWipe(): Promise<void> {
         `Канал: **${r.mode}** — ${modeHint}\n` +
         `seed **${r.seed}**, size **${r.size}**.`
     );
+
+    // Пост в Telegram-канал + рассылка подписчикам бота (дата, размер, сид, онлайн)
+    try {
+      await announceWipeExecuted({ wipeAt, seed: r.seed ?? null, mapSize: r.size ?? null });
+    } catch (tgErr) {
+      console.error('[WipeNotify] Ошибка анонса вайпа в Telegram:', tgErr instanceof Error ? tgErr.message : tgErr);
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[GameServer] Ошибка перезапуска:', msg);
@@ -473,7 +481,7 @@ async function maybeRunWipeNow(): Promise<void> {
     if (dt < 0 || dt > 4 * 60 * 1000) continue;
     wipeExecutedForWipeMs.add(key);
     console.log(`🔄 [GameServer] Вайп по расписанию ${w.toISOString()}`);
-    await runScheduledGameServerWipe();
+    await runScheduledGameServerWipe(w);
     return;
   }
   const near = findWipeNear(new Date(), 90_000);
@@ -482,7 +490,7 @@ async function maybeRunWipeNow(): Promise<void> {
   if (wipeExecutedForWipeMs.has(key)) return;
   wipeExecutedForWipeMs.add(key);
   console.log(`🔄 [GameServer] Вайп по расписанию ${near.toISOString()}`);
-  await runScheduledGameServerWipe();
+  await runScheduledGameServerWipe(near);
 }
 
 /** Cron: автостарт голосования по окну вайпа, рестарт 17:30/20:30, фарма за 30 мин. */

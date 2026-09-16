@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="dl-ember" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb066"/>
+      <stop offset="0.5" stop-color="#ff6a1a"/>
+      <stop offset="1" stop-color="#d8430c"/>
+    </linearGradient>
+    <linearGradient id="dl-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a2230"/>
+      <stop offset="1" stop-color="#0c1018"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#dl-bg)" stroke="#2a3342" stroke-width="1.5"/>
+  <path d="M20 21 L24 10 L28 19 Z" fill="url(#dl-ember)"/>
+  <path d="M31 18 L32 7 L39 15 Z" fill="url(#dl-ember)"/>
+  <path d="M43 19 L50 10 L52 21 Z" fill="url(#dl-ember)"/>
+  <path d="M9 34 C 19 22, 45 22, 55 34 C 45 46, 19 46, 9 34 Z" fill="#0c1018" stroke="url(#dl-ember)" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M32 27 C 29.2 31, 29.2 37, 32 41 C 34.8 37, 34.8 31, 32 27 Z" fill="url(#dl-ember)"/>
+</svg>

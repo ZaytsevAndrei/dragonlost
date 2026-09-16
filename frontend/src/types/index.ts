@@ -53,6 +53,33 @@ export interface PlayerResponse {
   player: PlayerStats;
 }
 
+// Публичный лидерборд
+export interface LeaderboardEntry extends PlayerStats {
+  rank: number;
+  steamid: string;
+}
+
+export interface LeaderboardResponse {
+  metric: string;
+  leaders: LeaderboardEntry[];
+  wipeStats: boolean;
+  wipedAt: string | null;
+}
+
+// Публичный профиль игрока
+export interface SteamProfileInfo {
+  personaname: string;
+  avatarfull: string;
+  profileurl?: string;
+}
+
+export interface PlayerProfileResponse {
+  player: PlayerStats;
+  steam: SteamProfileInfo | null;
+  wipeStats: boolean;
+  wipedAt: string | null;
+}
+
 export interface AuthResponse {
   user: User | null;
 }
