@@ -188,14 +188,14 @@ async function autoStartMapVoteBeforeWipe(): Promise<void> {
       return;
     }
 
-    const sizeA = parseInt(process.env.MAP_VOTE_AUTO_SIZE_A || '3250', 10);
-    const sizeB = parseInt(process.env.MAP_VOTE_AUTO_SIZE_B || '3250', 10);
-    const countA = parseInt(process.env.MAP_VOTE_AUTO_COUNT_A || '5', 10);
-    const countB = parseInt(process.env.MAP_VOTE_AUTO_COUNT_B || '5', 10);
+    // Группы карт для голосования: по 3 карты каждого размера
+    const sizeGroups = [3250, 3500, 3750];
+    const countPerGroup = 3;
 
-    const mapsA = await generateRandomMaps(sizeA, Math.min(10, Math.max(1, countA)));
-    const mapsB = await generateRandomMaps(sizeB, Math.min(10, Math.max(1, countB)));
-    const maps = [...mapsA, ...mapsB].filter((m) => m.ready && m.seed > 0 && m.size > 0);
+    const groupResults = await Promise.all(
+      sizeGroups.map((size) => generateRandomMaps(size, countPerGroup))
+    );
+    const maps = groupResults.flat().filter((m) => m.ready && m.seed > 0 && m.size > 0);
 
     if (maps.length < 2) {
       await sendDiscordNotification(
