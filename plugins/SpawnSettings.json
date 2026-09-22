@@ -9,5 +9,7 @@
   "spawn.max_density": 1.2,
   "spawn.player_base": 50,
   "spawn.player_scale": 2.0,
-  "Дополнительные convars (имя = значение, необязательно)": {}
+  "Дополнительные convars (имя = значение, необязательно)": {
+    "eventschedulewipeoffset.event_hours_before_wipe": "0"
+  }
 }
