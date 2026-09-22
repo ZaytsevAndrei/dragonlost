@@ -68,9 +68,9 @@ function WipeCountdown({ variant = 'home' }: WipeCountdownProps) {
           {wipeAt && (
             <p className="wipe-countdown-date">
               {formatWipeDateMsk(wipeAt)} МСК
-              <span className={`wipe-countdown-kind${isAnchor ? ' anchor' : ''}`}>
-                {isAnchor ? 'первый четверг' : 'через 10 дней'}
-              </span>
+              {isAnchor && (
+                <span className="wipe-countdown-kind anchor">первый четверг</span>
+              )}
             </p>
           )}
         </div>
