@@ -202,6 +202,97 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
   }
 });
 
+router.post('/use-all', isAuthenticated, async (req, res) => {
+  const connection = await webPool.getConnection();
+
+  try {
+    const steamid = req.user!.steamid;
+
+    await connection.beginTransaction();
+
+    const [items] = await connection.query<InventoryItemRow[]>(
+      `SELECT pi.*, si.name, si.rust_item_code, si.quantity as item_quantity
+       FROM player_inventory pi
+       JOIN shop_items si ON pi.shop_item_id = si.id
+       WHERE pi.steamid = ? AND pi.status = 'pending'
+       ORDER BY pi.purchased_at ASC
+       FOR UPDATE`,
+      [steamid]
+    );
+
+    if (items.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Нет предметов, ожидающих получения' });
+    }
+
+    if (!rconService.isConfigured()) {
+      await connection.rollback();
+      return res.status(503).json({
+        error: 'Выдача предметов временно недоступна (RCON не настроен)',
+      });
+    }
+
+    try {
+      const isOnline = await rconService.isPlayerOnline(steamid);
+      if (!isOnline) {
+        await connection.rollback();
+        return res.status(400).json({
+          error: 'Вы должны быть онлайн на сервере, чтобы получить предметы',
+        });
+      }
+    } catch (onlineCheckError: unknown) {
+      const message = onlineCheckError instanceof Error ? onlineCheckError.message : String(onlineCheckError);
+      console.error('RCON online check failed:', message);
+      await connection.rollback();
+      return res.status(502).json({
+        error: 'Не удалось проверить онлайн-статус. Попробуйте позже.',
+      });
+    }
+
+    let delivered = 0;
+    let failed = 0;
+
+    for (const item of items) {
+      try {
+        const components = parseBundleCode(item.rust_item_code);
+        const kitCount = Number(item.quantity) || 1;
+        for (const component of components) {
+          await rconService.giveItem(steamid, component.code, component.quantity * kitCount);
+        }
+
+        await connection.query(
+          "UPDATE player_inventory SET status = 'delivered', delivered_at = NOW() WHERE id = ? AND status = 'pending'",
+          [item.id]
+        );
+        delivered += 1;
+      } catch (rconError: unknown) {
+        const message = rconError instanceof Error ? rconError.message : String(rconError);
+        console.error(`RCON delivery failed for inventory item ${item.id}:`, message);
+        failed += 1;
+      }
+    }
+
+    await connection.commit();
+
+    return res.json({
+      success: delivered > 0,
+      delivered,
+      failed,
+      message:
+        failed === 0
+          ? `Выдано предметов: ${delivered}`
+          : `Выдано: ${delivered}, не удалось выдать: ${failed}. Попробуйте получить оставшиеся позже.`,
+    });
+  } catch (error: unknown) {
+    await connection.rollback();
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error using all items:', message);
+    return res.status(500).json({ error: 'Failed to use items' });
+  } finally {
+    connection.release();
+  }
+});
+
 router.get('/transactions', isAuthenticated, async (req, res) => {
   try {
     const steamid = req.user!.steamid;
