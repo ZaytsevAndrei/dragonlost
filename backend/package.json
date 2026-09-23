@@ -14,7 +14,8 @@
     "migrate:018": "node scripts/run-sql-migration.mjs database/migrations/018-conveyor-filter-cover-category.sql",
     "migrate:019": "node scripts/run-sql-migration.mjs database/migrations/019-telegram-wipe-subscribers.sql",
     "migrate:020": "node scripts/run-sql-migration.mjs database/migrations/020-shop-bundles.sql",
-    "migrate:021": "node scripts/run-sql-migration.mjs database/migrations/021-voucher-wipe-repeat.sql"
+    "migrate:021": "node scripts/run-sql-migration.mjs database/migrations/021-voucher-wipe-repeat.sql",
+    "migrate:022": "node scripts/run-sql-migration.mjs database/migrations/022-voucher-codes-missing-columns.sql"
   },
   "dependencies": {
     "compression": "^1.7.4",
