@@ -183,7 +183,7 @@ async function playerMeta(steamid: string): Promise<PageMeta> {
 
     return {
       title: `${name} — статистика игрока | DragonLost`,
-      description: `Наиграно за вайп: ${hours}; убийств: ${kills}; K/D: ${kd}. Профиль игрока Rust-сервера DragonLost («LostDragon | WIPE 10 days | DUO», x1).`,
+      description: `Наиграно за вайп: ${hours}; убийств: ${kills}; K/D: ${kd}. Профиль игрока Rust-сервера DragonLost («DragonLost | WIPE 10 days | DUO», x1).`,
       url,
     };
   } catch (error) {
@@ -236,7 +236,7 @@ router.get('*', async (req: Request, res: Response) => {
     return sendPage(res, wipeMeta());
   }
   return sendPage(res, {
-    title: 'DragonLost — Rust сервер x1 «LostDragon | WIPE 10 days | DUO» | Вайпы каждые 10 дней',
+    title: 'DragonLost — Rust сервер x1 «DragonLost | WIPE 10 days | DUO» | Вайпы каждые 10 дней',
     description: 'Rust-сервер DragonLost: расписание вайпов, статистика игроков, магазин и награды.',
     url: SITE_URL + '/',
   });
