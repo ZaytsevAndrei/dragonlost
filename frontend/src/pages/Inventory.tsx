@@ -25,17 +25,6 @@ interface OnlineStatus {
   message: string;
 }
 
-interface DeliveredGroup {
-  shopItemId: number;
-  name: string;
-  description: string | null;
-  category: string;
-  imageUrl: string | null;
-  totalQuantity: number;
-  purchases: number;
-  lastDeliveredAt: string | null;
-}
-
 const CATEGORY_NAMES: Record<string, string> = {
   weapon: '🔫 Оружие',
   armor: '🛡️ Броня',
@@ -51,8 +40,6 @@ const CATEGORY_NAMES: Record<string, string> = {
   misc: '📁 Прочее',
   food: '🍎 Еда',
 };
-
-const PAGE_SIZE = 20;
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString('ru-RU', {
@@ -92,9 +79,6 @@ function Inventory() {
   const [usingItemId, setUsingItemId] = useState<number | null>(null);
   const [usingAll, setUsingAll] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [visibleDelivered, setVisibleDelivered] = useState(PAGE_SIZE);
 
   const fetchInventory = useCallback(async () => {
     try {
@@ -132,54 +116,6 @@ function Inventory() {
 
   const pendingItems = useMemo(() => inventory.filter((item) => item.status === 'pending'), [inventory]);
 
-  const deliveredList = useMemo(() => {
-    const groups = new Map<number, DeliveredGroup>();
-    for (const item of inventory) {
-      if (item.status !== 'delivered') continue;
-      const existing = groups.get(item.shop_item_id);
-      if (existing) {
-        existing.totalQuantity += item.quantity;
-        existing.purchases += 1;
-        if (item.delivered_at && (!existing.lastDeliveredAt || new Date(item.delivered_at) > new Date(existing.lastDeliveredAt))) {
-          existing.lastDeliveredAt = item.delivered_at;
-        }
-      } else {
-        groups.set(item.shop_item_id, {
-          shopItemId: item.shop_item_id,
-          name: item.item_name,
-          description: item.item_description,
-          category: item.item_category,
-          imageUrl: item.image_url,
-          totalQuantity: item.quantity,
-          purchases: 1,
-          lastDeliveredAt: item.delivered_at,
-        });
-      }
-    }
-    return [...groups.values()].sort(
-      (a, b) => new Date(b.lastDeliveredAt ?? 0).getTime() - new Date(a.lastDeliveredAt ?? 0).getTime()
-    );
-  }, [inventory]);
-
-  const deliveredCategories = useMemo(() => {
-    const categories = new Set(deliveredList.map((group) => group.category));
-    return [...categories].sort((a, b) => (CATEGORY_NAMES[a] ?? a).localeCompare(CATEGORY_NAMES[b] ?? b));
-  }, [deliveredList]);
-
-  const filteredDelivered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return deliveredList.filter((group) => {
-      if (categoryFilter && group.category !== categoryFilter) return false;
-      if (query && !group.name.toLowerCase().includes(query)) return false;
-      return true;
-    });
-  }, [deliveredList, search, categoryFilter]);
-
-  const totalDeliveredItems = useMemo(
-    () => inventory.filter((item) => item.status === 'delivered').reduce((sum, item) => sum + item.quantity, 0),
-    [inventory]
-  );
-
   const lastPurchaseAt = useMemo(() => {
     if (inventory.length === 0) return null;
     return inventory.reduce<string>(
@@ -187,11 +123,6 @@ function Inventory() {
       inventory[0].purchased_at
     );
   }, [inventory]);
-
-  useEffect(() => {
-    setCategoryFilter(null);
-    setVisibleDelivered(PAGE_SIZE);
-  }, [search]);
 
   const handleUseItem = useCallback(
     async (itemId: number) => {
@@ -278,10 +209,6 @@ function Inventory() {
           <span className="summary-label">⏳ Ожидают получения</span>
         </div>
         <div className="summary-card">
-          <span className="summary-value">{totalDeliveredItems}</span>
-          <span className="summary-label">✅ Получено предметов</span>
-        </div>
-        <div className="summary-card">
           <span className="summary-value">{lastPurchaseAt ? formatRelative(lastPurchaseAt) : '—'}</span>
           <span className="summary-label">📤 Последний вывод</span>
         </div>
@@ -349,87 +276,6 @@ function Inventory() {
               </article>
             ))}
           </div>
-        </section>
-      ) : null}
-
-      {deliveredList.length > 0 ? (
-        <section className="inventory-section">
-          <h2>✅ Полученные ({deliveredList.length})</h2>
-
-          {deliveredList.length > 5 || deliveredCategories.length > 1 ? (
-            <div className="inventory-filters">
-              <input
-                className="filter-search"
-                type="search"
-                placeholder="Поиск по названию..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <div className="filter-chips">
-                <button
-                  className={`filter-chip ${categoryFilter === null ? 'active' : ''}`}
-                  type="button"
-                  onClick={() => setCategoryFilter(null)}
-                >
-                  Все
-                </button>
-                {deliveredCategories.map((category) => (
-                  <button
-                    className={`filter-chip ${categoryFilter === category ? 'active' : ''}`}
-                    type="button"
-                    key={category}
-                    onClick={() => setCategoryFilter(category === categoryFilter ? null : category)}
-                  >
-                    {CATEGORY_NAMES[category] || category}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {filteredDelivered.length > 0 ? (
-            <div className="inventory-list">
-              {filteredDelivered.slice(0, visibleDelivered).map((group) => (
-                <article className="inventory-row delivered" key={group.shopItemId}>
-                  {group.imageUrl ? (
-                    <img
-                      className="row-image"
-                      src={getImageUrl(group.imageUrl)}
-                      alt={group.name}
-                      onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
-                    />
-                  ) : (
-                    <div className="row-image row-image-placeholder">📦</div>
-                  )}
-                  <div className="row-main">
-                    <div className="row-title">
-                      <span className="item-name">{group.name}</span>
-                      {group.totalQuantity > 1 ? <span className="quantity-badge">×{group.totalQuantity}</span> : null}
-                    </div>
-                    <div className="row-meta">
-                      <span className="item-category">{CATEGORY_NAMES[group.category] || group.category}</span>
-                      <span className="row-date" title={group.lastDeliveredAt ? formatDate(group.lastDeliveredAt) : ''}>
-                        {group.purchases > 1 ? `${group.purchases} покупок · ` : ''}
-                        {formatRelative(group.lastDeliveredAt)}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="filters-empty">Ничего не найдено</div>
-          )}
-
-          {filteredDelivered.length > visibleDelivered ? (
-            <button
-              className="btn-show-more"
-              type="button"
-              onClick={() => setVisibleDelivered((visible) => visible + PAGE_SIZE)}
-            >
-              Показать ещё ({filteredDelivered.length - visibleDelivered})
-            </button>
-          ) : null}
         </section>
       ) : null}
 
