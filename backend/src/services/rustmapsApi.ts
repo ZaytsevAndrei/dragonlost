@@ -20,25 +20,38 @@ export interface RustMapResult {
   thumbnailUrl: string | null;
   mapPageUrl: string;
   ready: boolean;
+  hasLaunchSite: boolean;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Обязательное наличие Космодрома (Launch Site) в кандидатах голосования. */
+function isLaunchSiteRequired(): boolean {
+  return (process.env.RUSTMAPS_REQUIRE_LAUNCH_SITE || 'true').trim().toLowerCase() !== 'false';
 }
 
-/** Интервал и число попыток ожидания генерации карты (как в админке — до 2 мин по умолчанию). */
-function getGenerationPollConfig(mapSize: number): { intervalMs: number; maxAttempts: number; timeoutMs: number } {
-  const intervalMs = Math.max(1000, parseInt(process.env.RUSTMAPS_POLL_INTERVAL_MS || '3000', 10));
-  const baseTimeoutMs = Math.max(intervalMs, parseInt(process.env.RUSTMAPS_GENERATION_TIMEOUT_MS || '120000', 10));
-  // Крупные карты (4750+) генерируются дольше — увеличиваем бюджет ожидания.
-  const sizeMultiplier = mapSize >= 4500 ? 1.5 : 1;
-  const timeoutMs = Math.round(baseTimeoutMs * sizeMultiplier);
-  const maxAttempts = Math.max(1, Math.ceil(timeoutMs / intervalMs));
-  return { intervalMs, maxAttempts, timeoutMs };
-}
+const LAUNCH_SITE_TOKEN = 'launchsite';
 
-function generateRandomSeed(): number {
-  return Math.floor(Math.random() * 2147483647) + 1;
+/**
+ * Проверяет наличие Космодрома в списке монументов из ответа API.
+ * Монументы приходят массивом строк или объектов — проверяем все строковые поля.
+ */
+function mapHasLaunchSite(map: Record<string, unknown> | null | undefined): boolean {
+  if (!map) return false;
+  const monuments = map.monuments ?? (map as { monumentCounts?: unknown }).monumentCounts;
+  if (!Array.isArray(monuments)) return false;
+
+  return monuments.some((m) => {
+    if (typeof m === 'string') return m.toLowerCase().replace(/[_\s-]/g, '') === LAUNCH_SITE_TOKEN;
+    if (m && typeof m === 'object') {
+      const obj = m as Record<string, unknown>;
+      for (const key of ['token', 'type', 'shortName', 'name', 'id']) {
+        const v = obj[key];
+        if (typeof v === 'string' && v.toLowerCase().replace(/[_\s-]/g, '') === LAUNCH_SITE_TOKEN) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
 }
 
 function shuffleInPlace<T>(arr: T[]): void {
@@ -89,6 +102,7 @@ function mapV4DtoToResult(map: Record<string, unknown>, ready: boolean): RustMap
     thumbnailUrl: (map.thumbnailUrl as string) || null,
     mapPageUrl: extractMapPageUrl(map, Number.isFinite(seed) ? seed : 0, Number.isFinite(size) ? size : 0),
     ready,
+    hasLaunchSite: mapHasLaunchSite(map),
   };
 }
 
@@ -166,83 +180,13 @@ async function getMapFromV2Api(seed: number, size: number): Promise<RustMapResul
       thumbnailUrl,
       mapPageUrl,
       ready: true,
+      // v2 не отдаёт список монументов — не отсеиваем, проверка ложится на v4-детали
+      hasLaunchSite: true,
     };
   } catch (err) {
     console.error(`[RustMaps] v2 GET ${seed}/${size}:`, err instanceof Error ? err.message : err);
     return null;
   }
-}
-
-/** Сначала v4 (канонический url), затем v2. */
-async function getMapFromApi(seed: number, size: number): Promise<RustMapResult | null> {
-  const v4 = await fetchV4MapBySeedSize(seed, size);
-  if (v4) return v4;
-  return getMapFromV2Api(seed, size);
-}
-
-async function triggerMapGeneration(seed: number, size: number): Promise<string | null> {
-  try {
-    const res = await fetch(`${RUSTMAPS_V2_BASE}/${seed}/${size}`, {
-      method: 'POST',
-      headers: { 'X-API-Key': getRustMapsApiKey() },
-    });
-
-    if (res.ok || res.status === 409) {
-      const json = await res.json() as Record<string, unknown>;
-      const map = (json.data as Record<string, unknown>) || json;
-      return (map.id as string) || (map.mapId as string) || null;
-    }
-
-    const v4Res = await fetch(`${RUSTMAPS_V4_BASE}`, {
-      method: 'POST',
-      headers: {
-        'X-API-Key': getRustMapsApiKey(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ seed, size, staging: RUST_STAGING }),
-    });
-
-    if (!v4Res.ok) return null;
-
-    const v4Json = await v4Res.json() as Record<string, unknown>;
-    const v4Map = getV4DataObject(v4Json) || ((v4Json.data as Record<string, unknown>) || v4Json);
-    return (v4Map.id as string) || (v4Map.mapId as string) || null;
-  } catch (err) {
-    console.error(`[RustMaps] trigger ${seed}/${size}:`, err instanceof Error ? err.message : err);
-    return null;
-  }
-}
-
-async function getOrGenerateMap(seed: number, size: number): Promise<RustMapResult> {
-  const existing = await getMapFromApi(seed, size);
-  if (existing) return existing;
-
-  const triggeredId = await triggerMapGeneration(seed, size);
-  const { intervalMs, maxAttempts, timeoutMs } = getGenerationPollConfig(size);
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await sleep(intervalMs);
-    if (triggeredId) {
-      const byId = await fetchV4MapById(triggeredId);
-      if (byId && byId.seed === seed && byId.size === size) return byId;
-    }
-    const result = await getMapFromApi(seed, size);
-    if (result) return result;
-  }
-
-  console.warn(
-    `[RustMaps] Таймаут генерации ${seed}/${size}: ${maxAttempts} попыток (~${Math.round(timeoutMs / 1000)} с)`,
-  );
-
-  return {
-    seed,
-    size,
-    mapId: triggeredId,
-    imageUrl: null,
-    thumbnailUrl: null,
-    mapPageUrl: extractMapPageUrl({ id: triggeredId || undefined }, seed, size),
-    ready: false,
-  };
 }
 
 interface MapThumbnailRow {
@@ -252,12 +196,25 @@ interface MapThumbnailRow {
   url?: string | null;
 }
 
-async function searchMapsPage(page: number, mapSize: number): Promise<MapThumbnailRow[]> {
+async function searchMapsPage(
+  page: number,
+  mapSize: number,
+  withMonumentFilter: boolean
+): Promise<{ rows: MapThumbnailRow[]; filtered: boolean }> {
   const url = new URL(`${RUSTMAPS_V4_BASE}/search`);
   url.searchParams.set('page', String(page));
   url.searchParams.set('staging', String(RUST_STAGING));
   url.searchParams.set('includeAllProtocols', 'false');
   url.searchParams.set('customMaps', 'false');
+
+  const searchQuery: Record<string, unknown> = {
+    size: { min: mapSize, max: mapSize },
+  };
+  // Пытаемся фильтровать по Космодрому на стороне RustMaps; если API не принял
+  // фильтр (ошибка/пусто) — откатываемся на обычный поиск и проверяем монументы сами.
+  if (withMonumentFilter) {
+    searchQuery.monuments = { include: [LAUNCH_SITE_TOKEN] };
+  }
 
   const res = await fetch(url.toString(), {
     method: 'POST',
@@ -265,20 +222,16 @@ async function searchMapsPage(page: number, mapSize: number): Promise<MapThumbna
       'X-API-Key': getRustMapsApiKey(),
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      searchQuery: {
-        size: { min: mapSize, max: mapSize },
-      },
-    }),
+    body: JSON.stringify({ searchQuery }),
   });
 
   if (!res.ok) {
-    console.log(`[RustMaps] search page=${page} size=${mapSize} -> ${res.status}`);
-    return [];
+    console.log(`[RustMaps] search page=${page} size=${mapSize} monuments=${withMonumentFilter} -> ${res.status}`);
+    return { rows: [], filtered: false };
   }
 
   const json = await res.json() as Record<string, unknown>;
-  return getV4DataArray(json) as MapThumbnailRow[];
+  return { rows: getV4DataArray(json) as MapThumbnailRow[], filtered: withMonumentFilter };
 }
 
 /** Подбирает карты из каталога поиска с корректными ссылками из API. */
@@ -289,11 +242,24 @@ async function pickMapsFromSearch(
 ): Promise<RustMapResult[]> {
   const results: RustMapResult[] = [];
   const picked = new Set<number>();
+  const requireLaunchSite = isLaunchSiteRequired();
   let page = Math.floor(Math.random() * 6);
-  const maxPages = 36;
+  const maxPages = 60;
+  let useMonumentFilter = requireLaunchSite;
+  let filterDisabled = false;
 
   for (let step = 0; step < maxPages && results.length < count; step++) {
-    const rows = await searchMapsPage(page, mapSize);
+    let { rows, filtered } = await searchMapsPage(page, mapSize, useMonumentFilter);
+
+    // Фильтр по монументам не сработал (не поддержан или пустая страница) —
+    // на первой же такой пробе отключаем его и полагаемся на свою проверку.
+    if (useMonumentFilter && filtered && !rows.length && !filterDisabled) {
+      filterDisabled = true;
+      useMonumentFilter = false;
+      const retry = await searchMapsPage(page, mapSize, false);
+      rows = retry.rows;
+    }
+
     if (!rows.length) {
       page = (page + 1) % 200;
       continue;
@@ -314,6 +280,7 @@ async function pickMapsFromSearch(
 
       const full = await fetchV4MapBySeedSize(seed, mapSize);
       if (full) {
+        if (requireLaunchSite && !full.hasLaunchSite) continue;
         picked.add(seed);
         results.push(full);
         continue;
@@ -322,6 +289,7 @@ async function pickMapsFromSearch(
       if (row.mapId) {
         const byId = await fetchV4MapById(row.mapId);
         if (byId && byId.size === mapSize) {
+          if (requireLaunchSite && !byId.hasLaunchSite) continue;
           picked.add(byId.seed);
           results.push(byId);
           continue;
@@ -338,6 +306,7 @@ async function pickMapsFromSearch(
           thumbnailUrl: null,
           mapPageUrl: row.url,
           ready: true,
+          hasLaunchSite: true,
         });
       }
     }
@@ -375,24 +344,9 @@ export async function generateRandomMaps(
   const usedSeeds = await getUsedSeeds();
   const excludeSet = new Set(usedSeeds);
 
-  const fromSearch = await pickMapsFromSearch(size, count, excludeSet);
-  for (const r of fromSearch) excludeSet.add(r.seed);
-
-  const seeds: number[] = [];
-  while (seeds.length < count - fromSearch.length) {
-    const seed = generateRandomSeed();
-    if (!excludeSet.has(seed) && !seeds.includes(seed)) {
-      seeds.push(seed);
-      excludeSet.add(seed);
-    }
-  }
-
-  const generated =
-    seeds.length > 0
-      ? await Promise.all(seeds.map((seed) => getOrGenerateMap(seed, size)))
-      : [];
-
-  const results = [...fromSearch, ...generated];
+  // Карты берём только из каталога: случайные сиды не гарантируют Космодром,
+  // а генерация с перебором занимает минуты на карту.
+  const results = await pickMapsFromSearch(size, count, excludeSet);
 
   for (const r of results) {
     if (!r.mapPageUrl) continue;
@@ -407,9 +361,12 @@ export async function generateRandomMaps(
   }
 
   const readyCount = results.filter((r) => r.ready).length;
-  const pollCfg = getGenerationPollConfig(size);
+  const launchNote = isLaunchSiteRequired()
+    ? `, космодром: ${results.filter((r) => r.hasLaunchSite).length}`
+    : '';
   console.log(
-    `[RustMaps] Готово: ${readyCount}/${count} size=${size} (каталог: ${fromSearch.length}, генерация: ${generated.length}, таймаут до ${Math.round(pollCfg.timeoutMs / 1000)} с)`,
+    `[RustMaps] Готово: ${readyCount}/${count} size=${size} (каталог${launchNote})` +
+      (results.length < count ? ` — нашли только ${results.length} из ${count}` : ''),
   );
 
   return results;
