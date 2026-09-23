@@ -42,7 +42,7 @@ function HomeHero() {
   }, []);
 
   return (
-    <section className={`home-hero ${ready ? 'home-hero--ready' : ''}`.trim()} aria-label="Волга | ВАЙП 10 дней">
+    <section className={`home-hero ${ready ? 'home-hero--ready' : ''}`.trim()} aria-label="LostDragon | WIPE 10 days | DUO">
       <div className="home-hero-stage">
         <div className="home-hero-visual" aria-hidden="true">
           <div className="home-hero-character-frame">
@@ -61,7 +61,7 @@ function HomeHero() {
         </div>
 
         <div className="home-hero-copy">
-          <p className="home-hero-brand">Волга | ВАЙП 10 дней</p>
+          <p className="home-hero-brand">LostDragon | WIPE 10 days | DUO</p>
           <h1 className="home-hero-title">x1 — сервер, на котором хочется играть</h1>
           <p className="home-hero-text">Классический вайп, магазин предметов и награды — всё в одном месте.</p>
 

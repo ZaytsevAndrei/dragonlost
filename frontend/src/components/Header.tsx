@@ -66,7 +66,7 @@ function Header() {
               to="/conveyorfilters"
               className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             >
-              Фильтры на вайп
+              Электрику на заметку
             </NavLink>
           </nav>
 

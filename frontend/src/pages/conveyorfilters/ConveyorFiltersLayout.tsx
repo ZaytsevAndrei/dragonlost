@@ -10,7 +10,7 @@ function ConveyorFiltersLayout() {
     <div className="cf-page">
       {!isEditorRoute && <ConveyorFiltersHero />}
 
-      <nav className="cf-subnav" aria-label="Фильтры на вайп">
+      <nav className="cf-subnav" aria-label="Электрику на заметку">
         <NavLink to="/conveyorfilters" end className={({ isActive }) => `cf-subnav-link${isActive ? ' active' : ''}`}>
           Общие фильтры
         </NavLink>
