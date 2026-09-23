@@ -62,7 +62,7 @@ function HomeHero() {
 
         <div className="home-hero-copy">
           <p className="home-hero-brand">DragonLost | WIPE 10 days | DUO</p>
-          <h1 className="home-hero-title">x1 — сервер, на котором хочется играть</h1>
+          <h1 className="home-hero-title">Сервер, на котором хочется играть</h1>
           <p className="home-hero-text">Классический вайп, магазин предметов и награды — всё в одном месте.</p>
 
           <button
