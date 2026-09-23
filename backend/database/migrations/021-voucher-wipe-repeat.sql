@@ -5,7 +5,7 @@
 USE dragonlost_web;
 
 ALTER TABLE voucher_codes
-  ADD COLUMN wipe_repeat TINYINT(1) NOT NULL DEFAULT 0 AFTER weekly_repeat;
+  ADD COLUMN wipe_repeat TINYINT(1) NOT NULL DEFAULT 0;
 
 -- Промокод WIPE работает повторно после каждого вайпа
 UPDATE voucher_codes SET wipe_repeat = 1 WHERE LOWER(code) = 'wipe';
