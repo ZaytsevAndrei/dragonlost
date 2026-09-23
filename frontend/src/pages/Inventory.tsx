@@ -283,7 +283,7 @@ function Inventory() {
         </div>
         <div className="summary-card">
           <span className="summary-value">{lastPurchaseAt ? formatRelative(lastPurchaseAt) : '—'}</span>
-          <span className="summary-label">🛒 Последняя покупка</span>
+          <span className="summary-label">📤 Последний вывод</span>
         </div>
       </div>
 
