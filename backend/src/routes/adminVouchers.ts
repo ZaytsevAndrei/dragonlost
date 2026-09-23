@@ -21,6 +21,7 @@ interface VoucherAdminRow extends RowDataPacket {
   activations_count: number;
   max_activations_per_user: number;
   weekly_repeat: number;
+  wipe_repeat: number;
   is_active: number;
   created_at: Date;
   updated_at: Date;
@@ -104,6 +105,7 @@ router.post('/', sensitiveRateLimiter, isAdmin, async (req, res) => {
   }
 
   const weeklyRepeat = Boolean(req.body.weekly_repeat);
+  const wipeRepeat = Boolean(req.body.wipe_repeat);
 
   try {
     const cols = await getVoucherColumns();
@@ -132,6 +134,10 @@ router.post('/', sensitiveRateLimiter, isAdmin, async (req, res) => {
     if (cols.has('weekly_repeat')) {
       insertCols.push('weekly_repeat');
       insertVals.push(weeklyRepeat ? 1 : 0);
+    }
+    if (cols.has('wipe_repeat')) {
+      insertCols.push('wipe_repeat');
+      insertVals.push(wipeRepeat ? 1 : 0);
     }
     if (cols.has('is_active')) {
       insertCols.push('is_active');
@@ -227,6 +233,12 @@ const updateVoucherHandler = async (req: Request, res: Response) => {
     if (cols.has('weekly_repeat')) {
       updates.push('weekly_repeat = ?');
       vals.push(Boolean(req.body.weekly_repeat) ? 1 : 0);
+    }
+  }
+  if (req.body.wipe_repeat !== undefined) {
+    if (cols.has('wipe_repeat')) {
+      updates.push('wipe_repeat = ?');
+      vals.push(Boolean(req.body.wipe_repeat) ? 1 : 0);
     }
   }
   if (req.body.is_active !== undefined) {

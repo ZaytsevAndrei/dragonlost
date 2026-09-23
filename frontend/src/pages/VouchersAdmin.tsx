@@ -14,6 +14,7 @@ interface Voucher {
   activations_count: number;
   max_activations_per_user: number;
   weekly_repeat: number;
+  wipe_repeat: number;
   /** С API может прийти number | string | boolean */
   is_active: number | string | boolean;
   redemption_count: number;
@@ -49,6 +50,7 @@ const emptyForm = {
   max_activations_total: '',
   max_activations_per_user: '1',
   weekly_repeat: false,
+  wipe_repeat: false,
 };
 
 function VouchersAdmin() {
@@ -92,6 +94,7 @@ function VouchersAdmin() {
       max_activations_total: v.max_activations_total != null ? String(v.max_activations_total) : '',
       max_activations_per_user: String(v.max_activations_per_user),
       weekly_repeat: v.weekly_repeat === 1,
+      wipe_repeat: v.wipe_repeat === 1,
     });
   };
 
@@ -116,6 +119,7 @@ function VouchersAdmin() {
       max_activations_total: form.max_activations_total.trim() === '' ? null : Number.parseInt(form.max_activations_total, 10),
       max_activations_per_user: Number.parseInt(form.max_activations_per_user, 10) || 1,
       weekly_repeat: form.weekly_repeat,
+      wipe_repeat: form.wipe_repeat,
     };
 
     if (payload.max_activations_total !== null && (typeof payload.max_activations_total !== 'number' || payload.max_activations_total < 1)) {
@@ -161,7 +165,8 @@ function VouchersAdmin() {
         <h1>Промокоды</h1>
         <p className="va-lead">
           Сроки действия, общий лимит активаций и лимит на пользователя. Режим «раз в неделю»: лимит на пользователя
-          обнуляется каждую календарную неделю (ISO, с понедельника).
+          обнуляется каждую календарную неделю (ISO, с понедельника). Режим «раз в вайп»: лимит обнуляется после
+          каждого вайпа сервера.
         </p>
       </div>
 
@@ -241,6 +246,14 @@ function VouchersAdmin() {
             />
             <span>Повторять лимит на пользователя каждую неделю</span>
           </label>
+          <label className="va-field va-field-check">
+            <input
+              type="checkbox"
+              checked={form.wipe_repeat}
+              onChange={(e) => setForm((f) => ({ ...f, wipe_repeat: e.target.checked }))}
+            />
+            <span>Повторять лимит на пользователя каждый вайп</span>
+          </label>
         </div>
         <div className="va-actions">
           <button type="button" className="va-btn-primary" disabled={saving} onClick={submit}>
@@ -273,6 +286,7 @@ function VouchersAdmin() {
                   <th>Всего / лимит</th>
                   <th>На юзера</th>
                   <th>Неделя</th>
+                  <th>Вайп</th>
                   <th>Статус</th>
                   <th />
                 </tr>
@@ -296,6 +310,7 @@ function VouchersAdmin() {
                     </td>
                     <td>{v.max_activations_per_user}</td>
                     <td>{v.weekly_repeat === 1 ? 'да' : 'нет'}</td>
+                    <td>{v.wipe_repeat === 1 ? 'да' : 'нет'}</td>
                     <td>{voucherIsActive(v) ? 'вкл' : 'выкл'}</td>
                     <td className="va-row-actions">
                       <button type="button" className="va-btn-small" onClick={() => startEdit(v)}>

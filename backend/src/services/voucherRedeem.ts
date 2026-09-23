@@ -1,4 +1,5 @@
 import type { PoolConnection, RowDataPacket } from 'mysql2/promise';
+import { wipeInstantsForMonthCycle, MSK_TZ } from '../utils/wipeSchedule';
 
 export interface VoucherRow extends RowDataPacket {
   id: number;
@@ -12,6 +13,7 @@ export interface VoucherRow extends RowDataPacket {
   activations_count: number;
   max_activations_per_user: number;
   weekly_repeat: number;
+  wipe_repeat: number;
   is_active: number;
 }
 
@@ -21,6 +23,26 @@ export type RedeemVoucherResult =
 
 function normalizeCode(raw: string): string {
   return raw.trim();
+}
+
+/** Момент последнего прошедшего вайпа (начало текущего вайп-цикла), МСК. */
+function lastWipeInstant(now: Date): Date {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: MSK_TZ,
+    year: 'numeric',
+    month: 'numeric',
+  }).format(now);
+  const [m, y] = parts.split('/').map(Number);
+  const prev = m === 1 ? { year: y - 1, month: 12 } : { year: y, month: m - 1 };
+  const candidates = [
+    ...wipeInstantsForMonthCycle(prev.year, prev.month),
+    ...wipeInstantsForMonthCycle(y, m),
+  ];
+  let latest = candidates[0];
+  for (const w of candidates) {
+    if (w.getTime() <= now.getTime() && w.getTime() > latest.getTime()) latest = w;
+  }
+  return latest;
 }
 
 /**
@@ -38,7 +60,7 @@ export async function redeemVoucherInTransaction(
   const [rows] = await connection.query<VoucherRow[]>(
     `SELECT id, code, amount, used_by, used_at, valid_from, valid_until,
             max_activations_total, activations_count, max_activations_per_user,
-            weekly_repeat, is_active
+            weekly_repeat, wipe_repeat, is_active
      FROM voucher_codes
      WHERE LOWER(code) = LOWER(?) AND is_active = 1
      FOR UPDATE`,
@@ -82,6 +104,7 @@ export async function redeemVoucherInTransaction(
 
   const perUser = Math.max(1, Number(v.max_activations_per_user) || 1);
   const weekly = Number(v.weekly_repeat) === 1;
+  const perWipe = Number(v.wipe_repeat) === 1;
 
   if (weekly) {
     const [wrows] = await connection.query<RowDataPacket[]>(
@@ -96,6 +119,20 @@ export async function redeemVoucherInTransaction(
         ok: false,
         status: 400,
         error: 'Вы уже использовали этот промокод максимальное число раз на этой неделе',
+      };
+    }
+  } else if (perWipe) {
+    const wipeStart = lastWipeInstant(new Date());
+    const [prows] = await connection.query<RowDataPacket[]>(
+      'SELECT COUNT(*) AS c FROM voucher_redemptions WHERE voucher_id = ? AND user_id = ? AND created_at >= ?',
+      [v.id, params.userId, wipeStart]
+    );
+    const pcount = Number((prows[0] as { c: number }).c) || 0;
+    if (pcount >= perUser) {
+      return {
+        ok: false,
+        status: 400,
+        error: 'Вы уже активировали этот промокод в текущем вайпе — он снова станет доступным после следующего вайпа',
       };
     }
   } else {
