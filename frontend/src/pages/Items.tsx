@@ -518,132 +518,136 @@ function Items() {
 
               return (
                 <>
-                  <div className="item-modal-media">
-                    {typeof modalImage === 'string' ? (
-                      <ItemImage imagePath={modalImage} alt={title} />
-                    ) : (
-                      <div className="item-modal-media-placeholder" />
-                    )}
-                  </div>
-                  <div className="item-modal-body">
-                    <h2 id="item-modal-title">{title}</h2>
-                    <p className="item-modal-category">{getCategoryLabel(mi.category)}</p>
-                    {modalKitComponents.length > 0 ? (
-                      <>
-                        {modalTeaser ? <p className="item-modal-description">{modalTeaser}</p> : null}
-                        <section className="item-modal-kit" aria-label="Состав набора">
-                          <h3 className="item-modal-kit-title">
-                            Состав набора{' '}
-                            <span className="item-modal-kit-count">{formatKitItemCount(modalKitComponents)}</span>
-                          </h3>
-                          <ul className="item-modal-kit-list">
-                            {modalKitComponents.map((component) => (
-                              <li key={component.code} className="item-modal-kit-row">
-                                <span className="item-modal-kit-icon">
-                                  <ItemImage
-                                    imagePath={getKitItemIconPath(component.code)}
-                                    alt=""
-                                    wrapClassName="item-modal-kit-icon-inner"
-                                    imgClassName="item-modal-kit-img"
-                                  />
-                                </span>
-                                <span className="item-modal-kit-name">{getKitItemLabel(component.code)}</span>
-                                {component.quantity > 1 ? (
-                                  <span className="item-modal-kit-qty">×{component.quantity}</span>
-                                ) : null}
-                              </li>
-                            ))}
-                          </ul>
-                        </section>
-                      </>
-                    ) : (
-                      <p className="item-modal-description">{toDisplayText(mi.description)}</p>
-                    )}
-                    <div className="item-modal-price-row">
-                      <span className="item-modal-unit-price">
-                        Цена:{' '}
-                        {Number.isFinite(unitPrice) ? (
-                          <CoinAmount value={unitPrice} size="sm" decimals={0} />
-                        ) : (
-                          '—'
-                        )}
-                      </span>
-                      {Number.isFinite(perPack) && perPack > 1 ? (
-                        <span className="item-modal-pack-hint">За покупку в инвентарь: {perPack} шт.</span>
-                      ) : null}
+                  <div className="item-modal-scroll">
+                    <div className="item-modal-media">
+                      {typeof modalImage === 'string' ? (
+                        <ItemImage imagePath={modalImage} alt={title} />
+                      ) : (
+                        <div className="item-modal-media-placeholder" />
+                      )}
                     </div>
+                    <div className="item-modal-body">
+                      <h2 id="item-modal-title">{title}</h2>
+                      <p className="item-modal-category">{getCategoryLabel(mi.category)}</p>
+                      {modalKitComponents.length > 0 ? (
+                        <>
+                          {modalTeaser ? <p className="item-modal-description">{modalTeaser}</p> : null}
+                          <section className="item-modal-kit" aria-label="Состав набора">
+                            <h3 className="item-modal-kit-title">
+                              Состав набора{' '}
+                              <span className="item-modal-kit-count">{formatKitItemCount(modalKitComponents)}</span>
+                            </h3>
+                            <ul className="item-modal-kit-list">
+                              {modalKitComponents.map((component) => (
+                                <li key={component.code} className="item-modal-kit-row">
+                                  <span className="item-modal-kit-icon">
+                                    <ItemImage
+                                      imagePath={getKitItemIconPath(component.code)}
+                                      alt=""
+                                      wrapClassName="item-modal-kit-icon-inner"
+                                      imgClassName="item-modal-kit-img"
+                                    />
+                                  </span>
+                                  <span className="item-modal-kit-name">{getKitItemLabel(component.code)}</span>
+                                  {component.quantity > 1 ? (
+                                    <span className="item-modal-kit-qty">×{component.quantity}</span>
+                                  ) : null}
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        </>
+                      ) : (
+                        <p className="item-modal-description">{toDisplayText(mi.description)}</p>
+                      )}
+                      <div className="item-modal-price-row">
+                        <span className="item-modal-unit-price">
+                          Цена:{' '}
+                          {Number.isFinite(unitPrice) ? (
+                            <CoinAmount value={unitPrice} size="sm" decimals={0} />
+                          ) : (
+                            '—'
+                          )}
+                        </span>
+                        {Number.isFinite(perPack) && perPack > 1 ? (
+                          <span className="item-modal-pack-hint">За покупку в инвентарь: {perPack} шт.</span>
+                        ) : null}
+                      </div>
 
-                    {user ? (
-                      <>
-                        <div className="item-modal-qty">
-                          <span className="item-modal-qty-label">Количество</span>
-                          <div className="item-modal-qty-controls">
-                            <button
-                              type="button"
-                              className="item-modal-qty-btn"
-                              onClick={() => setModalQuantity((q) => Math.max(1, q - 1))}
-                              disabled={buying || modalQuantity <= 1}
-                              aria-label="Уменьшить количество"
-                            >
-                              −
-                            </button>
-                            <input
-                              type="number"
-                              className="item-modal-qty-input"
-                              min={1}
-                              max={MAX_BUY_QUANTITY}
-                              value={modalQuantity}
-                              onChange={(e) => {
-                                const n = Number.parseInt(e.target.value, 10);
-                                if (!Number.isFinite(n)) return;
-                                setModalQuantity(Math.min(MAX_BUY_QUANTITY, Math.max(1, n)));
-                              }}
-                              disabled={buying}
-                            />
-                            <button
-                              type="button"
-                              className="item-modal-qty-btn"
-                              onClick={() => setModalQuantity((q) => Math.min(MAX_BUY_QUANTITY, q + 1))}
-                              disabled={buying || modalQuantity >= MAX_BUY_QUANTITY}
-                              aria-label="Увеличить количество"
-                            >
-                              +
-                            </button>
-                          </div>
+                    </div>
+                  </div>
+                  {user ? (
+                    <div className="item-modal-footer">
+                      <div className="item-modal-qty">
+                        <span className="item-modal-qty-label">Количество</span>
+                        <div className="item-modal-qty-controls">
+                          <button
+                            type="button"
+                            className="item-modal-qty-btn"
+                            onClick={() => setModalQuantity((q) => Math.max(1, q - 1))}
+                            disabled={buying || modalQuantity <= 1}
+                            aria-label="Уменьшить количество"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            className="item-modal-qty-input"
+                            min={1}
+                            max={MAX_BUY_QUANTITY}
+                            value={modalQuantity}
+                            onChange={(e) => {
+                              const n = Number.parseInt(e.target.value, 10);
+                              if (!Number.isFinite(n)) return;
+                              setModalQuantity(Math.min(MAX_BUY_QUANTITY, Math.max(1, n)));
+                            }}
+                            disabled={buying}
+                          />
+                          <button
+                            type="button"
+                            className="item-modal-qty-btn"
+                            onClick={() => setModalQuantity((q) => Math.min(MAX_BUY_QUANTITY, q + 1))}
+                            disabled={buying || modalQuantity >= MAX_BUY_QUANTITY}
+                            aria-label="Увеличить количество"
+                          >
+                            +
+                          </button>
                         </div>
-                        <div className="item-modal-total">
-                          Итого:{' '}
-                          <strong>
-                            {Number.isFinite(totalPrice) ? (
-                              <CoinAmount value={totalPrice} size="sm" decimals={0} />
-                            ) : (
-                              '—'
-                            )}
-                          </strong>
-                          {!canAfford ? (
-                            <span className="item-modal-total-warn">Недостаточно средств</span>
-                          ) : null}
-                        </div>
-                        <button
-                          type="button"
-                          className="item-modal-buy"
-                          onClick={() => handlePurchase(mi, modalQuantity)}
-                          disabled={
-                            buying ||
-                            !Number.isFinite(unitPrice) ||
-                            unitPrice <= 0 ||
-                            !canAfford
-                          }
-                        >
-                          {buying ? 'Покупка...' : 'Купить'}
-                        </button>
-                      </>
-                    ) : (
+                      </div>
+                      <div className="item-modal-total">
+                        Итого:{' '}
+                        <strong>
+                          {Number.isFinite(totalPrice) ? (
+                            <CoinAmount value={totalPrice} size="sm" decimals={0} />
+                          ) : (
+                            '—'
+                          )}
+                        </strong>
+                        {!canAfford ? (
+                          <span className="item-modal-total-warn">Недостаточно средств</span>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="item-modal-buy"
+                        onClick={() => handlePurchase(mi, modalQuantity)}
+                        disabled={
+                          buying ||
+                          !Number.isFinite(unitPrice) ||
+                          unitPrice <= 0 ||
+                          !canAfford
+                        }
+                      >
+                        {buying ? 'Покупка...' : 'Купить'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="item-modal-footer">
                       <p className="item-modal-guest">
                         Войдите через Steam, чтобы выбрать количество и купить товар. Стоимость 1 монеты: 1 ₽ (1 ₽ = 1 монета).
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </>
               );
             })()}
