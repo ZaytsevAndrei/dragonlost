@@ -4,7 +4,6 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Items from './pages/Items';
 import Statistics from './pages/Statistics';
-import Rewards from './pages/Rewards';
 import Inventory from './pages/Inventory';
 import FortuneWheel from './pages/FortuneWheel';
 import TelegramLink from './pages/TelegramLink';
@@ -55,7 +54,6 @@ function PageTracker({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (location.pathname === '/') return;
     if (
-      location.pathname !== '/rewards' &&
       location.pathname !== '/inventory' &&
       location.pathname !== '/wheel'
     ) {
@@ -95,7 +93,7 @@ function App() {
               <Route path="new" element={<FilterEditorPage />} />
               <Route path=":id" element={<FilterEditorPage />} />
             </Route>
-            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/rewards" element={<Navigate to="/wheel" replace />} />
             <Route path="/wheel" element={<FortuneWheel />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/telegram" element={<TelegramLink />} />
