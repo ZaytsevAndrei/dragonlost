@@ -15,7 +15,8 @@
     "migrate:019": "node scripts/run-sql-migration.mjs database/migrations/019-telegram-wipe-subscribers.sql",
     "migrate:020": "node scripts/run-sql-migration.mjs database/migrations/020-shop-bundles.sql",
     "migrate:021": "node scripts/run-sql-migration.mjs database/migrations/021-voucher-wipe-repeat.sql",
-    "migrate:022": "node scripts/run-sql-migration.mjs database/migrations/022-voucher-codes-missing-columns.sql"
+    "migrate:022": "node scripts/run-sql-migration.mjs database/migrations/022-voucher-codes-missing-columns.sql",
+    "migrate:023": "node scripts/run-sql-migration.mjs database/migrations/023-shop-bundles-images.sql"
   },
   "dependencies": {
     "compression": "^1.7.4",
