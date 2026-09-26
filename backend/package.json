@@ -18,7 +18,8 @@
     "migrate:022": "node scripts/run-sql-migration.mjs database/migrations/022-voucher-codes-missing-columns.sql",
     "migrate:023": "node scripts/run-sql-migration.mjs database/migrations/023-shop-bundles-images.sql",
     "migrate:024": "node scripts/run-sql-migration.mjs database/migrations/024-shop-raid-rescue-kit.sql",
-    "migrate:025": "node scripts/run-sql-migration.mjs database/migrations/025-fortune-wheel.sql"
+    "migrate:025": "node scripts/run-sql-migration.mjs database/migrations/025-fortune-wheel.sql",
+    "migrate:026": "node scripts/run-sql-migration.mjs database/migrations/026-fortune-wheel-prizes-v2.sql"
   },
   "dependencies": {
     "compression": "^1.7.4",

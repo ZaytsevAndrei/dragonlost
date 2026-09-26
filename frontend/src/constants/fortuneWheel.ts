@@ -10,6 +10,7 @@ export interface FortuneWheelPrize {
   category: string;
   rarity: FortuneWheelRarity;
   quantity: number;
+  quantity_max: number | null;
   image_url: string | null;
   chance_percent: number;
   sector_index: number;

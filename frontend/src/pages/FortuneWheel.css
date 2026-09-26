@@ -200,6 +200,11 @@
   margin: 2px 0 6px;
 }
 
+.fw-result-qty {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .fw-result-note {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
@@ -469,6 +474,15 @@
   margin: 0;
   font-size: 1.02rem;
   color: var(--text-primary);
+}
+
+.fw-prize-qty {
+  margin-left: var(--space-2);
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .fw-prize-desc {

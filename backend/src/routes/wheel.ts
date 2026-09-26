@@ -23,6 +23,7 @@ interface WheelPrizeRow extends RowDataPacket {
   rarity: FortuneWheelRarity;
   rust_item_code: string;
   quantity: number;
+  quantity_max: number | null;
   image_url: string | null;
   weight: number;
   is_active: number;
@@ -46,7 +47,7 @@ interface WheelSpinRow extends RowDataPacket {
 
 /** Порядок секторов колеса: sort_order, затем id. Индекс в этом списке = номер сектора. */
 const PRIZE_SELECT = `
-  SELECT id, name, wheel_label, description, category, rarity, rust_item_code, quantity, image_url, weight, is_active, sort_order
+  SELECT id, name, wheel_label, description, category, rarity, rust_item_code, quantity, quantity_max, image_url, weight, is_active, sort_order
   FROM wheel_prizes
   WHERE is_active = 1
   ORDER BY sort_order ASC, id ASC`;
@@ -65,6 +66,17 @@ async function fetchPrizes(): Promise<WheelPrizeRow[]> {
 function prizeChancePercent(weight: number, totalWeight: number): number {
   if (totalWeight <= 0) return 0;
   return Math.round((Number(weight) / totalWeight) * 1000) / 10;
+}
+
+/**
+ * Фактическое количество приза: фикс (quantity) или ролл из диапазона quantity..quantity_max.
+ * Для призов старого формата ("wood:1000", quantity=1) возвращает quantity как есть.
+ */
+function rollPrizeQuantity(prize: WheelPrizeRow): number {
+  const min = Number(prize.quantity);
+  const max = prize.quantity_max === null ? min : Number(prize.quantity_max);
+  if (max <= min) return min;
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 /** Живая проверка метки в нике Steam. Возвращает ник или null, если Steam недоступен. */
@@ -94,6 +106,7 @@ router.get('/prizes', async (_req, res) => {
         category: prize.category,
         rarity: prize.rarity,
         quantity: Number(prize.quantity),
+        quantity_max: prize.quantity_max === null ? null : Number(prize.quantity_max),
         image_url: prize.image_url,
         chance_percent: prizeChancePercent(prize.weight, totalWeight),
         sector_index: index,
@@ -244,19 +257,20 @@ router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => 
     }
 
     const prize = rollWeightedPrize(prizes);
+    const quantity = rollPrizeQuantity(prize);
     const sectorIndex = prizes.findIndex((candidate) => candidate.id === prize.id);
     const totalSpins = Number(player?.total_spins ?? 0) + 1;
 
     await connection.query(
       `INSERT INTO wheel_spins (steamid, prize_id, prize_name, prize_image_url, prize_rarity)
        VALUES (?, ?, ?, ?, ?)`,
-      [steamid, prize.id, prize.name, prize.image_url, prize.rarity]
+      [steamid, prize.id, quantity > 1 ? `${prize.name} ×${quantity}` : prize.name, prize.image_url, prize.rarity]
     );
 
     await connection.query(
       `INSERT INTO player_inventory (steamid, shop_item_id, wheel_prize_id, quantity, status)
        VALUES (?, NULL, ?, ?, 'pending')`,
-      [steamid, prize.id, Number(prize.quantity)]
+      [steamid, prize.id, quantity]
     );
 
     await connection.query(
@@ -278,7 +292,7 @@ router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => 
         description: prize.description,
         rarity: prize.rarity,
         image_url: prize.image_url,
-        quantity: Number(prize.quantity),
+        quantity,
       },
       wheel_sector_index: sectorIndex,
       total_spins: totalSpins,

@@ -351,6 +351,9 @@ function FortuneWheel() {
             <div className="fw-result-title">Вы выиграли!</div>
             <div className={`fw-result-prize rarity-${spinResult.prize.rarity}`}>
               {spinResult.prize.name}
+              {spinResult.prize.quantity > 1 && (
+                <span className="fw-result-qty"> ×{spinResult.prize.quantity}</span>
+              )}
             </div>
             <div className="fw-result-note">
               Предмет добавлен в инвентарь и ждёт получения. Зайдите на сервер и заберите его в игре.
@@ -436,7 +439,12 @@ function FortuneWheel() {
                 <span className={`fw-prize-rarity rarity-${prize.rarity}`}>
                   {FORTUNE_WHEEL_RARITY_LABELS[prize.rarity]}
                 </span>
-                <h3 className="fw-prize-name">{prize.name}</h3>
+                <h3 className="fw-prize-name">
+                  {prize.name}
+                  <span className="fw-prize-qty">
+                    {prize.quantity_max ? `${prize.quantity}–${prize.quantity_max}` : `×${prize.quantity}`}
+                  </span>
+                </h3>
                 {prize.description && <p className="fw-prize-desc">{prize.description}</p>}
                 <span className="fw-prize-chance">Шанс: {prize.chance_percent}%</span>
               </div>
