@@ -7,6 +7,13 @@ import { useAuthStore } from '../store/authStore';
 import type { ShopItem } from '../types';
 import { emitBalanceUpdated, subscribeBalanceUpdated } from '../utils/balanceEvents';
 import { safeGetItem, safeSetItem } from '../utils/safeLocalStorage';
+import {
+  formatKitItemCount,
+  getKitComponents,
+  getKitItemIconPath,
+  getKitItemLabel,
+  getKitTeaser,
+} from '../utils/shopKits';
 import './Items.css';
 
 const SHOP_CATEGORY_STORAGE_KEY = 'shop_category';
@@ -112,9 +119,16 @@ function buildImageCandidates(rawPath: string | null | undefined): string[] {
 interface ItemImageProps {
   imagePath: string;
   alt: string;
+  wrapClassName?: string;
+  imgClassName?: string;
 }
 
-function ItemImage({ imagePath, alt }: ItemImageProps) {
+function ItemImage({
+  imagePath,
+  alt,
+  wrapClassName = 'item-card-image-wrap',
+  imgClassName = 'item-card-image',
+}: ItemImageProps) {
   const candidates = useMemo(() => buildImageCandidates(imagePath), [imagePath]);
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [hidden, setHidden] = useState(false);
@@ -129,11 +143,11 @@ function ItemImage({ imagePath, alt }: ItemImageProps) {
   const currentSrc = candidates[candidateIndex];
 
   return (
-    <div className="item-card-image-wrap">
+    <div className={wrapClassName}>
       <img
         src={currentSrc}
         alt={alt}
-        className="item-card-image"
+        className={imgClassName}
         loading="lazy"
         onError={() => {
           const nextIndex = candidateIndex + 1;
@@ -403,6 +417,8 @@ function Items() {
               });
 
               const title = getItemTitle(item);
+              const kitComponents = getKitComponents(item);
+              const kitTeaser = getKitTeaser(item.description);
               return (
                 <article
                   key={String(item.id ?? `${title}-${index}`)}
@@ -422,7 +438,31 @@ function Items() {
                   <div className="item-card-body">
                     <div className="item-card-content">
                       <h3>{title}</h3>
-                      <p className="item-card-description">{toDisplayText(item.description)}</p>
+                      {kitComponents.length > 0 ? (
+                        <>
+                          {kitTeaser ? (
+                            <p className="item-card-description item-card-description--kit">{kitTeaser}</p>
+                          ) : null}
+                          <ul className="item-kit-chips" aria-label="Состав набора">
+                            {kitComponents.map((component) => (
+                              <li key={component.code} className="item-kit-chip">
+                                <ItemImage
+                                  imagePath={getKitItemIconPath(component.code)}
+                                  alt=""
+                                  wrapClassName="item-kit-chip-icon"
+                                  imgClassName="item-kit-chip-img"
+                                />
+                                <span className="item-kit-chip-name">{getKitItemLabel(component.code)}</span>
+                                {component.quantity > 1 ? (
+                                  <span className="item-kit-chip-qty">×{component.quantity}</span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <p className="item-card-description">{toDisplayText(item.description)}</p>
+                      )}
                       {extraFields.length > 0 ? (
                         <dl className="item-extra-fields">
                           {extraFields.map(([key, value]) => (
@@ -468,6 +508,8 @@ function Items() {
               const mi = modalItem;
               const modalImage = mi.image_url ?? mi.image;
               const title = getItemTitle(mi);
+              const modalKitComponents = getKitComponents(mi);
+              const modalTeaser = getKitTeaser(mi.description);
               const unitPrice = Number(mi.price ?? 0);
               const totalPrice = unitPrice * modalQuantity;
               const perPack = Number(mi.quantity ?? 1);
@@ -486,7 +528,37 @@ function Items() {
                   <div className="item-modal-body">
                     <h2 id="item-modal-title">{title}</h2>
                     <p className="item-modal-category">{getCategoryLabel(mi.category)}</p>
-                    <p className="item-modal-description">{toDisplayText(mi.description)}</p>
+                    {modalKitComponents.length > 0 ? (
+                      <>
+                        {modalTeaser ? <p className="item-modal-description">{modalTeaser}</p> : null}
+                        <section className="item-modal-kit" aria-label="Состав набора">
+                          <h3 className="item-modal-kit-title">
+                            Состав набора{' '}
+                            <span className="item-modal-kit-count">{formatKitItemCount(modalKitComponents)}</span>
+                          </h3>
+                          <ul className="item-modal-kit-list">
+                            {modalKitComponents.map((component) => (
+                              <li key={component.code} className="item-modal-kit-row">
+                                <span className="item-modal-kit-icon">
+                                  <ItemImage
+                                    imagePath={getKitItemIconPath(component.code)}
+                                    alt=""
+                                    wrapClassName="item-modal-kit-icon-inner"
+                                    imgClassName="item-modal-kit-img"
+                                  />
+                                </span>
+                                <span className="item-modal-kit-name">{getKitItemLabel(component.code)}</span>
+                                {component.quantity > 1 ? (
+                                  <span className="item-modal-kit-qty">×{component.quantity}</span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      </>
+                    ) : (
+                      <p className="item-modal-description">{toDisplayText(mi.description)}</p>
+                    )}
                     <div className="item-modal-price-row">
                       <span className="item-modal-unit-price">
                         Цена:{' '}
