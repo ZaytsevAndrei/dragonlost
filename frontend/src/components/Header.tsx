@@ -132,14 +132,6 @@ function Header() {
                         Колесо удачи
                       </Link>
                       <Link
-                        to="/rewards"
-                        className="dropdown-item"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <span className="dropdown-icon">🎁</span>
-                        Ежедневная награда
-                      </Link>
-                      <Link
                         to="/telegram"
                         className="dropdown-item"
                         onClick={() => setDropdownOpen(false)}

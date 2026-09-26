@@ -78,7 +78,7 @@ function Home() {
       <AnimatedSection className="home-section--features" id="features">
         <header className="home-section-header">
           <h2 className="home-section-title">Играй с пользой</h2>
-          <p className="home-section-subtitle">Следи за рейтингом и забирай ежедневную награду</p>
+          <p className="home-section-subtitle">Следи за рейтингом и крути колесо удачи</p>
         </header>
 
         <div className="features features--duo">
@@ -91,15 +91,15 @@ function Home() {
             <span className="feature-card-inline-link">Смотреть рейтинг</span>
           </Link>
 
-          <Link to="/rewards" className="feature-card feature-card-link feature-card-reward">
+          <Link to="/wheel" className="feature-card feature-card-link feature-card-reward">
             <div className="feature-icon-wrap">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="3" /></svg>
             </div>
-            <h3>Ежедневная награда</h3>
+            <h3>Колесо удачи</h3>
             <p>
               {user
-                ? 'Крутите колесо на 25 секторов — как в казино Rust. Награда до 200 монет в день.'
-                : 'Авторизуйтесь и крутите колесо раз в день — награда на баланс сайта.'}
+                ? 'Крутите колесо каждые 4 часа — призы от обычных до легендарных.'
+                : 'Авторизуйтесь, добавьте метку dragonlost.ru в ник Steam и крутите колесо.'}
             </p>
             <span className="feature-card-inline-link">Перейти к колесу</span>
           </Link>

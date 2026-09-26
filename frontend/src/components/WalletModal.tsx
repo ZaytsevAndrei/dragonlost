@@ -475,7 +475,7 @@ function WalletModal({
                 {helpOpen === 'where' ? (
                   <span className="wallet-help-item__body">
                     Промокоды публикуются в Discord, Telegram и на главной странице сайта. Также их выдают на
-                    ивентах и в ежедневных наградах.
+                    ивентах и разыгрывают в колесе удачи.
                   </span>
                 ) : null}
               </button>
