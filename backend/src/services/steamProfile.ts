@@ -43,43 +43,76 @@ export async function getSteamProfile(steamid: string): Promise<SteamProfile | n
   const cached = cacheGet(steamid);
   if (cached) return cached.data;
 
-  const apiKey = process.env.STEAM_API_KEY;
-  if (!apiKey) {
-    cacheSet(steamid, null);
-    return null;
+  const profiles = await fetchSteamProfilesUncached([steamid]);
+  return profiles.get(steamid) ?? null;
+}
+
+/** Профили нескольких игроков: сначала кэш, недостающие — одним запросом GetPlayerSummaries. */
+export async function getSteamProfiles(steamids: string[]): Promise<Map<string, SteamProfile>> {
+  const result = new Map<string, SteamProfile>();
+  const missing: string[] = [];
+
+  for (const steamid of new Set(steamids)) {
+    if (!isValidSteamId64(steamid)) continue;
+    const cached = cacheGet(steamid);
+    if (cached?.data) result.set(steamid, cached.data);
+    else missing.push(steamid);
   }
+
+  if (missing.length > 0) {
+    const fetched = await fetchSteamProfilesUncached(missing);
+    for (const [steamid, profile] of fetched) result.set(steamid, profile);
+  }
+
+  return result;
+}
+
+/**
+ * Актуальный ник игрока без кэша — для проверки метки колеса удачи:
+ * игрок меняет ник и сразу жмёт «Проверить», часовой кэш здесь мешает.
+ */
+export async function getFreshSteamNickname(steamid: string): Promise<string | null> {
+  if (!isValidSteamId64(steamid)) return null;
+  const profiles = await fetchSteamProfilesUncached([steamid], { updateCache: false });
+  return profiles.get(steamid)?.personaname ?? null;
+}
+
+async function fetchSteamProfilesUncached(
+  steamids: string[],
+  options: { updateCache?: boolean } = {}
+): Promise<Map<string, SteamProfile>> {
+  const result = new Map<string, SteamProfile>();
+  const apiKey = process.env.STEAM_API_KEY;
+  if (steamids.length === 0 || !apiKey) return result;
 
   try {
     const url =
       `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/` +
-      `?key=${encodeURIComponent(apiKey)}&steamids=${encodeURIComponent(steamid)}`;
+      `?key=${encodeURIComponent(apiKey)}&steamids=${encodeURIComponent(steamids.join(','))}`;
     const response = await fetch(url, { method: 'GET' });
     if (!response.ok) {
       console.error(`[SteamProfile] GetPlayerSummaries вернул ${response.status}`);
-      cacheSet(steamid, null);
-      return null;
+      return result;
     }
 
     const payload = (await response.json()) as {
       response?: { players?: Array<Record<string, unknown>> };
     };
-    const raw = payload.response?.players?.[0];
-    if (!raw) {
-      cacheSet(steamid, null);
-      return null;
+    for (const raw of payload.response?.players ?? []) {
+      const steamid = String(raw.steamid ?? '');
+      if (!steamid) continue;
+      const profile: SteamProfile = {
+        steamid,
+        personaname: String(raw.personaname ?? 'Игрок'),
+        avatarfull: String(raw.avatarfull ?? ''),
+        profileurl: typeof raw.profileurl === 'string' ? raw.profileurl : undefined,
+      };
+      result.set(steamid, profile);
+      if (options.updateCache !== false) cacheSet(steamid, profile);
     }
-
-    const profile: SteamProfile = {
-      steamid: String(raw.steamid ?? steamid),
-      personaname: String(raw.personaname ?? 'Игрок'),
-      avatarfull: String(raw.avatarfull ?? ''),
-      profileurl: typeof raw.profileurl === 'string' ? raw.profileurl : undefined,
-    };
-    cacheSet(steamid, profile);
-    return profile;
   } catch (error) {
     console.error('[SteamProfile] Ошибка запроса к Steam API:', error instanceof Error ? error.message : error);
-    cacheSet(steamid, null);
-    return null;
   }
+
+  return result;
 }

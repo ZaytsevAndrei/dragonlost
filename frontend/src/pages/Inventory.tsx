@@ -8,11 +8,13 @@ import './Inventory.css';
 
 interface InventoryItem {
   id: number;
-  shop_item_id: number;
+  shop_item_id: number | null;
+  wheel_prize_id: number | null;
   quantity: number;
   status: 'pending' | 'delivered' | string;
   purchased_at: string;
   delivered_at: string | null;
+  source: 'shop' | 'wheel' | string;
   item_name: string;
   item_description: string | null;
   item_category: string;
@@ -39,6 +41,7 @@ const CATEGORY_NAMES: Record<string, string> = {
   ammo: '💥 Боеприпасы',
   misc: '📁 Прочее',
   food: '🍎 Еда',
+  wheel: '🎡 Колесо удачи',
 };
 
 function formatDate(value: string): string {
@@ -261,7 +264,7 @@ function Inventory() {
                   <div className="row-meta">
                     <span className="item-category">{CATEGORY_NAMES[item.item_category] || item.item_category}</span>
                     <span className="row-date" title={formatDate(item.purchased_at)}>
-                      Куплено: {formatRelative(item.purchased_at)}
+                      {item.source === 'wheel' ? 'Выиграно:' : 'Куплено:'} {formatRelative(item.purchased_at)}
                     </span>
                   </div>
                 </div>
