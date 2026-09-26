@@ -28,6 +28,14 @@ export const FORTUNE_WHEEL_RARITY_LABELS: Record<FortuneWheelRarity, string> = {
   legendary: 'Легендарный',
 };
 
+export const RARITY_EMOJI: Record<FortuneWheelRarity, string> = {
+  common: '📦',
+  uncommon: '🌿',
+  rare: '💧',
+  epic: '💜',
+  legendary: '🔥',
+};
+
 /** Градиенты секторов — продолжение палитры ежедневного колеса. */
 export const FORTUNE_WHEEL_RARITY_COLORS: Record<
   FortuneWheelRarity,
@@ -39,26 +47,3 @@ export const FORTUNE_WHEEL_RARITY_COLORS: Record<
   epic: { light: '#d4a8f8', mid: '#a86cd8', dark: '#6a3898', stroke: '#5c2e88', glow: 'rgba(168, 108, 216, 0.4)' },
   legendary: { light: '#ff8a7a', mid: '#e04538', dark: '#9a2018', stroke: '#8a1a12', glow: 'rgba(224, 69, 56, 0.55)' },
 };
-
-/**
- * Угол поворота (по часовой), при котором сектор sectorIndex оказывается под указателем (12 ч).
- * Сектор 0 в покое уже под стрелкой; при вращении колесо крутится по часовой.
- */
-export function fortuneWheelRotationForSector(sectorIndex: number, sectorCount: number): number {
-  const degreesPerSector = 360 / sectorCount;
-  const normalized = ((360 - sectorIndex * degreesPerSector) % 360) + 360;
-  return normalized % 360;
-}
-
-export function fortuneWheelSpinDelta(
-  currentRotation: number,
-  sectorIndex: number,
-  sectorCount: number,
-  extraSpins = 6
-): number {
-  const currentMod = ((currentRotation % 360) + 360) % 360;
-  const targetMod = fortuneWheelRotationForSector(sectorIndex, sectorCount);
-  let delta = (targetMod - currentMod + 360) % 360;
-  if (delta < 0.5) delta = 360;
-  return extraSpins * 360 + delta;
-}

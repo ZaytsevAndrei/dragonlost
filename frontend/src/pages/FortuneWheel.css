@@ -512,7 +512,8 @@
 
 @media (max-width: 900px) {
   .fw-main-card {
-    grid-template-columns: 1fr;
+    /* minmax(0, 1fr): иначе лента-рулетка (width: max-content) раздувает колонку */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .fw-actions {

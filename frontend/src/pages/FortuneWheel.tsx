@@ -4,10 +4,11 @@ import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { saveLastPage } from '../utils/safeLocalStorage';
 import StatePanel from '../components/StatePanel';
-import { FortuneWheelDisk } from '../components/FortuneWheelDisk';
+import { FortuneWheelReel } from '../components/FortuneWheelReel';
 import {
   FORTUNE_WHEEL_RARITY_COLORS,
   FORTUNE_WHEEL_RARITY_LABELS,
+  RARITY_EMOJI,
   type FortuneWheelPrize,
   type FortuneWheelRarity,
 } from '../constants/fortuneWheel';
@@ -49,14 +50,6 @@ interface SpinResponse {
   total_spins: number;
   seconds_until_available: number;
 }
-
-const RARITY_EMOJI: Record<FortuneWheelRarity, string> = {
-  common: '📦',
-  uncommon: '🌿',
-  rare: '💧',
-  epic: '💜',
-  legendary: '🔥',
-};
 
 function formatCountdown(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -296,7 +289,7 @@ function FortuneWheel() {
 
       <div className="fw-main-card">
         <div className="fw-wheel-wrap">
-          <FortuneWheelDisk
+          <FortuneWheelReel
             prizes={prizes}
             available={wheelAvailable}
             countdownLabel={formatCountdown(countdown)}
