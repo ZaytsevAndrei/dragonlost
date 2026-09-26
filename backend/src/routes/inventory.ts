@@ -44,20 +44,23 @@ router.get('/', isAuthenticated, async (req, res) => {
     const steamid = req.user!.steamid;
 
     const [rows] = await webPool.query<RowDataPacket[]>(
-      `SELECT 
+      `SELECT
         pi.id,
         pi.shop_item_id,
+        pi.wheel_prize_id,
         pi.quantity,
         pi.status,
         pi.purchased_at,
         pi.delivered_at,
-        si.name as item_name,
-        si.description as item_description,
-        si.category as item_category,
-        si.rust_item_code,
-        si.image_url
+        CASE WHEN pi.wheel_prize_id IS NOT NULL THEN 'wheel' ELSE 'shop' END AS source,
+        COALESCE(si.name, wp.name) as item_name,
+        COALESCE(si.description, wp.description) as item_description,
+        COALESCE(si.category, wp.category) as item_category,
+        COALESCE(si.rust_item_code, wp.rust_item_code) as rust_item_code,
+        COALESCE(si.image_url, wp.image_url) as image_url
       FROM player_inventory pi
-      JOIN shop_items si ON pi.shop_item_id = si.id
+      LEFT JOIN shop_items si ON pi.shop_item_id = si.id
+      LEFT JOIN wheel_prizes wp ON pi.wheel_prize_id = wp.id
       WHERE pi.steamid = ?
       ORDER BY pi.purchased_at DESC`,
       [steamid]
@@ -117,9 +120,12 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
     await connection.beginTransaction();
 
     const [items] = await connection.query<InventoryItemRow[]>(
-      `SELECT pi.*, si.name, si.rust_item_code, si.quantity as item_quantity
+      `SELECT pi.*, COALESCE(si.name, wp.name) AS name,
+              COALESCE(si.rust_item_code, wp.rust_item_code) AS rust_item_code,
+              si.quantity as item_quantity
        FROM player_inventory pi
-       JOIN shop_items si ON pi.shop_item_id = si.id
+       LEFT JOIN shop_items si ON pi.shop_item_id = si.id
+       LEFT JOIN wheel_prizes wp ON pi.wheel_prize_id = wp.id
        WHERE pi.id = ? AND pi.steamid = ? AND pi.status = 'pending'
        FOR UPDATE`,
       [inventoryId, steamid]
@@ -211,9 +217,12 @@ router.post('/use-all', isAuthenticated, async (req, res) => {
     await connection.beginTransaction();
 
     const [items] = await connection.query<InventoryItemRow[]>(
-      `SELECT pi.*, si.name, si.rust_item_code, si.quantity as item_quantity
+      `SELECT pi.*, COALESCE(si.name, wp.name) AS name,
+              COALESCE(si.rust_item_code, wp.rust_item_code) AS rust_item_code,
+              si.quantity as item_quantity
        FROM player_inventory pi
-       JOIN shop_items si ON pi.shop_item_id = si.id
+       LEFT JOIN shop_items si ON pi.shop_item_id = si.id
+       LEFT JOIN wheel_prizes wp ON pi.wheel_prize_id = wp.id
        WHERE pi.steamid = ? AND pi.status = 'pending'
        ORDER BY pi.purchased_at ASC
        FOR UPDATE`,

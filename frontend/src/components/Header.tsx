@@ -50,6 +50,9 @@ function Header() {
             <NavLink to="/shop" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Магазин
             </NavLink>
+            <NavLink to="/wheel" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+              Колесо
+            </NavLink>
             <NavLink to="/stats" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Статистика
             </NavLink>
@@ -119,6 +122,14 @@ function Header() {
                       >
                         <span className="dropdown-icon">🎒</span>
                         Инвентарь
+                      </Link>
+                      <Link
+                        to="/wheel"
+                        className="dropdown-item"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <span className="dropdown-icon">🎡</span>
+                        Колесо удачи
                       </Link>
                       <Link
                         to="/rewards"

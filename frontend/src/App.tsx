@@ -6,6 +6,7 @@ import Items from './pages/Items';
 import Statistics from './pages/Statistics';
 import Rewards from './pages/Rewards';
 import Inventory from './pages/Inventory';
+import FortuneWheel from './pages/FortuneWheel';
 import TelegramLink from './pages/TelegramLink';
 import Agreement from './pages/Agreement';
 import Privacy from './pages/Privacy';
@@ -53,7 +54,11 @@ function PageTracker({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (location.pathname === '/') return;
-    if (location.pathname !== '/rewards' && location.pathname !== '/inventory') {
+    if (
+      location.pathname !== '/rewards' &&
+      location.pathname !== '/inventory' &&
+      location.pathname !== '/wheel'
+    ) {
       clearLastPage();
     }
   }, [location.pathname]);
@@ -91,6 +96,7 @@ function App() {
               <Route path=":id" element={<FilterEditorPage />} />
             </Route>
             <Route path="/rewards" element={<Rewards />} />
+            <Route path="/wheel" element={<FortuneWheel />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/telegram" element={<TelegramLink />} />
             <Route path="/agreement" element={<Agreement />} />
