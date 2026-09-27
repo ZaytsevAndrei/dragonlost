@@ -137,11 +137,24 @@
 }
 
 .fw-tag-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-sm);
   font-weight: 600;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+/* Точка-индикатор вместо эмодзи */
+.fw-tag-state::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
 .fw-tag-state.ok {
@@ -159,12 +172,17 @@
 /* --- Результат спина --- */
 
 .fw-result {
+  --rarity-color: var(--brand-500);
   display: flex;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-5);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--brand-500) 12%, var(--bg-elevated)) 0%, var(--bg-secondary) 100%);
-  border: 1px solid color-mix(in srgb, var(--brand-500) 35%, var(--border));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--rarity-color) 14%, var(--bg-elevated)) 0%,
+    var(--bg-secondary) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 38%, var(--border));
   border-radius: var(--radius-xl);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   animation: fw-result-in 0.45s ease;
@@ -181,9 +199,65 @@
   }
 }
 
+/* Эскалация акцента по редкости: чем выше — тем ярче рамка и свечение */
+.fw-result.rarity-rare {
+  border-color: color-mix(in srgb, var(--rarity-color) 48%, var(--border));
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 0 22px color-mix(in srgb, var(--rarity-color) 16%, transparent);
+}
+
+.fw-result.rarity-epic {
+  border-color: color-mix(in srgb, var(--rarity-color) 58%, var(--border));
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 0 30px color-mix(in srgb, var(--rarity-color) 26%, transparent);
+}
+
+.fw-result.rarity-legendary {
+  border-color: color-mix(in srgb, var(--rarity-color) 72%, var(--border));
+  animation:
+    fw-result-in 0.45s ease,
+    fw-legendary-pulse 2.2s ease-in-out 0.45s infinite;
+}
+
+@keyframes fw-legendary-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.35),
+      0 0 26px color-mix(in srgb, var(--rarity-color) 34%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.35),
+      0 0 46px color-mix(in srgb, var(--rarity-color) 56%, transparent);
+  }
+}
+
 .fw-result-icon {
-  font-size: 2.4rem;
-  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius-lg);
+  background: radial-gradient(
+    ellipse 70% 80% at 50% 40%,
+    color-mix(in srgb, var(--rarity-color) 24%, transparent) 0%,
+    transparent 75%
+  ),
+  var(--bg-elevated);
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 45%, var(--border));
+  box-sizing: border-box;
+}
+
+.fw-result-icon img {
+  max-width: 78%;
+  max-height: 78%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
 }
 
 .fw-result-title {
@@ -223,6 +297,31 @@
   text-decoration: underline;
 }
 
+/* --- Конфетти при выигрыше --- */
+
+.fw-confetti {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1200;
+}
+
+.fw-confetti-piece {
+  position: absolute;
+  top: -20px;
+  border-radius: 1.5px;
+  opacity: 0.95;
+  animation: fw-confetti-fall linear forwards;
+}
+
+@keyframes fw-confetti-fall {
+  to {
+    transform: translateY(108vh) translateX(var(--drift, 0px)) rotate(680deg);
+    opacity: 0;
+  }
+}
+
 /* --- Карточка метки Steam --- */
 
 .fw-tag-card {
@@ -250,7 +349,9 @@
 }
 
 .fw-tag-chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 2px var(--space-3);
   margin: 0 2px;
   font-family: var(--font-family, monospace);
@@ -266,6 +367,12 @@
 
 .fw-tag-chip:hover {
   background: color-mix(in srgb, var(--brand-500) 18%, var(--bg-elevated));
+}
+
+.fw-tag-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.8;
 }
 
 .fw-tag-card-actions {
@@ -381,7 +488,9 @@
   align-items: center;
   justify-content: center;
   background: var(--bg-tertiary);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
 }
 
 .fw-win-info {
@@ -417,6 +526,7 @@
 }
 
 .fw-prize-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
@@ -426,12 +536,57 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Полоса редкости сверху карточки — яркость растёт с редкостью */
+.fw-prize-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--rarity-color, var(--border-strong));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rarity-color, #000) 45%, transparent);
+  z-index: 1;
+}
+
+.fw-prize-card.rarity-common::before {
+  opacity: 0.45;
+}
+
+.fw-prize-card.rarity-uncommon::before {
+  opacity: 0.6;
+}
+
+.fw-prize-card.rarity-rare::before {
+  opacity: 0.75;
+}
+
+.fw-prize-card.rarity-epic::before {
+  opacity: 0.9;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rarity-color, #000) 60%, transparent);
+}
+
+.fw-prize-card.rarity-epic {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--rarity-color, #000) 14%, transparent);
+}
+
+.fw-prize-card.rarity-legendary::before {
+  opacity: 1;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rarity-color, #000) 75%, transparent);
+}
+
+.fw-prize-card.rarity-legendary {
+  border-color: color-mix(in srgb, var(--rarity-color, var(--border-strong)) 65%, var(--border));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--rarity-color, #000) 26%, transparent);
+}
+
 .fw-prize-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 26px color-mix(in srgb, var(--rarity-color, #000) 22%, transparent);
 }
 
 .fw-prize-image {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -446,10 +601,21 @@
   max-width: 88%;
   max-height: 88%;
   object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
 }
 
-.fw-prize-emoji {
-  font-size: 2.6rem;
+.fw-prize-qty-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 800;
+  color: #fff;
+  background: rgba(10, 8, 6, 0.78);
+  border: 1px solid color-mix(in srgb, var(--rarity-color, #fff) 55%, transparent);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
 }
 
 .fw-prize-body {
@@ -476,15 +642,6 @@
   color: var(--text-primary);
 }
 
-.fw-prize-qty {
-  margin-left: var(--space-2);
-  font-size: 0.85em;
-  font-weight: 700;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
 .fw-prize-desc {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -494,10 +651,33 @@
 
 .fw-prize-chance {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fw-prize-chance-caption {
   font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.fw-prize-chance-bar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #fff 7%, transparent);
+  overflow: hidden;
+}
+
+.fw-prize-chance-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: inherit;
+  background: var(--rarity-color, var(--brand-500));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--rarity-color, var(--brand-500)) 50%, transparent);
 }
 
 /* Цвета редкости (синхронизированы с constants/fortuneWheel.ts) */
@@ -534,5 +714,15 @@
 
   .fw-result-link {
     margin-top: var(--space-1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-confetti {
+    display: none;
+  }
+
+  .fw-result.rarity-legendary {
+    animation: fw-result-in 0.45s ease;
   }
 }

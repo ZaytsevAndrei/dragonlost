@@ -86,6 +86,41 @@
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  --fwr-beam-width: 118px;
+}
+
+/* Светящаяся колонка-луч под указателем */
+.fwr-window::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--fwr-beam-width);
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 216, 140, 0.3) 0%,
+    rgba(255, 200, 110, 0.12) 55%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.fwr-scene-ready .fwr-window::before {
+  animation: fwr-beam-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes fwr-beam-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .fwr-track {
@@ -98,6 +133,7 @@
 
 .fwr-card {
   --card-size: 104px;
+  position: relative;
   flex: 0 0 var(--card-size);
   width: var(--card-size);
   display: flex;
@@ -108,12 +144,25 @@
   box-sizing: border-box;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--rarity-color, #8b8b8b) 12%, var(--bg-elevated)) 0%,
+    color-mix(in srgb, var(--rarity-color, #8b8b8b) 16%, var(--bg-elevated)) 0%,
     var(--bg-elevated) 100%
   );
-  border: 1px solid color-mix(in srgb, var(--rarity-color, var(--border-strong)) 55%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--rarity-color, var(--border-strong)) 62%, var(--border));
   border-radius: var(--radius-lg);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+/* Яркая полоса редкости снизу карточки */
+.fwr-card::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 5px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rarity-color, #8b8b8b);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--rarity-color, #8b8b8b) 65%, transparent);
 }
 
 .fwr-card-icon {
@@ -131,11 +180,6 @@
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
 }
 
-.fwr-card-emoji {
-  font-size: 1.9rem;
-  line-height: 1;
-}
-
 .fwr-card-name {
   max-width: 100%;
   overflow: hidden;
@@ -144,6 +188,24 @@
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+/* Мягкая подсветка карточки под указателем в покое (во время прокрутки отключена) */
+.fwr-scene:not(.fwr-scene-spinning) .fwr-card-center {
+  border-color: color-mix(in srgb, var(--rarity-color, var(--border-strong)) 85%, #fff 15%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--rarity-color, #8b8b8b) 24%, var(--bg-elevated)) 0%,
+    var(--bg-elevated) 100%
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--rarity-color, #8b8b8b) 40%, transparent),
+    0 0 18px color-mix(in srgb, var(--rarity-color, #8b8b8b) 35%, transparent);
+  transform: translateY(-2px) scale(1.04);
+}
+
+.fwr-card-center::after {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--rarity-color, #8b8b8b) 95%, transparent);
 }
 
 .fwr-card-winner {
@@ -220,9 +282,19 @@
   font-weight: 700;
 }
 
-.fwr-hint-icon {
-  font-size: 1rem;
-  opacity: 0.85;
+.fwr-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: fwr-spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes fwr-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {
@@ -241,10 +313,15 @@
   .fwr-card-name {
     font-size: 0.66rem;
   }
+
+  .fwr-window {
+    --fwr-beam-width: 96px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fwr-scene-ready .fwr-aura {
+  .fwr-scene-ready .fwr-aura,
+  .fwr-scene-ready .fwr-window::before {
     animation: none;
   }
 }

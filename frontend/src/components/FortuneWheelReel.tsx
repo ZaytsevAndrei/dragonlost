@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   FORTUNE_WHEEL_RARITY_COLORS,
-  RARITY_EMOJI,
   type FortuneWheelPrize,
   type WheelSpinTarget,
 } from '../constants/fortuneWheel';
 import { getImageUrl } from '../services/api';
+import { PixelCrateIcon } from './FortuneWheelIcons';
 import { playWheelSpinSound, playWheelWinChime, resumeWheelAudio } from '../utils/wheelSpinSound';
 import './FortuneWheelReel.css';
 
@@ -60,6 +60,8 @@ export function FortuneWheelReel({
   const [offset, setOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [litIndex, setLitIndex] = useState<number | null>(null);
+  /** Карточка, стоящая под указателем в покое — мягкая подсветка. */
+  const [centerLit, setCenterLit] = useState<number | null>(null);
 
   const windowRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -101,6 +103,7 @@ export function FortuneWheelReel({
     metricsRef.current = metrics;
     if (isAnimatingRef.current || skipLayoutCenterRef.current) return;
     setOffset(centerOffset(centerIndexRef.current, metrics));
+    setCenterLit(centerIndexRef.current);
   }, [strip, measure]);
 
   // При изменении окна пересчитываем отступы, если лента не крутится.
@@ -109,7 +112,10 @@ export function FortuneWheelReel({
       const metrics = measure();
       if (!metrics) return;
       metricsRef.current = metrics;
-      if (!isAnimatingRef.current) setOffset(centerOffset(centerIndexRef.current, metrics));
+      if (!isAnimatingRef.current) {
+        setOffset(centerOffset(centerIndexRef.current, metrics));
+        setCenterLit(centerIndexRef.current);
+      }
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -134,6 +140,7 @@ export function FortuneWheelReel({
 
     winnerIndexRef.current = winnerIndex;
     setLitIndex(null);
+    setCenterLit(null);
     // Лента сменяется так, что видимые карточки остаются на месте:
     // бывшая карточка под указателем теперь стоит на позиции PREFIX_BEFORE.
     centerIndexRef.current = PREFIX_BEFORE;
@@ -149,6 +156,7 @@ export function FortuneWheelReel({
         skipLayoutCenterRef.current = false;
         setOffset(finalOffset);
         setLitIndex(winnerIndex);
+        setCenterLit(winnerIndex);
         centerIndexRef.current = winnerIndex;
         playWheelWinChime();
         onSpinCompleteRef.current();
@@ -181,6 +189,7 @@ export function FortuneWheelReel({
     if (winnerIndex !== null) {
       centerIndexRef.current = winnerIndex;
       setLitIndex(winnerIndex);
+      setCenterLit(winnerIndex);
       playWheelWinChime();
     }
     onSpinCompleteRef.current();
@@ -227,14 +236,16 @@ export function FortuneWheelReel({
                 {strip.map((prize, index) => (
                   <div
                     key={`${index}-${prize.id}`}
-                    className={`fwr-card rarity-${prize.rarity} ${litIndex === index ? 'fwr-card-winner' : ''}`}
+                    className={`fwr-card rarity-${prize.rarity} ${litIndex === index ? 'fwr-card-winner' : ''} ${
+                      centerLit === index ? 'fwr-card-center' : ''
+                    }`}
                     style={{ '--rarity-color': FORTUNE_WHEEL_RARITY_COLORS[prize.rarity].mid } as React.CSSProperties}
                   >
                     <div className="fwr-card-icon">
                       {prize.image_url ? (
                         <img src={getImageUrl(prize.image_url)} alt={prize.name} loading="lazy" />
                       ) : (
-                        <span className="fwr-card-emoji">{RARITY_EMOJI[prize.rarity]}</span>
+                        <PixelCrateIcon width={44} height={44} />
                       )}
                     </div>
                     <span className="fwr-card-name" title={prize.name}>{prize.wheel_label}</span>
@@ -249,23 +260,13 @@ export function FortuneWheelReel({
         <p className={`fwr-hint ${available ? 'fwr-hint-ready' : 'fwr-hint-wait'}`}>
           {isAnimating ? (
             <>
-              <span className="fwr-hint-icon" aria-hidden>
-                ◌
-              </span>
+              <span className="fwr-spinner" aria-hidden />
               Крутим…
             </>
           ) : available ? (
-            <>
-              <span className="fwr-hint-icon" aria-hidden>
-                ↻
-              </span>
-              Нажмите на ленту
-            </>
+            'Нажмите на ленту'
           ) : (
             <>
-              <span className="fwr-hint-icon" aria-hidden>
-                ⏱
-              </span>
               До следующего вращения: <strong>{countdownLabel}</strong>
             </>
           )}

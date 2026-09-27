@@ -28,14 +28,6 @@ export const FORTUNE_WHEEL_RARITY_LABELS: Record<FortuneWheelRarity, string> = {
   legendary: 'Легендарный',
 };
 
-export const RARITY_EMOJI: Record<FortuneWheelRarity, string> = {
-  common: '📦',
-  uncommon: '🌿',
-  rare: '💧',
-  epic: '💜',
-  legendary: '🔥',
-};
-
 /** Градиенты секторов — продолжение палитры ежедневного колеса. */
 export const FORTUNE_WHEEL_RARITY_COLORS: Record<
   FortuneWheelRarity,

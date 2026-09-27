@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { saveLastPage } from '../utils/safeLocalStorage';
 import StatePanel from '../components/StatePanel';
 import { FortuneWheelReel } from '../components/FortuneWheelReel';
+import { CheckIcon, CopyIcon, PixelCrateIcon } from '../components/FortuneWheelIcons';
 import {
   FORTUNE_WHEEL_RARITY_COLORS,
   FORTUNE_WHEEL_RARITY_LABELS,
-  RARITY_EMOJI,
   type FortuneWheelPrize,
   type FortuneWheelRarity,
 } from '../constants/fortuneWheel';
@@ -65,6 +65,60 @@ function formatTimeAgo(value: string): string {
   const diffHours = Math.floor(diffMin / 60);
   if (diffHours < 24) return `${diffHours} ч. назад`;
   return `${Math.floor(diffHours / 24)} дн. назад`;
+}
+
+interface ConfettiParticle {
+  left: number;
+  delay: number;
+  duration: number;
+  size: number;
+  rotate: number;
+  color: string;
+  drift: number;
+}
+
+/** Конфетти в цвете редкости приза — на весь экран, не блокирует клики. */
+function RarityConfetti({ rarity }: { rarity: FortuneWheelRarity }) {
+  const particles = useMemo<ConfettiParticle[]>(() => {
+    const palette = [
+      FORTUNE_WHEEL_RARITY_COLORS[rarity].light,
+      FORTUNE_WHEEL_RARITY_COLORS[rarity].mid,
+      '#ffd27a',
+      '#f5f7fb',
+    ];
+    return Array.from({ length: 32 }, () => ({
+      left: Math.random() * 100,
+      delay: Math.random() * 0.9,
+      duration: 1.6 + Math.random() * 1.4,
+      size: 5 + Math.random() * 6,
+      rotate: Math.floor(Math.random() * 360),
+      color: palette[Math.floor(Math.random() * palette.length)],
+      drift: (Math.random() - 0.5) * 160,
+    }));
+  }, [rarity]);
+
+  return (
+    <div className="fw-confetti" aria-hidden>
+      {particles.map((particle, index) => (
+        <span
+          key={index}
+          className="fw-confetti-piece"
+          style={
+            {
+              left: `${particle.left}%`,
+              width: particle.size,
+              height: particle.size * 1.6,
+              background: particle.color,
+              transform: `rotate(${particle.rotate}deg)`,
+              animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
+              '--drift': `${particle.drift}px`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
 }
 
 function FortuneWheel() {
@@ -276,7 +330,7 @@ function FortuneWheel() {
   return (
     <div className="fortune-wheel">
       <div className="fw-page-header">
-        <span className="fw-page-badge">🎡 Колесо удачи</span>
+        <span className="fw-page-badge">Колесо удачи</span>
         <h1>Бесплатный кейс каждые 4 часа</h1>
         <p className="fw-page-subtitle">
           Испытайте удачу — раз в {config?.cooldown_hours ?? 4} часа можно бесплатно крутить колесо.
@@ -309,7 +363,7 @@ function FortuneWheel() {
                 disabled={!wheelAvailable || spinning}
                 onClick={() => void handleSpin()}
               >
-                {spinning ? 'Крутим…' : wheelAvailable ? '🎲 Крутить' : spinBlockedReason ? '⏱ Ждём' : 'Крутить'}
+                {spinning ? 'Крутим…' : wheelAvailable ? 'Крутить' : spinBlockedReason ? 'Ждём' : 'Крутить'}
               </button>
 
               {spinBlockedReason && !spinning && (
@@ -322,14 +376,14 @@ function FortuneWheel() {
                   <span className="fw-stat-label">всего спинов</span>
                 </div>
                 <div className={`fw-tag-state ${status?.tag_verified ? 'ok' : 'wait'}`}>
-                  {status?.tag_verified ? '✓ Метка в нике найдена' : '⏳ Метка не проверена'}
+                  {status?.tag_verified ? 'Метка в нике найдена' : 'Метка не проверена'}
                 </div>
               </div>
             </>
           ) : (
             <>
               <button type="button" className="fw-spin-button" onClick={handleLogin}>
-                🔑 Войти через Steam
+                Войти через Steam
               </button>
               <p className="fw-spin-blocked">Войдите, чтобы крутить колесо бесплатно</p>
             </>
@@ -338,24 +392,40 @@ function FortuneWheel() {
       </div>
 
       {spinResult && (
-        <div className="fw-result" role="status" aria-live="polite">
-          <div className="fw-result-icon">{RARITY_EMOJI[spinResult.prize.rarity] ?? '🎉'}</div>
-          <div className="fw-result-text">
-            <div className="fw-result-title">Вы выиграли!</div>
-            <div className={`fw-result-prize rarity-${spinResult.prize.rarity}`}>
-              {spinResult.prize.name}
-              {spinResult.prize.quantity > 1 && (
-                <span className="fw-result-qty"> ×{spinResult.prize.quantity}</span>
+        <>
+          <div
+            className={`fw-result rarity-${spinResult.prize.rarity}`}
+            style={
+              { '--rarity-color': FORTUNE_WHEEL_RARITY_COLORS[spinResult.prize.rarity].mid } as React.CSSProperties
+            }
+            role="status"
+            aria-live="polite"
+          >
+            <div className="fw-result-icon">
+              {spinResult.prize.image_url ? (
+                <img src={getImageUrl(spinResult.prize.image_url)} alt={spinResult.prize.name} />
+              ) : (
+                <PixelCrateIcon width={52} height={52} />
               )}
             </div>
-            <div className="fw-result-note">
-              Предмет добавлен в инвентарь и ждёт получения. Зайдите на сервер и заберите его в игре.
+            <div className="fw-result-text">
+              <div className="fw-result-title">Вы выиграли!</div>
+              <div className={`fw-result-prize rarity-${spinResult.prize.rarity}`}>
+                {spinResult.prize.name}
+                {spinResult.prize.quantity > 1 && (
+                  <span className="fw-result-qty"> ×{spinResult.prize.quantity}</span>
+                )}
+              </div>
+              <div className="fw-result-note">
+                Предмет добавлен в инвентарь и ждёт получения. Зайдите на сервер и заберите его в игре.
+              </div>
+              <Link to="/inventory" className="fw-result-link">
+                Открыть инвентарь →
+              </Link>
             </div>
-            <Link to="/inventory" className="fw-result-link">
-              Открыть инвентарь →
-            </Link>
           </div>
-        </div>
+          <RarityConfetti rarity={spinResult.prize.rarity} />
+        </>
       )}
 
       {user && (
@@ -365,7 +435,8 @@ function FortuneWheel() {
             <p>
               Чтобы крутить колесо, добавьте метку{' '}
               <button type="button" className="fw-tag-chip" onClick={() => void handleCopyTag()} title="Скопировать">
-                {nicknameTag} {copied ? '✓' : '⧉'}
+                {nicknameTag}
+                <span className="fw-tag-chip-icon">{copied ? <CheckIcon /> : <CopyIcon />}</span>
               </button>{' '}
               в своё имя в Steam (Friends → Change Profile Name), затем нажмите «Проверить».
             </p>
@@ -391,7 +462,9 @@ function FortuneWheel() {
                 {win.player_avatar ? (
                   <img className="fw-win-avatar" src={win.player_avatar} alt={win.player_name} loading="lazy" />
                 ) : (
-                  <div className="fw-win-avatar fw-win-avatar-placeholder">👤</div>
+                  <div className="fw-win-avatar fw-win-avatar-placeholder">
+                    {win.player_name.trim().charAt(0).toUpperCase() || '?'}
+                  </div>
                 )}
                 <div className="fw-win-info">
                   <span className="fw-win-player">{win.player_name}</span>
@@ -425,21 +498,29 @@ function FortuneWheel() {
                 {prize.image_url ? (
                   <img src={getImageUrl(prize.image_url)} alt={prize.name} loading="lazy" />
                 ) : (
-                  <span className="fw-prize-emoji">{RARITY_EMOJI[prize.rarity]}</span>
+                  <PixelCrateIcon width={56} height={56} />
+                )}
+                {prize.quantity > 1 && (
+                  <span className="fw-prize-qty-badge">
+                    {prize.quantity_max ? `${prize.quantity}–${prize.quantity_max}` : `×${prize.quantity}`}
+                  </span>
                 )}
               </div>
               <div className="fw-prize-body">
                 <span className={`fw-prize-rarity rarity-${prize.rarity}`}>
                   {FORTUNE_WHEEL_RARITY_LABELS[prize.rarity]}
                 </span>
-                <h3 className="fw-prize-name">
-                  {prize.name}
-                  <span className="fw-prize-qty">
-                    {prize.quantity_max ? `${prize.quantity}–${prize.quantity_max}` : `×${prize.quantity}`}
-                  </span>
-                </h3>
+                <h3 className="fw-prize-name">{prize.name}</h3>
                 {prize.description && <p className="fw-prize-desc">{prize.description}</p>}
-                <span className="fw-prize-chance">Шанс: {prize.chance_percent}%</span>
+                <div className="fw-prize-chance">
+                  <span className="fw-prize-chance-caption">Шанс: {prize.chance_percent}%</span>
+                  <span className="fw-prize-chance-bar">
+                    <span
+                      className="fw-prize-chance-fill"
+                      style={{ width: `${Math.min(100, prize.chance_percent)}%` }}
+                    />
+                  </span>
+                </div>
               </div>
             </article>
           ))}
