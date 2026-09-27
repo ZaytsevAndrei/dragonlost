@@ -27,6 +27,7 @@ const KIT_ITEM_NAMES: Record<string, string> = {
   'explosive.satchel': 'Кассетный заряд',
   'trap.landmine': 'Противопехотная мина',
   hazmatsuit: 'Антирадиационный костюм',
+  'hazmatsuit.arcticsuit': 'Зимний антирадиационный костюм',
   'rifle.semiauto': 'Полуавтоматическая винтовка',
   'ammo.rifle': 'Патроны 5.56 мм',
 };
