@@ -195,42 +195,34 @@ function Inventory() {
     <div className="inventory">
       <div className="inventory-header">
         <h1>🎒 Мой инвентарь</h1>
-        <button
-          className="btn-refresh"
-          type="button"
-          onClick={checkOnlineStatus}
-          title="Проверить статус на сервере"
-          aria-label="Обновить статус"
-        >
-          🔄
-        </button>
+        <div className="header-status">
+          {onlineStatus ? (
+            <span
+              className={`header-badge ${onlineStatus.online ? 'is-online' : 'is-offline'}`}
+              title={onlineStatus.message}
+            >
+              {onlineStatus.online ? '🟢 Вы онлайн' : '🔴 Вы оффлайн'}
+            </span>
+          ) : null}
+          <span
+            className="header-badge"
+            title={lastDeliveredAt ? `Последний вывод: ${formatDate(lastDeliveredAt)}` : 'Предметы ещё не выводились'}
+          >
+            📤 Последний вывод: {lastDeliveredAt ? formatRelative(lastDeliveredAt) : '—'}
+          </span>
+          <button
+            className="btn-refresh"
+            type="button"
+            onClick={checkOnlineStatus}
+            title="Проверить статус на сервере"
+            aria-label="Обновить статус"
+          >
+            🔄
+          </button>
+        </div>
       </div>
 
       {notice ? <div className="inventory-notice">{notice}</div> : null}
-
-      <div className="inventory-summary">
-        <div className={`summary-card ${pendingItems.length > 0 ? 'has-pending' : ''}`}>
-          <span className="summary-value">{pendingItems.length}</span>
-          <span className="summary-label">⏳ Ожидают получения</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-value">{lastDeliveredAt ? formatRelative(lastDeliveredAt) : '—'}</span>
-          <span className="summary-label">📤 Последний вывод</span>
-        </div>
-      </div>
-
-      {onlineStatus ? (
-        <div className={`online-status ${onlineStatus.online ? 'online' : 'offline'}`}>
-          <span className="status-indicator">{onlineStatus.online ? '🟢' : '🔴'}</span>
-          <div className="status-info">
-            <div className="status-label">{onlineStatus.online ? 'Вы онлайн на сервере' : 'Вы оффлайн'}</div>
-            <div className="status-detail">
-              {onlineStatus.message}
-              {!canUse && pendingItems.length > 0 ? ' — зайдите на сервер, чтобы получить предметы' : ''}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {pendingItems.length > 0 ? (
         <section className="inventory-section">
