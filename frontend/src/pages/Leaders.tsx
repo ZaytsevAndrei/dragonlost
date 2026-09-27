@@ -13,7 +13,7 @@ const RESOURCE_ICON = {
   sulfurOre: '/uploads/stats/sulfur.ore.png',
 } as const;
 
-type MetricKey = 'time' | 'kills' | 'kd' | 'headshots' | 'sulfur' | 'wood' | 'stones' | 'metal';
+type MetricKey = 'kills' | 'kd' | 'headshots' | 'sulfur' | 'wood' | 'stones' | 'metal';
 
 const METRICS: {
   key: MetricKey;
@@ -21,7 +21,6 @@ const METRICS: {
   emoji?: string;
   iconSrc?: string;
 }[] = [
-  { key: 'time', label: 'Время', emoji: '⏱️' },
   { key: 'kills', label: 'Убийства', emoji: '⚔️' },
   { key: 'kd', label: 'K/D', emoji: '🎯' },
   { key: 'headshots', label: 'Хедшоты', emoji: '🔫' },
@@ -33,20 +32,12 @@ const METRICS: {
 
 const LEADERS_LIMIT = 50;
 
-function formatPlaytime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  if (hours < 24) return `${hours} ч ${Math.floor((seconds % 3600) / 60)} м`;
-  return `${Math.floor(hours / 24)} д ${hours % 24} ч`;
-}
-
 function formatNumber(value: number): string {
   return value.toLocaleString('ru-RU');
 }
 
 function metricValue(player: LeaderboardEntry, metric: MetricKey): string {
   switch (metric) {
-    case 'time':
-      return formatPlaytime(player.stats.secondsPlayed);
     case 'kills':
       return formatNumber(player.stats.kills);
     case 'kd':
@@ -72,11 +63,11 @@ function Leaders() {
   usePageMeta({
     title: 'Топ игроков сервера — DragonLost',
     description:
-      'Публичный рейтинг игроков Rust-сервера DragonLost за текущий вайп: наигранное время, убийства, K/D, хедшоты и фарм ресурсов.',
+      'Публичный рейтинг игроков Rust-сервера DragonLost за текущий вайп: убийства, K/D, хедшоты и фарм ресурсов.',
     path: '/leaders',
   });
 
-  const [metric, setMetric] = useState<MetricKey>('time');
+  const [metric, setMetric] = useState<MetricKey>('kills');
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -190,7 +181,6 @@ function Leaders() {
                 <th className="leaders-metric-col">{metricTitle(metric)}</th>
                 <th>Убийств</th>
                 <th>K/D</th>
-                <th>Время</th>
               </tr>
             </thead>
             <tbody>
@@ -209,7 +199,6 @@ function Leaders() {
                   <td className="leaders-metric-cell">{metricValue(player, metric)}</td>
                   <td>{formatNumber(player.stats.kills)}</td>
                   <td className="kd-stat">{player.stats.kd.toFixed(2)}</td>
-                  <td>{formatPlaytime(player.stats.secondsPlayed)}</td>
                 </tr>
               ))}
             </tbody>
