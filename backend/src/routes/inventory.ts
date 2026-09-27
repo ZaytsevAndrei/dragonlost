@@ -145,7 +145,7 @@ router.post('/use/:id', isAuthenticated, async (req, res) => {
       const components = parseBundleCode(item.rust_item_code);
       const kitCount = Number(item.quantity) || 1;
       for (const component of components) {
-        await rconService.giveItem(steamid, component.code, component.quantity * kitCount, component.skinId);
+        await rconService.giveItem(steamid, component.code, component.quantity * kitCount);
       }
     } catch (rconError: unknown) {
       await connection.rollback();
@@ -245,7 +245,7 @@ router.post('/use-all', isAuthenticated, async (req, res) => {
         const components = parseBundleCode(item.rust_item_code);
         const kitCount = Number(item.quantity) || 1;
         for (const component of components) {
-          await rconService.giveItem(steamid, component.code, component.quantity * kitCount, component.skinId);
+          await rconService.giveItem(steamid, component.code, component.quantity * kitCount);
         }
 
         await connection.query(

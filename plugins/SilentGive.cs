@@ -1,10 +1,9 @@
-// SilentGive.cs — положить в oxide/plugins/ плагин, который не выводит в чат оповещения о выдаче предметов с сайта
+// SilentGive.cs — положить в oxide/plugins/ плагин, который не выводит в чат оповещения о выводе предметов с сайта
 namespace Oxide.Plugins
 {
-    [Info("SilentGive", "DragonLost", "1.2.0")]
+    [Info("SilentGive", "DragonLost", "1.1.0")]
     class SilentGive : RustPlugin
     {
-        // silentgive <steamid> <shortname> <amount> [skinid]
         [ConsoleCommand("silentgive")]
         void CmdSilentGive(ConsoleSystem.Arg arg)
         {
@@ -14,20 +13,13 @@ namespace Oxide.Plugins
             var shortname = arg.GetString(1);
             var amount    = arg.GetInt(2, 1);
 
-            // skin ID не влезает в int (воркшоп-ID больше 2^31), парсим в ulong
-            ulong skinId = 0;
-            if (arg.Args != null && arg.Args.Length > 3)
-            {
-                ulong.TryParse(arg.Args[3], out skinId);
-            }
-
             var player = BasePlayer.Find(steamId);
             if (player == null) { arg.ReplyWith("Player not found"); return; }
 
             var itemDef = ItemManager.FindItemDefinition(shortname);
             if (itemDef == null) { arg.ReplyWith("Item not found"); return; }
 
-            var item = ItemManager.Create(itemDef, amount, skinId);
+            var item = ItemManager.Create(itemDef, amount);
             if (item == null) { arg.ReplyWith("Failed to create item"); return; }
 
             if (!GiveSilent(player, item))
@@ -37,8 +29,7 @@ namespace Oxide.Plugins
                 return;
             }
 
-            var skinSuffix = skinId != 0 ? $" skin {skinId}" : string.Empty;
-            arg.ReplyWith($"Gave {shortname} x{amount}{skinSuffix} to {player.displayName}");
+            arg.ReplyWith($"Gave {shortname} x{amount} to {player.displayName}");
         }
 
         private bool GiveSilent(BasePlayer player, Item item)
