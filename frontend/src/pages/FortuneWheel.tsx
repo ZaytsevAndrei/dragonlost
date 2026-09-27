@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
@@ -9,6 +9,7 @@ import { CheckIcon, CopyIcon, PixelCrateIcon } from '../components/FortuneWheelI
 import {
   FORTUNE_WHEEL_RARITY_COLORS,
   FORTUNE_WHEEL_RARITY_LABELS,
+  RARITY_EMOJI,
   type FortuneWheelPrize,
   type FortuneWheelRarity,
 } from '../constants/fortuneWheel';
@@ -65,60 +66,6 @@ function formatTimeAgo(value: string): string {
   const diffHours = Math.floor(diffMin / 60);
   if (diffHours < 24) return `${diffHours} ч. назад`;
   return `${Math.floor(diffHours / 24)} дн. назад`;
-}
-
-interface ConfettiParticle {
-  left: number;
-  delay: number;
-  duration: number;
-  size: number;
-  rotate: number;
-  color: string;
-  drift: number;
-}
-
-/** Конфетти в цвете редкости приза — на весь экран, не блокирует клики. */
-function RarityConfetti({ rarity }: { rarity: FortuneWheelRarity }) {
-  const particles = useMemo<ConfettiParticle[]>(() => {
-    const palette = [
-      FORTUNE_WHEEL_RARITY_COLORS[rarity].light,
-      FORTUNE_WHEEL_RARITY_COLORS[rarity].mid,
-      '#ffd27a',
-      '#f5f7fb',
-    ];
-    return Array.from({ length: 32 }, () => ({
-      left: Math.random() * 100,
-      delay: Math.random() * 0.9,
-      duration: 1.6 + Math.random() * 1.4,
-      size: 5 + Math.random() * 6,
-      rotate: Math.floor(Math.random() * 360),
-      color: palette[Math.floor(Math.random() * palette.length)],
-      drift: (Math.random() - 0.5) * 160,
-    }));
-  }, [rarity]);
-
-  return (
-    <div className="fw-confetti" aria-hidden>
-      {particles.map((particle, index) => (
-        <span
-          key={index}
-          className="fw-confetti-piece"
-          style={
-            {
-              left: `${particle.left}%`,
-              width: particle.size,
-              height: particle.size * 1.6,
-              background: particle.color,
-              transform: `rotate(${particle.rotate}deg)`,
-              animationDelay: `${particle.delay}s`,
-              animationDuration: `${particle.duration}s`,
-              '--drift': `${particle.drift}px`,
-            } as React.CSSProperties
-          }
-        />
-      ))}
-    </div>
-  );
 }
 
 function FortuneWheel() {
@@ -392,40 +339,24 @@ function FortuneWheel() {
       </div>
 
       {spinResult && (
-        <>
-          <div
-            className={`fw-result rarity-${spinResult.prize.rarity}`}
-            style={
-              { '--rarity-color': FORTUNE_WHEEL_RARITY_COLORS[spinResult.prize.rarity].mid } as React.CSSProperties
-            }
-            role="status"
-            aria-live="polite"
-          >
-            <div className="fw-result-icon">
-              {spinResult.prize.image_url ? (
-                <img src={getImageUrl(spinResult.prize.image_url)} alt={spinResult.prize.name} />
-              ) : (
-                <PixelCrateIcon width={52} height={52} />
+        <div className="fw-result" role="status" aria-live="polite">
+          <div className="fw-result-icon">{RARITY_EMOJI[spinResult.prize.rarity] ?? '🎉'}</div>
+          <div className="fw-result-text">
+            <div className="fw-result-title">Вы выиграли!</div>
+            <div className={`fw-result-prize rarity-${spinResult.prize.rarity}`}>
+              {spinResult.prize.name}
+              {spinResult.prize.quantity > 1 && (
+                <span className="fw-result-qty"> ×{spinResult.prize.quantity}</span>
               )}
             </div>
-            <div className="fw-result-text">
-              <div className="fw-result-title">Вы выиграли!</div>
-              <div className={`fw-result-prize rarity-${spinResult.prize.rarity}`}>
-                {spinResult.prize.name}
-                {spinResult.prize.quantity > 1 && (
-                  <span className="fw-result-qty"> ×{spinResult.prize.quantity}</span>
-                )}
-              </div>
-              <div className="fw-result-note">
-                Предмет добавлен в инвентарь и ждёт получения. Зайдите на сервер и заберите его в игре.
-              </div>
-              <Link to="/inventory" className="fw-result-link">
-                Открыть инвентарь →
-              </Link>
+            <div className="fw-result-note">
+              Предмет добавлен в инвентарь и ждёт получения. Зайдите на сервер и заберите его в игре.
             </div>
+            <Link to="/inventory" className="fw-result-link">
+              Открыть инвентарь →
+            </Link>
           </div>
-          <RarityConfetti rarity={spinResult.prize.rarity} />
-        </>
+        </div>
       )}
 
       {user && (
