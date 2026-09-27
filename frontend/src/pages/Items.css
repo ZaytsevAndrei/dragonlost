@@ -101,6 +101,41 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-500) 35%, transparent);
 }
 
+/* «Мифическая» подсветка — красная, как топ-редкость «Мифический» в колесе удачи */
+.item-card--mythic {
+  --mythic-color: #e04538;
+  position: relative;
+  border-color: color-mix(in srgb, var(--mythic-color) 65%, var(--border));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--mythic-color) 22%, transparent);
+}
+
+.item-card--mythic.item-card--clickable {
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item-card--mythic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  z-index: 1;
+  background: var(--mythic-color);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mythic-color) 75%, transparent);
+}
+
+.item-card--mythic .item-card-image-wrap {
+  background:
+    radial-gradient(ellipse 70% 80% at 50% 40%, color-mix(in srgb, var(--mythic-color) 16%, transparent) 0%, transparent 70%),
+    rgba(13, 18, 26, 0.5);
+}
+
+.item-card--clickable.item-card--mythic:hover {
+  border-color: color-mix(in srgb, var(--mythic-color) 85%, var(--border));
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--mythic-color) 32%, transparent);
+}
+
 .item-card-image-wrap {
   flex-shrink: 0;
   height: var(--item-image-height);
@@ -229,6 +264,24 @@
   border: 1px solid var(--border-strong);
   border-radius: 20px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.item-modal--mythic {
+  --mythic-color: #e04538;
+  border-color: color-mix(in srgb, var(--mythic-color) 60%, var(--border-strong));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 26px color-mix(in srgb, var(--mythic-color) 25%, transparent);
+}
+
+.item-modal--mythic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  z-index: 2;
+  background: var(--mythic-color);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mythic-color) 75%, transparent);
 }
 
 /* Прокручивается только контент (картинка + описание/состав), футер с кнопками закреплён снизу */

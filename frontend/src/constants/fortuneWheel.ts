@@ -1,6 +1,6 @@
 /** Константы колеса удачи. Должен совпадать с backend/src/constants/fortuneWheel.ts */
 
-export type FortuneWheelRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type FortuneWheelRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export interface FortuneWheelPrize {
   id: number;
@@ -26,6 +26,7 @@ export const FORTUNE_WHEEL_RARITY_LABELS: Record<FortuneWheelRarity, string> = {
   rare: 'Редкий',
   epic: 'Эпический',
   legendary: 'Легендарный',
+  mythic: 'Мифический',
 };
 
 export const RARITY_EMOJI: Record<FortuneWheelRarity, string> = {
@@ -34,6 +35,7 @@ export const RARITY_EMOJI: Record<FortuneWheelRarity, string> = {
   rare: '💧',
   epic: '💜',
   legendary: '🔥',
+  mythic: '💀',
 };
 
 /** Градиенты секторов — продолжение палитры ежедневного колеса. */
@@ -45,5 +47,6 @@ export const FORTUNE_WHEEL_RARITY_COLORS: Record<
   uncommon: { light: '#7ed99a', mid: '#4caf6a', dark: '#2a7a42', stroke: '#1f6b38', glow: 'rgba(76, 175, 106, 0.35)' },
   rare: { light: '#7eb8f0', mid: '#4a8fd4', dark: '#2a5a98', stroke: '#1e5080', glow: 'rgba(74, 143, 212, 0.35)' },
   epic: { light: '#d4a8f8', mid: '#a86cd8', dark: '#6a3898', stroke: '#5c2e88', glow: 'rgba(168, 108, 216, 0.4)' },
-  legendary: { light: '#ff8a7a', mid: '#e04538', dark: '#9a2018', stroke: '#8a1a12', glow: 'rgba(224, 69, 56, 0.55)' },
+  legendary: { light: '#ffe08a', mid: '#efb43d', dark: '#a8720f', stroke: '#8f6208', glow: 'rgba(239, 180, 61, 0.55)' },
+  mythic: { light: '#ff8a7a', mid: '#e04538', dark: '#9a2018', stroke: '#8a1a12', glow: 'rgba(224, 69, 56, 0.55)' },
 };

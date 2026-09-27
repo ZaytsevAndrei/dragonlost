@@ -9,7 +9,7 @@ export const FORTUNE_WHEEL_NICKNAME_TAG = 'dragonlost.ru';
 /** Сколько последних выигрышей показывать в ленте. */
 export const FORTUNE_WHEEL_RECENT_WINS_LIMIT = 12;
 
-export type FortuneWheelRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type FortuneWheelRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export interface WeightedPrize {
   weight: number;

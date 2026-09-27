@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import CoinAmount from '../components/CoinAmount';
 import StatePanel from '../components/StatePanel';
 import { CATEGORY_NAMES, CATEGORY_ORDER } from '../constants/shopCategories';
+import { isMythicShopItem } from '../constants/shopHighlights';
 import { api, getBackendOrigin, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import type { ShopItem } from '../types';
@@ -419,10 +420,11 @@ function Items() {
               const title = getItemTitle(item);
               const kitComponents = getKitComponents(item);
               const kitTeaser = getKitTeaser(item.description);
+              const mythic = isMythicShopItem(item);
               return (
                 <article
                   key={String(item.id ?? `${title}-${index}`)}
-                  className="item-card item-card--clickable"
+                  className={`item-card item-card--clickable${mythic ? ' item-card--mythic' : ''}`}
                   tabIndex={0}
                   role="button"
                   onClick={() => openItemModal(item)}
@@ -495,7 +497,7 @@ function Items() {
       {modalItem ? (
         <div className="item-modal-backdrop" onClick={closeItemModal} role="presentation">
           <div
-            className="item-modal"
+            className={`item-modal${isMythicShopItem(modalItem) ? ' item-modal--mythic' : ''}`}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

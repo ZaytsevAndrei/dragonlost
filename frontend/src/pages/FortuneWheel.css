@@ -494,6 +494,16 @@
   box-shadow: 0 0 18px color-mix(in srgb, var(--rarity-color, #000) 26%, transparent);
 }
 
+.fw-prize-card.rarity-mythic::before {
+  opacity: 1;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--rarity-color, #000) 85%, transparent);
+}
+
+.fw-prize-card.rarity-mythic {
+  border-color: color-mix(in srgb, var(--rarity-color, var(--border-strong)) 70%, var(--border));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--rarity-color, #000) 30%, transparent);
+}
+
 .fw-prize-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 26px color-mix(in srgb, var(--rarity-color, #000) 22%, transparent);
@@ -600,7 +610,8 @@
 .rarity-uncommon { color: #4caf6a; }
 .rarity-rare { color: #4a8fd4; }
 .rarity-epic { color: #a86cd8; }
-.rarity-legendary { color: #e04538; }
+.rarity-legendary { color: #efb43d; }
+.rarity-mythic { color: #e04538; }
 
 /* --- Адаптив --- */
 
