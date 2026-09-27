@@ -216,11 +216,6 @@ function Leaders() {
           </table>
         </div>
       )}
-
-      <p className="leaders-footer-hint">
-        Полная таблица с поиском — на странице{' '}
-        <Link to="/stats">статистики</Link>.
-      </p>
     </div>
   );
 }

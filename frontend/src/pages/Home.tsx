@@ -82,12 +82,12 @@ function Home() {
         </header>
 
         <div className="features features--duo">
-          <Link to="/stats" className="feature-card feature-card-link">
+          <Link to="/leaders" className="feature-card feature-card-link">
             <div className="feature-icon-wrap">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" /></svg>
             </div>
-            <h3>Статистика</h3>
-            <p>Подробная статистика игроков: убийства, смерти, K/D и многое другое</p>
+            <h3>Топ игроков</h3>
+            <p>Рейтинг игроков сервера: время в игре, убийства, K/D и добыча ресурсов</p>
             <span className="feature-card-inline-link">Смотреть рейтинг</span>
           </Link>
 

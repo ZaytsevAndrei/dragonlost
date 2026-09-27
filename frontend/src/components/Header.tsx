@@ -53,9 +53,6 @@ function Header() {
             <NavLink to="/wheel" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Колесо
             </NavLink>
-            <NavLink to="/stats" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              Статистика
-            </NavLink>
             <NavLink to="/leaders" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
               Топ игроков
             </NavLink>

@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Items from './pages/Items';
-import Statistics from './pages/Statistics';
 import Inventory from './pages/Inventory';
 import FortuneWheel from './pages/FortuneWheel';
 import TelegramLink from './pages/TelegramLink';
@@ -81,7 +80,7 @@ function App() {
             <Route path="/items" element={<Navigate to="/shop" replace />} />
             <Route path="/payment/success" element={<PaymentReturnRedirect status="success" />} />
             <Route path="/payment/fail" element={<PaymentReturnRedirect status="fail" />} />
-            <Route path="/stats" element={<Statistics />} />
+            <Route path="/stats" element={<Navigate to="/leaders" replace />} />
             <Route path="/leaders" element={<Leaders />} />
             <Route path="/player/:steamid" element={<PlayerProfile />} />
             <Route path="/wipe" element={<WipeSchedule />} />

@@ -45,10 +45,6 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-export interface PlayersResponse {
-  players: PlayerStats[];
-}
-
 export interface PlayerResponse {
   player: PlayerStats;
 }

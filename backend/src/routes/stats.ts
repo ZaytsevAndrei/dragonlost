@@ -16,22 +16,8 @@ import { getSteamProfile } from '../services/steamProfile';
 
 const router = Router();
 
-const MAX_PAGE_SIZE = 50;
-const DEFAULT_PAGE_SIZE = 20;
-
-/** Экранирует спецсимволы LIKE (%, _) в пользовательском вводе */
-function escapeLike(value: string): string {
-  return value.replace(/[%_\\]/g, (ch) => `\\${ch}`);
-}
-
-function maskSteamId(steamid: string): string {
-  if (!steamid || steamid.length < 8) return '***';
-  return steamid.slice(0, 4) + '****' + steamid.slice(-4);
-}
-
 function parsePlayerRow(
   row: RowDataPacket,
-  showFullSteamId: boolean,
   includeLastSeen: boolean,
   baseline?: Record<string, unknown>
 ) {
@@ -56,7 +42,7 @@ function parsePlayerRow(
 
   return {
     id: row.id,
-    steamid: showFullSteamId ? row.steamid : maskSteamId(row.steamid),
+    steamid: row.steamid,
     name: row.name,
     stats: {
       kills,
@@ -84,78 +70,6 @@ function parsePlayerRow(
     firstConnection: parseFloat(row['First Connection'] || 0),
   };
 }
-
-// Get all players statistics (with server-side pagination)
-router.get('/', async (req, res) => {
-  try {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(req.query.limit as string) || DEFAULT_PAGE_SIZE));
-    const search = (req.query.search as string) || '';
-    const offset = (page - 1) * limit;
-
-    const isAuth = req.isAuthenticated();
-    const sessionUser = req.user as { role?: string } | undefined;
-    const isAdmin = Boolean(isAuth && sessionUser?.role === 'admin');
-
-    const wipeSinceUnix = await getWipeSinceUnix();
-
-    let countQuery = 'SELECT COUNT(*) as total FROM PlayerDatabase';
-    let dataQuery = 'SELECT * FROM PlayerDatabase';
-    const params: (string | number)[] = [];
-    const whereParts: string[] = [];
-
-    if (search) {
-      whereParts.push('name LIKE ? ESCAPE \'\\\\\'');
-      params.push(`%${escapeLike(search)}%`);
-    }
-
-    if (wipeSinceUnix != null) {
-      whereParts.push('`Last Seen` >= ?');
-      params.push(wipeSinceUnix);
-    }
-
-    if (whereParts.length > 0) {
-      const whereClause = ` WHERE ${whereParts.join(' AND ')}`;
-      countQuery += whereClause;
-      dataQuery += whereClause;
-    }
-
-    dataQuery += ' ORDER BY `Last Seen` DESC LIMIT ? OFFSET ?';
-
-    const [countRows] = await rustPool.query<RowDataPacket[]>(countQuery, params);
-    const total = countRows[0].total as number;
-
-    const [rows] = await rustPool.query<RowDataPacket[]>(dataQuery, [...params, limit, offset]);
-
-    const useWipeStats = await hasWipeBaselines();
-    const baselines = useWipeStats
-      ? await getBaselinesForSteamIds(rows.map((r) => String(r.steamid || '')))
-      : new Map<string, Record<string, unknown>>();
-
-    const wipeMeta = useWipeStats ? await getWipeMeta() : { wipedAt: null, mapVoteSessionId: null };
-
-    const players = rows.map((row) => {
-      const steamid = String(row.steamid || '');
-      const baseline = useWipeStats ? baselines.get(steamid) ?? {} : undefined;
-      return parsePlayerRow(row, isAuth, isAdmin, baseline);
-    });
-
-    res.json({
-      players,
-      wipeStats: useWipeStats,
-      wipedAt: wipeMeta.wipedAt ? wipeMeta.wipedAt.toISOString() : null,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error('Error fetching stats:', error instanceof Error ? error.message : 'Unknown error');
-    res.status(500).json({ error: 'Failed to fetch statistics' });
-  }
-});
 
 /**
  * Публичный лидерборд: топ игроков по метрике текущего вайпа.
@@ -217,7 +131,7 @@ async function fetchLeaderboardDataset(): Promise<NonNullable<typeof leaderboard
     const steamid = String(row.steamid || '');
     const baseline = useWipeStats ? baselines.get(steamid) ?? {} : undefined;
     // Полный steamid нужен для публичных профилей игроков (/player/:steamid)
-    return parsePlayerRow(row, true, false, baseline);
+    return parsePlayerRow(row, false, baseline);
   });
 
   leaderboardCache = {
@@ -288,7 +202,7 @@ router.get('/:steamid', sensitiveRateLimiter, async (req, res) => {
       : new Map<string, Record<string, unknown>>();
     const wipeMeta = useWipeStats ? await getWipeMeta() : { wipedAt: null, mapVoteSessionId: null };
 
-    const player = parsePlayerRow(rows[0], true, true, useWipeStats ? baselines.get(steamid) ?? {} : undefined);
+    const player = parsePlayerRow(rows[0], true, useWipeStats ? baselines.get(steamid) ?? {} : undefined);
 
     let steam: { personaname: string; avatarfull: string; profileurl?: string } | null = null;
     try {

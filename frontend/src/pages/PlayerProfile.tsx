@@ -266,7 +266,6 @@ function PlayerProfile() {
 
       <p className="player-profile-back">
         <Link to="/leaders">← Топ игроков</Link>
-        <Link to="/stats">Полная статистика</Link>
       </p>
     </div>
   );
