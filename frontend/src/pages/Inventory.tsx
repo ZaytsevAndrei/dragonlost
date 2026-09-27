@@ -120,12 +120,13 @@ function Inventory() {
 
   const pendingItems = useMemo(() => inventory.filter((item) => item.status === 'pending'), [inventory]);
 
-  const lastPurchaseAt = useMemo(() => {
-    if (inventory.length === 0) return null;
-    return inventory.reduce<string>(
-      (latest, item) => (new Date(item.purchased_at) > new Date(latest) ? item.purchased_at : latest),
-      inventory[0].purchased_at
-    );
+  // Вывод — это фактическая выдача в игру (delivered_at): покупки и выигрыши сюда не попадают.
+  const lastDeliveredAt = useMemo(() => {
+    const deliveredDates = inventory
+      .filter((item) => item.status === 'delivered' && item.delivered_at)
+      .map((item) => item.delivered_at as string);
+    if (deliveredDates.length === 0) return null;
+    return deliveredDates.reduce((latest, current) => (new Date(current) > new Date(latest) ? current : latest));
   }, [inventory]);
 
   const handleUseItem = useCallback(
@@ -213,7 +214,7 @@ function Inventory() {
           <span className="summary-label">⏳ Ожидают получения</span>
         </div>
         <div className="summary-card">
-          <span className="summary-value">{lastPurchaseAt ? formatRelative(lastPurchaseAt) : '—'}</span>
+          <span className="summary-value">{lastDeliveredAt ? formatRelative(lastDeliveredAt) : '—'}</span>
           <span className="summary-label">📤 Последний вывод</span>
         </div>
       </div>

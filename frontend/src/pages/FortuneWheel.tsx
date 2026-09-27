@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { saveLastPage } from '../utils/safeLocalStorage';
@@ -281,8 +280,7 @@ function FortuneWheel() {
         <h1>Бесплатный кейс каждые 4 часа</h1>
         <p className="fw-page-subtitle">
           Испытайте удачу — раз в {config?.cooldown_hours ?? 4} часа можно бесплатно крутить колесо.
-          Приз приходит на ваш аккаунт автоматически — заберите его в игре через страницу{' '}
-          <Link to="/inventory">«Инвентарь»</Link>.
+          Приз выдаётся сразу вашему персонажу в игре — во время спина нужно быть на сервере.
         </p>
       </div>
 
@@ -350,11 +348,8 @@ function FortuneWheel() {
               )}
             </div>
             <div className="fw-result-note">
-              Предмет добавлен в инвентарь и ждёт получения. Зайдите на сервер и заберите его в игре.
+              Предмет выдан вашему персонажу прямо в игре.
             </div>
-            <Link to="/inventory" className="fw-result-link">
-              Открыть инвентарь →
-            </Link>
           </div>
         </div>
       )}
