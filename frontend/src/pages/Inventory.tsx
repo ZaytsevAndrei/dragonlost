@@ -244,7 +244,7 @@ function Inventory() {
               onClick={() => setConfirmUseAll(true)}
               disabled={!canUse || usingAll || usingItemId !== null}
             >
-              {usingAll ? 'Выдача...' : '📦 Получить все'}
+              {usingAll ? 'Выдача...' : '📦 Получить всё'}
             </button>
           </div>
           <div className="pending-grid">
@@ -328,7 +328,7 @@ function Inventory() {
                   void handleUseAll();
                 }}
               >
-                {usingAll ? 'Выдача...' : 'Да, получить все'}
+                {usingAll ? 'Выдача...' : 'Да, получить всё'}
               </button>
             </div>
           </div>

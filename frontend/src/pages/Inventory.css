@@ -221,7 +221,7 @@
   cursor: not-allowed;
 }
 
-/* Подтверждение «Получить все» */
+/* Подтверждение «Получить всё» */
 .inv-confirm-backdrop {
   position: fixed;
   inset: 0;
