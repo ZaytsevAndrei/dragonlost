@@ -131,11 +131,13 @@ class RustRconService {
     }
   }
 
-  async giveItem(steamId: string, itemShortName: string, amount: number): Promise<string> {
+  async giveItem(steamId: string, itemShortName: string, amount: number, skinId?: number): Promise<string> {
     const useSilent = process.env.RCON_SILENT_GIVE !== 'false';
+    // skin ID — последний аргумент обеих команд (silentgive / inventory.giveto)
+    const skinArg = skinId ? ` ${skinId}` : '';
     const command = useSilent
-      ? `silentgive ${steamId} ${itemShortName} ${amount}`
-      : `inventory.giveto ${steamId} ${itemShortName} ${amount}`;
+      ? `silentgive ${steamId} ${itemShortName} ${amount}${skinArg}`
+      : `inventory.giveto ${steamId} ${itemShortName} ${amount}${skinArg}`;
 
     console.log(`RCON → ${command}`);
     const response = await this.sendCommand(command);

@@ -3,6 +3,7 @@ import type { ShopItem } from '../types';
 export interface KitComponent {
   code: string;
   quantity: number;
+  skinId?: number;
 }
 
 // Русские названия предметов из состава наборов (shortname → имя).
@@ -26,22 +27,39 @@ const KIT_ITEM_NAMES: Record<string, string> = {
   'explosive.timed': 'Заряд C4',
   'explosive.satchel': 'Кассетный заряд',
   'trap.landmine': 'Противопехотная мина',
+  'burlap.headwrap': 'Повязка из мешковины',
+  'burlap.shirt': 'Рубашка из мешковины',
+  'burlap.trousers': 'Штаны из мешковины',
+  'burlap.shoes': 'Ботинки из мешковины',
+  'attire.hide.poncho': 'Пончо из шкур',
+  smallbackpack: 'Малый рюкзак',
 };
 
-// Разбор rust_item_code набора ("diving.mask:1,speargun.spear:15") —
-// зеркально parseBundleCode в backend/src/routes/inventory.ts, выдача идёт по той же строке.
+function parsePositiveInt(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) && value >= 1 ? value : fallback;
+}
+
+// Разбор rust_item_code набора ("diving.mask:1,speargun.spear:15",
+// со скином — "burlap.shirt:1:2911362787") — зеркально parseBundleCode
+// в backend/src/utils/rustItems.ts, выдача идёт по той же строке.
 function parseKitCode(rawCode: string): KitComponent[] {
   return rawCode
     .split(',')
     .map((part) => part.trim())
     .filter(Boolean)
     .map((part) => {
-      const separatorIndex = part.lastIndexOf(':');
-      if (separatorIndex === -1) return { code: part, quantity: 1 };
-      const code = part.slice(0, separatorIndex);
-      const qty = Number.parseInt(part.slice(separatorIndex + 1), 10);
-      if (!code || !Number.isFinite(qty) || qty < 1) return { code: part, quantity: 1 };
-      return { code, quantity: qty };
+      const segments = part.split(':');
+      const code = segments[0].trim();
+      if (!code) return { code: part, quantity: 1 };
+      const component: KitComponent = {
+        code,
+        quantity: parsePositiveInt(segments[1], 1),
+      };
+      const skinId = parsePositiveInt(segments[2], 0);
+      if (skinId > 0) component.skinId = skinId;
+      return component;
     });
 }
 
@@ -58,8 +76,11 @@ export function getKitItemLabel(code: string): string {
   return KIT_ITEM_NAMES[code] ?? code;
 }
 
-export function getKitItemIconPath(code: string): string {
-  return `/uploads/shop/${code}.png`;
+// Иконка предмета: базовая — /uploads/shop/<shortname>.png,
+// со скином — /uploads/shop/<shortname>.<skinId>.png
+// (картинка скина кладётся рядом с иконкой базового предмета).
+export function getKitItemIconPath(code: string, skinId?: number): string {
+  return skinId ? `/uploads/shop/${code}.${skinId}.png` : `/uploads/shop/${code}.png`;
 }
 
 // Короткая подводка из описания — текст до первого двоеточия

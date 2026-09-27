@@ -20,7 +20,8 @@
     "migrate:024": "node scripts/run-sql-migration.mjs database/migrations/024-shop-raid-rescue-kit.sql",
     "migrate:025": "node scripts/run-sql-migration.mjs database/migrations/025-fortune-wheel.sql",
     "migrate:026": "node scripts/run-sql-migration.mjs database/migrations/026-fortune-wheel-prizes-v2.sql",
-    "migrate:027": "node scripts/run-sql-migration.mjs database/migrations/027-wheel-mythic-rarity.sql"
+    "migrate:027": "node scripts/run-sql-migration.mjs database/migrations/027-wheel-mythic-rarity.sql",
+    "migrate:028": "node scripts/run-sql-migration.mjs database/migrations/028-kit-winter-start-arctic-skins.sql"
   },
   "dependencies": {
     "compression": "^1.7.4",

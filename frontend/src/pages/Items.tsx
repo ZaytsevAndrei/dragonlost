@@ -447,9 +447,9 @@ function Items() {
                           ) : null}
                           <ul className="item-kit-chips" aria-label="Состав набора">
                             {kitComponents.map((component) => (
-                              <li key={component.code} className="item-kit-chip">
+                              <li key={`${component.code}:${component.skinId ?? 0}`} className="item-kit-chip">
                                 <ItemImage
-                                  imagePath={getKitItemIconPath(component.code)}
+                                  imagePath={getKitItemIconPath(component.code, component.skinId)}
                                   alt=""
                                   wrapClassName="item-kit-chip-icon"
                                   imgClassName="item-kit-chip-img"
@@ -541,10 +541,10 @@ function Items() {
                             </h3>
                             <ul className="item-modal-kit-list">
                               {modalKitComponents.map((component) => (
-                                <li key={component.code} className="item-modal-kit-row">
+                                <li key={`${component.code}:${component.skinId ?? 0}`} className="item-modal-kit-row">
                                   <span className="item-modal-kit-icon">
                                     <ItemImage
-                                      imagePath={getKitItemIconPath(component.code)}
+                                      imagePath={getKitItemIconPath(component.code, component.skinId)}
                                       alt=""
                                       wrapClassName="item-modal-kit-icon-inner"
                                       imgClassName="item-modal-kit-img"
