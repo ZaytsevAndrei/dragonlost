@@ -26,6 +26,9 @@ const KIT_ITEM_NAMES: Record<string, string> = {
   'explosive.timed': 'Заряд C4',
   'explosive.satchel': 'Кассетный заряд',
   'trap.landmine': 'Противопехотная мина',
+  hazmatsuit: 'Антирадиационный костюм',
+  'rifle.semiauto': 'Полуавтоматическая винтовка',
+  'ammo.rifle': 'Патроны 5.56 мм',
 };
 
 // Разбор rust_item_code набора ("diving.mask:1,speargun.spear:15") —
