@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatePanel from '../components/StatePanel';
+import { PixelCrateIcon } from '../components/FortuneWheelIcons';
 import { api, getImageUrl } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { saveLastPage } from '../utils/safeLocalStorage';
@@ -243,24 +244,24 @@ function Inventory() {
               {usingAll ? 'Выдача...' : '📦 Получить все'}
             </button>
           </div>
-          <div className="inventory-list pending-list">
+          <div className="pending-grid">
             {pendingItems.map((item) => (
-              <article className="inventory-row pending" key={item.id}>
-                {item.image_url ? (
-                  <img
-                    className="row-image"
-                    src={getImageUrl(item.image_url)}
-                    alt={item.item_name}
-                    onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
-                  />
-                ) : (
-                  <div className="row-image row-image-placeholder">📦</div>
-                )}
-                <div className="row-main">
-                  <div className="row-title">
-                    <span className="item-name">{item.item_name}</span>
-                    {item.quantity > 1 ? <span className="quantity-badge">×{item.quantity}</span> : null}
-                  </div>
+              <article className="pending-card" key={item.id}>
+                <div className="pending-card-image">
+                  {item.image_url ? (
+                    <img
+                      src={getImageUrl(item.image_url)}
+                      alt={item.item_name}
+                      loading="lazy"
+                      onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')}
+                    />
+                  ) : (
+                    <PixelCrateIcon width={44} height={44} />
+                  )}
+                  {item.quantity > 1 ? <span className="quantity-badge">×{item.quantity}</span> : null}
+                </div>
+                <div className="pending-card-body">
+                  <span className="item-name" title={item.item_name}>{item.item_name}</span>
                   <div className="row-meta">
                     <span className="item-category">{CATEGORY_NAMES[item.item_category] || item.item_category}</span>
                     <span className="row-date" title={formatDate(item.purchased_at)}>
