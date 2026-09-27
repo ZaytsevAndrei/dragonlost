@@ -179,7 +179,7 @@ function Leaders() {
                 <th className="leaders-rank-col">#</th>
                 <th>Игрок</th>
                 <th className="leaders-metric-col">{metricTitle(metric)}</th>
-                <th>Убийств</th>
+                <th>Смертей</th>
                 <th>K/D</th>
               </tr>
             </thead>
@@ -197,7 +197,7 @@ function Leaders() {
                     </Link>
                   </td>
                   <td className="leaders-metric-cell">{metricValue(player, metric)}</td>
-                  <td>{formatNumber(player.stats.kills)}</td>
+                  <td>{formatNumber(player.stats.deaths)}</td>
                   <td className="kd-stat">{player.stats.kd.toFixed(2)}</td>
                 </tr>
               ))}
