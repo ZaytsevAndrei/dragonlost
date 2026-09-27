@@ -133,14 +133,13 @@ class RustRconService {
 
   async giveItem(steamId: string, itemShortName: string, amount: number, skinId?: number): Promise<string> {
     const useSilent = process.env.RCON_SILENT_GIVE !== 'false';
-    // silentgive игнорирует skin ID (предмет приходит без скина, часть команд падает),
-    // поэтому скиновые предметы выдаём только через inventory.giveto —
-    // у неё skin ID последний аргумент: inventory.giveto <steamid> <shortname> <кол-во> <skinid>
-    const command = skinId
-      ? `inventory.giveto ${steamId} ${itemShortName} ${amount} ${skinId}`
-      : useSilent
-        ? `silentgive ${steamId} ${itemShortName} ${amount}`
-        : `inventory.giveto ${steamId} ${itemShortName} ${amount}`;
+    // skin ID — последний аргумент, применяется серверным плагином SilentGive
+    // (plugins/SilentGive.cs, версия 1.2.0+). inventory.giveto не используем для
+    // скиновых предметов: ванильная команда пишет "SERVER gave ..." в общий чат.
+    const skinArg = skinId ? ` ${skinId}` : '';
+    const command = useSilent
+      ? `silentgive ${steamId} ${itemShortName} ${amount}${skinArg}`
+      : `inventory.giveto ${steamId} ${itemShortName} ${amount}${skinArg}`;
 
     console.log(`RCON → ${command}`);
     const response = await this.sendCommand(command);
