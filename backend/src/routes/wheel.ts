@@ -4,8 +4,6 @@ import { webPool } from '../config/database';
 import { isAuthenticated } from '../middleware/auth';
 import { sensitiveRateLimiter } from '../middleware/rateLimiter';
 import { getFreshSteamNickname, getSteamProfiles } from '../services/steamProfile';
-import { rconService } from '../services/rconService';
-import { parseBundleCode } from '../utils/rustItems';
 import {
   FORTUNE_WHEEL_COOLDOWN_HOURS,
   FORTUNE_WHEEL_NICKNAME_TAG,
@@ -207,8 +205,8 @@ router.post('/check-tag', sensitiveRateLimiter, isAuthenticated, async (req, res
 
 /**
  * POST /api/wheel/spin — крутить колесо (раз в 4 часа, метка в нике обязательна).
- * Приз выдаётся сразу в игру через RCON (игрок должен быть онлайн на сервере),
- * в player_inventory не логируется. Если выдача не удалась — спин не расходуется.
+ * Приз попадает в player_inventory со статусом pending — забирается в игре как покупка,
+ * поэтому крутить можно и не находясь на сервере.
  */
 router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => {
   const connection = await webPool.getConnection();
@@ -229,23 +227,6 @@ router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => 
         tag_verified: false,
         nickname,
       });
-    }
-
-    if (!rconService.isConfigured()) {
-      return res.status(503).json({ error: 'Выдача призов временно недоступна (RCON не настроен)' });
-    }
-
-    try {
-      const isOnline = await rconService.isPlayerOnline(steamid);
-      if (!isOnline) {
-        return res.status(400).json({
-          error: 'Зайдите на сервер, чтобы крутить колесо — приз выдаётся сразу в игру',
-        });
-      }
-    } catch (onlineCheckError: unknown) {
-      const message = onlineCheckError instanceof Error ? onlineCheckError.message : String(onlineCheckError);
-      console.error('RCON online check failed:', message);
-      return res.status(502).json({ error: 'Не удалось проверить онлайн-статус. Попробуйте позже.' });
     }
 
     const prizes = await fetchPrizes();
@@ -287,18 +268,11 @@ router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => 
       [steamid, prize.id, quantity > 1 ? `${prize.name} ×${quantity}` : prize.name, prize.image_url, prize.rarity]
     );
 
-    // Выдача внутри транзакции: если RCON не отдал предмет — откатываем спин целиком.
-    try {
-      const components = parseBundleCode(prize.rust_item_code);
-      for (const component of components) {
-        await rconService.giveItem(steamid, component.code, component.quantity * quantity);
-      }
-    } catch (rconError: unknown) {
-      await connection.rollback();
-      const message = rconError instanceof Error ? rconError.message : String(rconError);
-      console.error('RCON prize delivery failed:', message);
-      return res.status(502).json({ error: 'Не удалось выдать приз на сервере. Попробуйте позже.' });
-    }
+    await connection.query(
+      `INSERT INTO player_inventory (steamid, shop_item_id, wheel_prize_id, quantity, status)
+       VALUES (?, NULL, ?, ?, 'pending')`,
+      [steamid, prize.id, quantity]
+    );
 
     await connection.query(
       `UPDATE wheel_players
