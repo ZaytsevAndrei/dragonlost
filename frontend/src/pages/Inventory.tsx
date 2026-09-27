@@ -82,6 +82,7 @@ function Inventory() {
   const [error, setError] = useState<string | null>(null);
   const [usingItemId, setUsingItemId] = useState<number | null>(null);
   const [usingAll, setUsingAll] = useState(false);
+  const [confirmUseAll, setConfirmUseAll] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const fetchInventory = useCallback(async () => {
@@ -165,6 +166,15 @@ function Inventory() {
     }
   }, [onlineStatus?.online, pendingItems.length, fetchInventory, checkOnlineStatus]);
 
+  useEffect(() => {
+    if (!confirmUseAll) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmUseAll(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [confirmUseAll]);
+
   if (authLoading || !user || loading) {
     return (
       <div className="inventory">
@@ -231,7 +241,7 @@ function Inventory() {
             <button
               className="btn-use-all"
               type="button"
-              onClick={handleUseAll}
+              onClick={() => setConfirmUseAll(true)}
               disabled={!canUse || usingAll || usingItemId !== null}
             >
               {usingAll ? 'Выдача...' : '📦 Получить все'}
@@ -284,6 +294,44 @@ function Inventory() {
           <button type="button" className="btn-shop" onClick={() => navigate('/shop')}>
             Перейти в магазин
           </button>
+        </div>
+      ) : null}
+
+      {confirmUseAll ? (
+        <div className="inv-confirm-backdrop" onClick={() => setConfirmUseAll(false)}>
+          <div
+            className="inv-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inv-confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="inv-confirm-title">📦 Получить все предметы?</h3>
+            <p>
+              Вы уверены? Все ожидающие предметы ({pendingItems.length} шт.) будут выданы
+              вашему персонажу в игре прямо сейчас.
+            </p>
+            <div className="inv-confirm-actions">
+              <button
+                className="inv-confirm-btn inv-confirm-btn-cancel"
+                type="button"
+                onClick={() => setConfirmUseAll(false)}
+              >
+                Отмена
+              </button>
+              <button
+                className="inv-confirm-btn inv-confirm-btn-ok"
+                type="button"
+                disabled={usingAll}
+                onClick={() => {
+                  setConfirmUseAll(false);
+                  void handleUseAll();
+                }}
+              >
+                {usingAll ? 'Выдача...' : 'Да, получить все'}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

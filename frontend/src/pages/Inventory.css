@@ -221,6 +221,86 @@
   cursor: not-allowed;
 }
 
+/* Подтверждение «Получить все» */
+.inv-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 1000;
+  animation: inv-confirm-fade-in 0.15s ease;
+}
+
+.inv-confirm {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.inv-confirm h3 {
+  margin: 0 0 var(--space-2);
+}
+
+.inv-confirm p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  margin: 0 0 var(--space-5);
+}
+
+.inv-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.inv-confirm-btn {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.inv-confirm-btn:hover {
+  border-color: var(--brand-500);
+}
+
+.inv-confirm-btn-ok {
+  border-color: color-mix(in srgb, var(--success-500) 45%, var(--border-strong));
+  background: color-mix(in srgb, var(--success-500) 24%, var(--bg-tertiary));
+  color: #d4ffe0;
+  font-weight: 700;
+}
+
+.inv-confirm-btn-ok:hover {
+  border-color: var(--success-500);
+}
+
+.inv-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes inv-confirm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .inventory-filters {
   display: flex;
   flex-direction: column;
