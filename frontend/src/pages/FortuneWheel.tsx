@@ -278,10 +278,10 @@ function FortuneWheel() {
     <div className="fortune-wheel">
       <div className="fw-page-header">
         <span className="fw-page-badge">Колесо удачи</span>
-        <h1>Бесплатный кейс каждые 4 часа</h1>
+        <h1>Бесплатный шанс каждые 4 часа</h1>
         <p className="fw-page-subtitle">
           Испытайте удачу — раз в {config?.cooldown_hours ?? 4} часа можно бесплатно крутить колесо.
-          Приз приходит на ваш аккаунт автоматически — заберите его в игре через страницу{' '}
+          Приз зачисляется на ваш аккаунт автоматически — заберите его в игре на странице{' '}
           <Link to="/inventory">«Инвентарь»</Link>.
         </p>
       </div>
