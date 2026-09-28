@@ -9,14 +9,16 @@ import { PixelCrateIcon } from './FortuneWheelIcons';
 import { playWheelSpinSound, playWheelWinChime, resumeWheelAudio } from '../utils/wheelSpinSound';
 import './FortuneWheelReel.css';
 
-const SPIN_DURATION_MS = 4800;
-const SPIN_EASING = 'cubic-bezier(0.08, 0.68, 0.06, 1)';
+const SPIN_DURATION_MS = 2000;
+/** Разгон ленты в начале и плавное торможение в конце (ускорение — замедление). */
+const SPIN_EASING = 'cubic-bezier(0.65, 0, 0.35, 1)';
 const IDLE_STRIP_LEN = 12;
 /** Сколько карточек вокруг указателя переносим с прошлой ленты (до/после). */
 const PREFIX_BEFORE = 2;
 const PREFIX_AFTER = 3;
-/** Случайный наполнитель между переносимыми карточками и победителем. */
-const FILLER_COUNT = 42;
+/** Случайный наполнитель между переносимыми карточками и победителем.
+ * Подобран под 2-секундную прокрутку, чтобы лента не мельтешила. */
+const FILLER_COUNT = 18;
 /** Карточки после победителя, чтобы лента не обрывалась сразу за ним. */
 const TAIL_COUNT = 4;
 

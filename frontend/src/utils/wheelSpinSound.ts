@@ -61,7 +61,7 @@ export function resumeWheelAudio(): void {
   }
 }
 
-/** Тики с замедлением на протяжении анимации вращения. */
+/** Тики в такт прокрутке: разгоняются вместе с лентой и редеют при торможении (ease-in-out). */
 export function playWheelSpinSound(durationMs: number): () => void {
   const ctx = getAudioContext();
   void ctx.resume();
@@ -76,12 +76,13 @@ export function playWheelSpinSound(durationMs: number): () => void {
     if (elapsed >= durationMs) return;
 
     const progress = elapsed / durationMs;
-    const eased = 1 - (1 - progress) ** 2;
+    // Относительная скорость ленты при ease-in-out: 0 → 1 к середине → 0 к концу.
+    const speed = Math.max(0.2, 4 * Math.min(progress, 1 - progress));
     const baseInterval = 55;
-    const maxInterval = 420;
-    const interval = baseInterval + (maxInterval - baseInterval) * eased;
+    const maxInterval = 260;
+    const interval = Math.min(baseInterval / speed, maxInterval);
 
-    playMechanicalTick(ctx, 0.22 + (1 - eased) * 0.18);
+    playMechanicalTick(ctx, 0.18 + speed * 0.11);
     tickCount += 1;
 
     const nextDelay = interval * (0.85 + Math.random() * 0.3);
