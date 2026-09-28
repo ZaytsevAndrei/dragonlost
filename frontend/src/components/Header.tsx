@@ -121,14 +121,6 @@ function Header() {
                         Инвентарь
                       </Link>
                       <Link
-                        to="/wheel"
-                        className="dropdown-item"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <span className="dropdown-icon">🎡</span>
-                        Колесо удачи
-                      </Link>
-                      <Link
                         to="/telegram"
                         className="dropdown-item"
                         onClick={() => setDropdownOpen(false)}
