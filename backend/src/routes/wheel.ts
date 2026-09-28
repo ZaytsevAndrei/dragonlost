@@ -8,6 +8,7 @@ import {
   FORTUNE_WHEEL_COOLDOWN_HOURS,
   FORTUNE_WHEEL_NICKNAME_TAG,
   FORTUNE_WHEEL_RECENT_WINS_LIMIT,
+  rollPrizeQuantity,
   rollWeightedPrize,
   type FortuneWheelRarity,
 } from '../constants/fortuneWheel';
@@ -66,17 +67,6 @@ async function fetchPrizes(): Promise<WheelPrizeRow[]> {
 function prizeChancePercent(weight: number, totalWeight: number): number {
   if (totalWeight <= 0) return 0;
   return Math.round((Number(weight) / totalWeight) * 1000) / 10;
-}
-
-/**
- * Фактическое количество приза: фикс (quantity) или ролл из диапазона quantity..quantity_max.
- * Для призов старого формата ("wood:1000", quantity=1) возвращает quantity как есть.
- */
-function rollPrizeQuantity(prize: WheelPrizeRow): number {
-  const min = Number(prize.quantity);
-  const max = prize.quantity_max === null ? min : Number(prize.quantity_max);
-  if (max <= min) return min;
-  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 /** Живая проверка метки в нике Steam. Возвращает ник или null, если Steam недоступен. */

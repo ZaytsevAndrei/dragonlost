@@ -25,3 +25,19 @@ export function rollWeightedPrize<T extends WeightedPrize>(prizes: T[]): T {
   }
   return prizes[prizes.length - 1];
 }
+
+export interface QuantityRangedPrize {
+  quantity: number;
+  quantity_max: number | null;
+}
+
+/**
+ * Фактическое количество приза: фикс (quantity) или ролл из диапазона quantity..quantity_max.
+ * Для призов старого формата ("wood:1000", quantity=1) возвращает quantity как есть.
+ */
+export function rollPrizeQuantity(prize: QuantityRangedPrize): number {
+  const min = Number(prize.quantity);
+  const max = prize.quantity_max === null ? min : Number(prize.quantity_max);
+  if (max <= min) return min;
+  return min + Math.floor(Math.random() * (max - min + 1));
+}

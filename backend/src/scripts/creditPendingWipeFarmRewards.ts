@@ -1,5 +1,8 @@
 /**
- * Доначисление призов фарма, которые не были зачислены (credited = 0).
+ * Доначисление наград фарма, которые не были выданы (credited = 0).
+ * Старые циклы (prize_amount > 0) доначисляются монетами на баланс — как и было
+ * обещано до перехода на предметные награды. Новые циклы (prize_amount = 0) —
+ * случайными призами нужных качеств в инвентарь сайта.
  * backend: npx ts-node src/scripts/creditPendingWipeFarmRewards.ts
  */
 import dotenv from 'dotenv';
@@ -9,7 +12,13 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 import { RowDataPacket } from 'mysql2';
 import { webPool } from '../config/database';
-import { creditFarmPrizeForLeader } from '../services/wipeFarmSummary';
+import {
+  creditFarmPrizeMoneyForLeader,
+  farmRewardRaritiesForRank,
+  grantFarmRewardsForLeader,
+  insertFarmRewardItems,
+  parseFarmRewardRarities,
+} from '../services/wipeFarmSummary';
 import { formatCoinsWithLabel } from '../constants/currency';
 
 interface PendingRewardRow extends RowDataPacket {
@@ -20,11 +29,12 @@ interface PendingRewardRow extends RowDataPacket {
   player_name: string;
   rating_score: number;
   prize_amount: number;
+  reward_rarities: string | null;
 }
 
 async function main(): Promise<void> {
   const [rows] = await webPool.query<PendingRewardRow[]>(
-    `SELECT id, wipe_cycle_started_at, \`rank\`, steamid, player_name, rating_score, prize_amount
+    `SELECT id, wipe_cycle_started_at, \`rank\`, steamid, player_name, rating_score, prize_amount, reward_rarities
      FROM wipe_farm_rewards
      WHERE credited = 0
      ORDER BY wipe_cycle_started_at, \`rank\``
@@ -42,26 +52,56 @@ async function main(): Promise<void> {
     await connection.beginTransaction();
 
     for (const row of rows) {
-      const leader = {
-        rank: Number(row.rank),
-        steamid: String(row.steamid),
-        name: String(row.player_name),
-        ratingScore: Number(row.rating_score),
-        prizeAmount: Number(row.prize_amount),
-      };
+      const rank = Number(row.rank);
+      const steamid = String(row.steamid);
+      const name = String(row.player_name);
+      const ratingScore = Number(row.rating_score);
 
-      const { creditNote } = await creditFarmPrizeForLeader(connection, leader);
+      if (Number(row.prize_amount) > 0) {
+        const { creditNote } = await creditFarmPrizeMoneyForLeader(connection, {
+          rank,
+          steamid,
+          name,
+          ratingScore,
+          prizeAmount: Number(row.prize_amount),
+        });
+
+        await connection.query(
+          'UPDATE wipe_farm_rewards SET credited = 1, credit_note = ? WHERE id = ?',
+          [creditNote, row.id]
+        );
+
+        console.log(
+          `OK (легаси, монеты): #${row.id} ТОП-${rank} ${name} (${steamid}) +${formatCoinsWithLabel(Number(row.prize_amount))} — ${creditNote}`
+        );
+        continue;
+      }
+
+      const rewardRarities =
+        parseFarmRewardRarities(row.reward_rarities).length > 0
+          ? parseFarmRewardRarities(row.reward_rarities)
+          : farmRewardRaritiesForRank(rank);
+
+      const granted = await grantFarmRewardsForLeader(connection, { steamid, name, rewardRarities });
+      if (granted.credited) {
+        await insertFarmRewardItems(connection, row.id, granted.rewards);
+      }
 
       await connection.query(
-        `UPDATE wipe_farm_rewards
-         SET credited = 1, credit_note = ?
-         WHERE id = ?`,
-        [creditNote, row.id]
+        'UPDATE wipe_farm_rewards SET credited = ?, credit_note = ? WHERE id = ?',
+        [granted.credited ? 1 : 0, granted.creditNote, row.id]
       );
 
-      console.log(
-        `OK: #${row.id} ТОП-${leader.rank} ${leader.name} (${leader.steamid}) +${formatCoinsWithLabel(leader.prizeAmount)} — ${creditNote}`
-      );
+      if (granted.credited) {
+        const rewardList = granted.rewards
+          .map((reward) => (reward.quantity > 1 ? `${reward.prizeName} ×${reward.quantity}` : reward.prizeName))
+          .join(', ');
+        console.log(`OK (награды): #${row.id} ТОП-${rank} ${name} (${steamid}) — ${rewardList}`);
+      } else {
+        console.warn(
+          `ПРОПУСК: #${row.id} ТОП-${rank} ${name} (${steamid}) — ${granted.creditNote}`
+        );
+      }
     }
 
     await connection.commit();

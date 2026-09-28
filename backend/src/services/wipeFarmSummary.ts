@@ -1,4 +1,4 @@
-import { RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import type { PoolConnection } from 'mysql2/promise';
 import { rustPool, webPool } from '../config/database';
 import { formatMysqlDatetimeMsk } from '../utils/mskDateTime';
@@ -10,11 +10,39 @@ import {
   subtractWipeBaseline,
 } from './statsWipeService';
 import { ensureWebUser } from './userProvisioning';
-import { formatCoinsWithLabel } from '../constants/currency';
+import { rollPrizeQuantity, type FortuneWheelRarity } from '../constants/fortuneWheel';
 import { upcomingWipeInstants, wipeRestartLabelMsk } from '../utils/wipeSchedule';
 
 const TOP_PLACES = 3;
-const PRIZE_BY_RANK = [500, 250, 150] as const;
+
+/**
+ * Качества наград за место в ТОП фарма:
+ * 1-е — мифическая + легендарная, 2-е — легендарная + эпическая, 3-е — эпическая + редкая.
+ */
+const REWARD_RARITIES_BY_RANK: ReadonlyArray<readonly [FortuneWheelRarity, FortuneWheelRarity]> = [
+  ['mythic', 'legendary'],
+  ['legendary', 'epic'],
+  ['epic', 'rare'],
+];
+
+/** Порядок качеств от высокого к низкому — фолбэк, если пул нужного качества пуст. */
+const RARITY_LADDER: readonly FortuneWheelRarity[] = [
+  'mythic',
+  'legendary',
+  'epic',
+  'rare',
+  'uncommon',
+  'common',
+];
+
+const RARITY_LABELS_FEM: Record<FortuneWheelRarity, string> = {
+  common: 'обычная',
+  uncommon: 'необычная',
+  rare: 'редкая',
+  epic: 'эпическая',
+  legendary: 'легендарная',
+  mythic: 'мифическая',
+};
 
 const FARM_WEIGHTS = {
   sulfurOre: { gatheredKey: 'sulfur.ore', weight: 1 },
@@ -30,13 +58,25 @@ export interface FarmBreakdown {
   wood: number;
 }
 
+/** Предмет, выданный как награда за место в ТОП фарма. */
+export interface GrantedFarmReward {
+  /** Качество из награды за место. */
+  rarity: FortuneWheelRarity;
+  wheelPrizeId: number;
+  prizeName: string;
+  /** Фактическое качество приза — ниже запрошенного, если пул был пуст. */
+  prizeRarity: FortuneWheelRarity;
+  quantity: number;
+}
+
 export interface RatedFarmLeader {
   rank: number;
   steamid: string;
   name: string;
   ratingScore: number;
   breakdown: FarmBreakdown;
-  prizeAmount: number;
+  rewardRarities: FortuneWheelRarity[];
+  rewards: GrantedFarmReward[];
   credited: boolean;
   creditNote: string | null;
 }
@@ -103,6 +143,21 @@ function formatPeriodStart(date: Date | null): string {
 
 const MEDALS = ['🥇', '🥈', '🥉'] as const;
 const PLACE_LABELS = ['1 место', '2 место', '3 место'] as const;
+
+/** Качества награды за место (1-е — мифическая + легендарная и т.д.). */
+export function farmRewardRaritiesForRank(rank: number): FortuneWheelRarity[] {
+  return [...(REWARD_RARITIES_BY_RANK[rank - 1] ?? [])];
+}
+
+/** Разбирает колонку wipe_farm_rewards.reward_rarities ('mythic+legendary'). */
+export function parseFarmRewardRarities(value: unknown): FortuneWheelRarity[] {
+  return String(value ?? '')
+    .split('+')
+    .map((part) => part.trim())
+    .filter((part): part is FortuneWheelRarity =>
+      (RARITY_LADDER as readonly string[]).includes(part)
+    );
+}
 
 async function hasRewardsForCycle(cycleKey: string): Promise<boolean> {
   try {
@@ -178,7 +233,8 @@ export async function computeWipeFarmRatingTop(): Promise<WipeFarmRatingResult |
     name: p.name,
     ratingScore: p.ratingScore,
     breakdown: p.breakdown,
-    prizeAmount: PRIZE_BY_RANK[i] ?? 0,
+    rewardRarities: farmRewardRaritiesForRank(i + 1),
+    rewards: [],
     credited: false,
     creditNote: null,
   }));
@@ -192,15 +248,110 @@ export async function computeWipeFarmRatingTop(): Promise<WipeFarmRatingResult |
   };
 }
 
-const CREDIT_NOTE_EXISTING = 'начислено на баланс сайта';
-const CREDIT_NOTE_PROVISIONED =
-  'начислено на баланс — войдите через Steam на dragonlost.ru, чтобы потратить';
+interface RewardPrizeRow extends RowDataPacket {
+  id: number;
+  name: string;
+  rarity: FortuneWheelRarity;
+  quantity: number;
+  quantity_max: number | null;
+}
 
-/** Создаёт профиль при необходимости и начисляет приз на баланс. */
-export async function creditFarmPrizeForLeader(
+/** Случайный активный приз колеса нужного качества; если пул пуст — ближайший более низкий. */
+async function rollRewardPrize(
   connection: PoolConnection,
-  leader: Pick<RatedFarmLeader, 'rank' | 'steamid' | 'name' | 'ratingScore' | 'prizeAmount'>
-): Promise<{ credited: boolean; creditNote: string }> {
+  rarity: FortuneWheelRarity
+): Promise<RewardPrizeRow | null> {
+  for (let i = RARITY_LADDER.indexOf(rarity); i < RARITY_LADDER.length; i += 1) {
+    const [rows] = await connection.query<RewardPrizeRow[]>(
+      `SELECT id, name, rarity, quantity, quantity_max
+       FROM wheel_prizes
+       WHERE is_active = 1 AND rarity = ?
+       ORDER BY RAND()
+       LIMIT 1`,
+      [RARITY_LADDER[i]]
+    );
+    if (rows.length > 0) return rows[0];
+  }
+  return null;
+}
+
+const CREDIT_NOTE_EXISTING = 'награды добавлены в инвентарь сайта — забрать: профиль → Инвентарь';
+const CREDIT_NOTE_PROVISIONED =
+  'награды в инвентаре — войдите через Steam на dragonlost.ru, чтобы забрать их в игре';
+
+/** Создаёт профиль при необходимости и выдаёт случайные награды за место в инвентарь. */
+export async function grantFarmRewardsForLeader(
+  connection: PoolConnection,
+  leader: Pick<RatedFarmLeader, 'steamid' | 'name' | 'rewardRarities'>
+): Promise<{ credited: boolean; creditNote: string | null; rewards: GrantedFarmReward[] }> {
+  const { created } = await ensureWebUser(connection, {
+    steamid: leader.steamid,
+    username: leader.name,
+  });
+
+  const rewards: GrantedFarmReward[] = [];
+  for (const rarity of leader.rewardRarities) {
+    const prize = await rollRewardPrize(connection, rarity);
+    if (!prize) continue;
+
+    const quantity = rollPrizeQuantity(prize);
+    await connection.query(
+      `INSERT INTO player_inventory (steamid, shop_item_id, wheel_prize_id, quantity, status)
+       VALUES (?, NULL, ?, ?, 'pending')`,
+      [leader.steamid, prize.id, quantity]
+    );
+    rewards.push({
+      rarity,
+      wheelPrizeId: prize.id,
+      prizeName: prize.name,
+      prizeRarity: prize.rarity,
+      quantity,
+    });
+  }
+
+  if (rewards.length === 0) {
+    return { credited: false, creditNote: 'нет активных призов — награды не выданы', rewards: [] };
+  }
+
+  return {
+    credited: true,
+    creditNote: created ? CREDIT_NOTE_PROVISIONED : CREDIT_NOTE_EXISTING,
+    rewards,
+  };
+}
+
+/** Записывает выданные предметы награды (для истории и повторной выдачи). */
+export async function insertFarmRewardItems(
+  connection: PoolConnection,
+  rewardId: number,
+  rewards: GrantedFarmReward[]
+): Promise<void> {
+  for (const reward of rewards) {
+    await connection.query(
+      `INSERT INTO wipe_farm_reward_items
+         (reward_id, rarity_requested, wheel_prize_id, prize_name, prize_rarity, quantity)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [rewardId, reward.rarity, reward.wheelPrizeId, reward.prizeName, reward.prizeRarity, reward.quantity]
+    );
+  }
+}
+
+export interface LegacyMoneyPrizeLeader {
+  rank: number;
+  steamid: string;
+  name: string;
+  ratingScore: number;
+  prizeAmount: number;
+}
+
+/**
+ * Легаси: денежный приз за ТОП фарма. Только для старых циклов (prize_amount > 0),
+ * начисленных до перехода на предметные награды — их не отбираем и доначисляем как было.
+ */
+export async function creditFarmPrizeMoneyForLeader(
+  connection: PoolConnection,
+  leader: LegacyMoneyPrizeLeader
+): Promise<{ creditNote: string }> {
   const { created } = await ensureWebUser(connection, {
     steamid: leader.steamid,
     username: leader.name,
@@ -224,12 +375,13 @@ export async function creditFarmPrizeForLeader(
   );
 
   return {
-    credited: true,
-    creditNote: created ? CREDIT_NOTE_PROVISIONED : CREDIT_NOTE_EXISTING,
+    creditNote: created
+      ? 'начислено на баланс — войдите через Steam на dragonlost.ru, чтобы потратить'
+      : 'начислено на баланс сайта',
   };
 }
 
-/** Начисляет призы ТОП-3 (один раз за цикл вайпа). */
+/** Выдаёт предметные награды ТОП-3 (один раз за цикл вайпа). */
 export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<WipeFarmRatingResult> {
   if (result.alreadyProcessed || !result.cycleKey || result.leaders.length === 0) {
     return result;
@@ -242,16 +394,16 @@ export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<W
     const paidLeaders: RatedFarmLeader[] = [];
 
     for (const leader of result.leaders) {
-      const { credited, creditNote } = await creditFarmPrizeForLeader(connection, leader);
-      paidLeaders.push({ ...leader, credited, creditNote });
+      const granted = await grantFarmRewardsForLeader(connection, leader);
+      paidLeaders.push({ ...leader, ...granted });
     }
 
     for (const leader of paidLeaders) {
-      await connection.query(
+      const [rewardRow] = await connection.query<ResultSetHeader>(
         `INSERT INTO wipe_farm_rewards
            (wipe_cycle_started_at, \`rank\`, steamid, player_name, rating_score,
-            sulfur_ore, metal_ore, stones, wood, prize_amount, credited, credit_note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            sulfur_ore, metal_ore, stones, wood, prize_amount, reward_rarities, credited, credit_note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
         [
           result.cycleKey,
           leader.rank,
@@ -262,11 +414,13 @@ export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<W
           leader.breakdown.metalOre,
           leader.breakdown.stones,
           leader.breakdown.wood,
-          leader.prizeAmount,
+          leader.rewardRarities.join('+'),
           leader.credited ? 1 : 0,
           leader.creditNote,
         ]
       );
+
+      await insertFarmRewardItems(connection, rewardRow.insertId, leader.rewards);
     }
 
     await connection.commit();
@@ -279,6 +433,11 @@ export async function payWipeFarmPrizes(result: WipeFarmRatingResult): Promise<W
   }
 }
 
+function formatGrantedReward(reward: GrantedFarmReward): string {
+  const label = reward.quantity > 1 ? `${reward.prizeName} ×${reward.quantity}` : reward.prizeName;
+  return `**${label}** (${RARITY_LABELS_FEM[reward.prizeRarity]} награда)`;
+}
+
 export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult): string {
   const nextWipe = upcomingWipeInstants(new Date(), 1)[0];
   const hourLabel = nextWipe ? `${wipeRestartLabelMsk(nextWipe)} МСК` : 'по расписанию';
@@ -287,6 +446,7 @@ export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult)
     '🏆 **Итоги фарма перед вайпом** (за ~30 мин)',
     'Рейтинг: **серная руда ×1** + **железная руда ×0,5** + **камень ×0,3** + **дерево ×0,05**.',
     `Период: с **${formatPeriodStart(result.periodStart)}** до вайпа (~**${hourLabel}**).`,
+    'Награды за места: 1-е — мифическая + легендарная, 2-е — легендарная + эпическая, 3-е — эпическая + редкая.',
     '',
   ];
 
@@ -297,8 +457,11 @@ export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult)
       const medal = MEDALS[leader.rank - 1] ?? `${leader.rank}.`;
       const place = PLACE_LABELS[leader.rank - 1] ?? `${leader.rank} место`;
       lines.push(
-        `${medal} **${place}** — **${leader.name}** (рейтинг **${formatRating(leader.ratingScore)}**) — **${formatCoinsWithLabel(leader.prizeAmount)}**`
+        `${medal} **${place}** — **${leader.name}** (рейтинг **${formatRating(leader.ratingScore)}**)`
       );
+      if (leader.rewards.length > 0) {
+        lines.push(`↳ Награды: ${leader.rewards.map(formatGrantedReward).join(', ')}`);
+      }
       if (leader.creditNote) {
         lines.push(`↳ ${leader.creditNote}`);
       }
@@ -327,7 +490,7 @@ async function sendDiscordNotification(message: string): Promise<void> {
   }
 }
 
-/** Подводит итоги ТОП фарма, начисляет призы и отправляет в Discord. */
+/** Подводит итоги ТОП фарма, выдаёт награды и отправляет в Discord. */
 export async function announceWipeFarmTops(): Promise<void> {
   const computed = await computeWipeFarmRatingTop();
   if (!computed) {
@@ -341,7 +504,7 @@ export async function announceWipeFarmTops(): Promise<void> {
   }
 
   if (computed.alreadyProcessed) {
-    console.log('[WipeFarm] Призы за этот цикл уже начислены — повтор пропущен');
+    console.log('[WipeFarm] Награды за этот цикл уже выданы — повтор пропущен');
     return;
   }
 
