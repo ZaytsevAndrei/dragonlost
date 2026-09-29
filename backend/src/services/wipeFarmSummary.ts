@@ -17,12 +17,12 @@ const TOP_PLACES = 3;
 
 /**
  * Качества наград за место в ТОП фарма:
- * 1-е — мифическая + легендарная, 2-е — легендарная + эпическая, 3-е — эпическая + редкая.
+ * 1-е — 3 мифических + 1 легендарная, 2-е — 3 легендарных + 1 эпическая, 3-е — 3 эпических + 1 редкая.
  */
-const REWARD_RARITIES_BY_RANK: ReadonlyArray<readonly [FortuneWheelRarity, FortuneWheelRarity]> = [
-  ['mythic', 'legendary'],
-  ['legendary', 'epic'],
-  ['epic', 'rare'],
+const REWARD_RARITIES_BY_RANK: ReadonlyArray<readonly FortuneWheelRarity[]> = [
+  ['mythic', 'mythic', 'mythic', 'legendary'],
+  ['legendary', 'legendary', 'legendary', 'epic'],
+  ['epic', 'epic', 'epic', 'rare'],
 ];
 
 /** Порядок качеств от высокого к низкому — фолбэк, если пул нужного качества пуст. */
@@ -144,7 +144,7 @@ function formatPeriodStart(date: Date | null): string {
 const MEDALS = ['🥇', '🥈', '🥉'] as const;
 const PLACE_LABELS = ['1 место', '2 место', '3 место'] as const;
 
-/** Качества награды за место (1-е — мифическая + легендарная и т.д.). */
+/** Качества награды за место (1-е — 3 мифических + 1 легендарная и т.д.). */
 export function farmRewardRaritiesForRank(rank: number): FortuneWheelRarity[] {
   return [...(REWARD_RARITIES_BY_RANK[rank - 1] ?? [])];
 }
@@ -446,7 +446,7 @@ export function formatWipeFarmRatingDiscordMessage(result: WipeFarmRatingResult)
     '🏆 **Итоги фарма перед вайпом** (за ~30 мин)',
     'Рейтинг: **серная руда ×1** + **железная руда ×0,5** + **камень ×0,3** + **дерево ×0,05**.',
     `Период: с **${formatPeriodStart(result.periodStart)}** до вайпа (~**${hourLabel}**).`,
-    'Награды за места: 1-е — мифическая + легендарная, 2-е — легендарная + эпическая, 3-е — эпическая + редкая.',
+    'Награды за места: 1-е — 3 мифические + 1 легендарная, 2-е — 3 легендарные + 1 эпическая, 3-е — 3 эпические + 1 редкая.',
     '',
   ];
 
