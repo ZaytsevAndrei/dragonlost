@@ -71,8 +71,8 @@ export function FortuneWheelReel({
   const stripRef = useRef<FortuneWheelPrize[]>([]);
   const centerIndexRef = useRef(PREFIX_BEFORE);
   const winnerIndexRef = useRef<number | null>(null);
-  const skipLayoutCenterRef = useRef(false);
   const stopSoundRef = useRef<(() => void) | null>(null);
+  const finishTimerRef = useRef<number | null>(null);
   const isAnimatingRef = useRef(false);
   const onSpinCompleteRef = useRef(onSpinComplete);
   onSpinCompleteRef.current = onSpinComplete;
@@ -103,7 +103,7 @@ export function FortuneWheelReel({
     const metrics = measure();
     if (!metrics) return;
     metricsRef.current = metrics;
-    if (isAnimatingRef.current || skipLayoutCenterRef.current) return;
+    if (isAnimatingRef.current) return;
     setOffset(centerOffset(centerIndexRef.current, metrics));
     setCenterLit(centerIndexRef.current);
   }, [strip, measure]);
@@ -122,6 +122,28 @@ export function FortuneWheelReel({
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [measure]);
+
+  const finishSpin = useCallback(() => {
+    if (!isAnimatingRef.current) return;
+    isAnimatingRef.current = false;
+    if (finishTimerRef.current !== null) {
+      clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = null;
+    }
+    setIsAnimating(false);
+    stopSoundRef.current?.();
+    stopSoundRef.current = null;
+
+    const winnerIndex = winnerIndexRef.current;
+    winnerIndexRef.current = null;
+    if (winnerIndex !== null) {
+      centerIndexRef.current = winnerIndex;
+      setLitIndex(winnerIndex);
+      setCenterLit(winnerIndex);
+      playWheelWinChime();
+    }
+    onSpinCompleteRef.current();
+  }, []);
 
   useEffect(() => {
     if (!spinTarget) return;
@@ -147,24 +169,8 @@ export function FortuneWheelReel({
     // бывшая карточка под указателем теперь стоит на позиции PREFIX_BEFORE.
     centerIndexRef.current = PREFIX_BEFORE;
 
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const jitter = (Math.random() - 0.5) * 0.55 * metrics.step;
     const finalOffset = centerOffset(winnerIndex, metrics) + jitter;
-
-    if (reducedMotion) {
-      skipLayoutCenterRef.current = true;
-      setStrip([...prefix, ...filler, winner, ...tail]);
-      requestAnimationFrame(() => {
-        skipLayoutCenterRef.current = false;
-        setOffset(finalOffset);
-        setLitIndex(winnerIndex);
-        setCenterLit(winnerIndex);
-        centerIndexRef.current = winnerIndex;
-        playWheelWinChime();
-        onSpinCompleteRef.current();
-      });
-      return;
-    }
 
     setStrip([...prefix, ...filler, winner, ...tail]);
 
@@ -174,30 +180,27 @@ export function FortuneWheelReel({
         setIsAnimating(true);
         stopSoundRef.current?.();
         stopSoundRef.current = playWheelSpinSound(SPIN_DURATION_MS);
+        // Страховка: если transitionend не наступит (переход прерван и т.п.) — завершаем по таймеру.
+        finishTimerRef.current = window.setTimeout(finishSpin, SPIN_DURATION_MS + 2000);
         setOffset(finalOffset);
       });
     });
-  }, [spinTarget, prizes, measure]);
+  }, [spinTarget, prizes, measure, finishSpin]);
 
   const handleTrackTransitionEnd = (event: React.TransitionEvent<HTMLDivElement>) => {
-    if (event.propertyName !== 'transform' || !isAnimatingRef.current) return;
-    isAnimatingRef.current = false;
-    setIsAnimating(false);
-    stopSoundRef.current?.();
-    stopSoundRef.current = null;
-
-    const winnerIndex = winnerIndexRef.current;
-    winnerIndexRef.current = null;
-    if (winnerIndex !== null) {
-      centerIndexRef.current = winnerIndex;
-      setLitIndex(winnerIndex);
-      setCenterLit(winnerIndex);
-      playWheelWinChime();
-    }
-    onSpinCompleteRef.current();
+    // Карточки тоже анимируют transform (подсветка) — игнорируем всплывшие события.
+    if (event.target !== event.currentTarget) return;
+    if (event.propertyName !== 'transform') return;
+    finishSpin();
   };
 
-  useEffect(() => () => stopSoundRef.current?.(), []);
+  useEffect(
+    () => () => {
+      stopSoundRef.current?.();
+      if (finishTimerRef.current !== null) clearTimeout(finishTimerRef.current);
+    },
+    []
+  );
 
   const handleActivate = () => {
     if (!available || disabled || isAnimating) return;
