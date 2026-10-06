@@ -194,7 +194,7 @@ router.post('/check-tag', sensitiveRateLimiter, isAuthenticated, async (req, res
 });
 
 /**
- * POST /api/wheel/spin — крутить колесо (раз в 4 часа, метка в нике обязательна).
+ * POST /api/wheel/spin — крутить колесо (раз в 24 часа, метка в нике обязательна).
  * Приз попадает в player_inventory со статусом pending — забирается в игре как покупка,
  * поэтому крутить можно и не находясь на сервере.
  */

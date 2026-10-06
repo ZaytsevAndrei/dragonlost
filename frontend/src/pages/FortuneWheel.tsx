@@ -278,9 +278,9 @@ function FortuneWheel() {
     <div className="fortune-wheel">
       <div className="fw-page-header">
         <span className="fw-page-badge">Колесо удачи</span>
-        <h1>Бесплатный шанс каждые 4 часа</h1>
+        <h1>Бесплатный шанс раз в сутки</h1>
         <p className="fw-page-subtitle">
-          Испытайте удачу — раз в {config?.cooldown_hours ?? 4} часа можно бесплатно крутить колесо.
+          Испытайте удачу — раз в {config?.cooldown_hours ?? 24} часа можно бесплатно крутить колесо.
           Приз зачисляется на ваш аккаунт автоматически — заберите его, находясь в игре, на странице{' '}
           <Link to="/inventory">«Инвентарь»</Link> на сайте.
         </p>

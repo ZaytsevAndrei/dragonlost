@@ -1,7 +1,7 @@
 /** Константы колеса удачи. Должен совпадать с frontend/src/constants/fortuneWheel.ts */
 
 /** Кулдаун между бесплатными вращениями. */
-export const FORTUNE_WHEEL_COOLDOWN_HOURS = 4;
+export const FORTUNE_WHEEL_COOLDOWN_HOURS = 24;
 
 /** Метка, которую нужно добавить в ник Steam для вращения. */
 export const FORTUNE_WHEEL_NICKNAME_TAG = 'dragonlost.ru';
