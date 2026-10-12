@@ -3,7 +3,7 @@ import { rustServersApi } from '../services/rustServersApi';
 
 const router = Router();
 
-const SERVER_DISPLAY_NAME = 'DragonLost | WIPE 10 days | DUO';
+const SERVER_DISPLAY_NAME = 'DragonLost | DUO';
 
 // Get server data from rust-servers.net API
 router.get('/', async (req, res) => {
