@@ -53,11 +53,11 @@ const PRIZE_SELECT = `
   WHERE is_active = 1
   ORDER BY sort_order ASC, id ASC`;
 
-/** Начало текущих суток по Москве, в UTC: 00:00 МСК = вчерашние (24 − сдвиг) часов до полуночи UTC. */
-const MSK_TODAY_START_SQL = `DATE(UTC_TIMESTAMP() - INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR) - INTERVAL ${24 - FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR`;
+/** Начало текущих суток по Москве, в UTC: московская дата (UTC + сдвиг) минус сдвиг = 00:00 МСК. */
+const MSK_TODAY_START_SQL = `DATE(UTC_TIMESTAMP() + INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR) - INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR`;
 
 /** Начало следующих суток по Москве, в UTC — момент, когда колесо снова доступно. */
-const MSK_TOMORROW_START_SQL = `(DATE(UTC_TIMESTAMP() - INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR) + INTERVAL 1 DAY) - INTERVAL ${24 - FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR`;
+const MSK_TOMORROW_START_SQL = `DATE(UTC_TIMESTAMP() + INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR) + INTERVAL 1 DAY - INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR`;
 
 const PLAYER_SELECT = `
   SELECT tag_verified_at, last_spin_at, total_spins,
