@@ -5,9 +5,9 @@ import { isAuthenticated } from '../middleware/auth';
 import { sensitiveRateLimiter } from '../middleware/rateLimiter';
 import { getFreshSteamNickname, getSteamProfiles } from '../services/steamProfile';
 import {
-  FORTUNE_WHEEL_COOLDOWN_HOURS,
   FORTUNE_WHEEL_NICKNAME_TAG,
   FORTUNE_WHEEL_RECENT_WINS_LIMIT,
+  FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS,
   rollPrizeQuantity,
   rollWeightedPrize,
   type FortuneWheelRarity,
@@ -53,11 +53,28 @@ const PRIZE_SELECT = `
   WHERE is_active = 1
   ORDER BY sort_order ASC, id ASC`;
 
+/** Начало текущих суток по Москве, в UTC: 00:00 МСК = вчерашние (24 − сдвиг) часов до полуночи UTC. */
+const MSK_TODAY_START_SQL = `DATE(UTC_TIMESTAMP() - INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR) - INTERVAL ${24 - FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR`;
+
+/** Начало следующих суток по Москве, в UTC — момент, когда колесо снова доступно. */
+const MSK_TOMORROW_START_SQL = `(DATE(UTC_TIMESTAMP() - INTERVAL ${FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR) + INTERVAL 1 DAY) - INTERVAL ${24 - FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS} HOUR`;
+
 const PLAYER_SELECT = `
   SELECT tag_verified_at, last_spin_at, total_spins,
-         TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), last_spin_at + INTERVAL ${FORTUNE_WHEEL_COOLDOWN_HOURS} HOUR) AS seconds_until_available
+         CASE
+           WHEN last_spin_at IS NULL OR last_spin_at < ${MSK_TODAY_START_SQL} THEN 0
+           ELSE TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), ${MSK_TOMORROW_START_SQL})
+         END AS seconds_until_available
   FROM wheel_players
   WHERE steamid = ?`;
+
+/** Сколько секунд осталось до сброса кулдауна — ближайших 00:00 по Москве. */
+function secondsUntilMskMidnight(now = new Date()): number {
+  // Переводим время в «московскую шкалу» (UTC+offset) и берём следующие сутки в ней.
+  const mskNow = now.getTime() + FORTUNE_WHEEL_RESET_UTC_OFFSET_HOURS * 3600 * 1000;
+  const mskNextMidnight = Math.floor(mskNow / 86400000) * 86400000 + 86400000;
+  return Math.max(0, Math.ceil((mskNextMidnight - mskNow) / 1000));
+}
 
 async function fetchPrizes(): Promise<WheelPrizeRow[]> {
   const [rows] = await webPool.query<WheelPrizeRow[]>(PRIZE_SELECT);
@@ -86,7 +103,6 @@ router.get('/prizes', async (_req, res) => {
     const totalWeight = prizes.reduce((sum, prize) => sum + Number(prize.weight), 0);
 
     res.json({
-      cooldown_hours: FORTUNE_WHEEL_COOLDOWN_HOURS,
       nickname_tag: FORTUNE_WHEEL_NICKNAME_TAG,
       prizes: prizes.map((prize, index) => ({
         id: prize.id,
@@ -194,7 +210,7 @@ router.post('/check-tag', sensitiveRateLimiter, isAuthenticated, async (req, res
 });
 
 /**
- * POST /api/wheel/spin — крутить колесо (раз в 24 часа, метка в нике обязательна).
+ * POST /api/wheel/spin — крутить колесо (раз в сутки, сброс в 00:00 по Москве; метка в нике обязательна).
  * Приз попадает в player_inventory со статусом pending — забирается в игре как покупка,
  * поэтому крутить можно и не находясь на сервере.
  */
@@ -242,7 +258,7 @@ router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => 
     if (player && secondsUntilAvailable > 0) {
       await connection.rollback();
       return res.status(429).json({
-        error: 'Колесо уже крутилось недавно',
+        error: 'Сегодня вы уже крутили колесо — следующее вращение после 00:00 по Москве',
         seconds_until_available: secondsUntilAvailable,
       });
     }
@@ -287,7 +303,7 @@ router.post('/spin', sensitiveRateLimiter, isAuthenticated, async (req, res) => 
       },
       wheel_sector_index: sectorIndex,
       total_spins: totalSpins,
-      seconds_until_available: FORTUNE_WHEEL_COOLDOWN_HOURS * 3600,
+      seconds_until_available: secondsUntilMskMidnight(),
     });
   } catch (error) {
     await connection.rollback();

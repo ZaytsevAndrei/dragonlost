@@ -23,7 +23,6 @@ interface WheelStatus {
 }
 
 interface WheelPrizesResponse {
-  cooldown_hours: number;
   nickname_tag: string;
   prizes: FortuneWheelPrize[];
 }
@@ -187,7 +186,7 @@ function FortuneWheel() {
       } else if (typeof data?.seconds_until_available === 'number' && data.seconds_until_available > 0) {
         setStatus((prev) => (prev ? { ...prev, available: false } : prev));
         setCountdown(data.seconds_until_available);
-        setError(data.error ?? 'Колесо уже крутилось недавно');
+        setError(data.error ?? 'Сегодня вы уже крутили колесо');
       } else {
         setError(data?.error ?? 'Ошибка при вращении колеса');
       }
@@ -247,7 +246,7 @@ function FortuneWheel() {
     : !status?.tag_verified
       ? 'Добавьте метку в ник Steam'
       : !status?.available
-        ? `Следующее вращение через ${formatCountdown(countdown)}`
+        ? `Новое вращение в 00:00 по Москве — через ${formatCountdown(countdown)}`
         : null;
 
   if (loading && !config) {
@@ -280,7 +279,7 @@ function FortuneWheel() {
         <span className="fw-page-badge">Колесо удачи</span>
         <h1>Бесплатный шанс раз в сутки</h1>
         <p className="fw-page-subtitle">
-          Испытайте удачу — раз в {config?.cooldown_hours ?? 24} часа можно бесплатно крутить колесо.
+          Испытайте удачу — одно бесплатное вращение в сутки, время обновляется в 00:00 по Москве.
           Приз зачисляется на ваш аккаунт автоматически — заберите его, находясь в игре, на странице{' '}
           <Link to="/inventory">«Инвентарь»</Link> на сайте.
         </p>
